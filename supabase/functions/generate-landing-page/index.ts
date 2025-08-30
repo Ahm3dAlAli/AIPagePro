@@ -36,7 +36,8 @@ serve(async (req) => {
       toneOfVoice,
       industryType,
       pageTitle,
-      seoKeywords
+      seoKeywords,
+      template
     } = await req.json();
 
     console.log('Generating landing page with OpenAI for user:', user.id);
@@ -47,7 +48,15 @@ serve(async (req) => {
     }
 
     // Create a comprehensive prompt for AI generation
-    const prompt = `You are an expert landing page designer and copywriter. Create a high-converting landing page based on these inputs:
+    const basePrompt = template ? 
+      `You are an expert landing page designer and copywriter. Customize this existing template with the new campaign details:
+
+Template to customize: ${JSON.stringify(template.config)}
+
+New campaign inputs:` :
+      `You are an expert landing page designer and copywriter. Create a high-converting landing page based on these inputs:`;
+    
+    const prompt = `${basePrompt}
 
 Campaign Objective: ${campaignObjective}
 Target Audience: ${targetAudience}

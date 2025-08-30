@@ -11,6 +11,9 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import CreatePage from "./pages/CreatePage";
 import MyPages from "./pages/MyPages";
+import PageEditor from "./pages/PageEditor";
+import Analytics from "./pages/Analytics";
+import Templates from "./pages/Templates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +36,9 @@ const App = () => (
               <Route index element={<Dashboard />} />
               <Route path="create" element={<CreatePage />} />
               <Route path="pages" element={<MyPages />} />
+              <Route path="pages/:pageId" element={<PageEditor />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="templates" element={<Templates />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

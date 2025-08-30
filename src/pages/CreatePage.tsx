@@ -40,6 +40,15 @@ const CreatePage = () => {
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check if using a template
+    const selectedTemplate = sessionStorage.getItem('selectedTemplate');
+    let templateData = null;
+    
+    if (selectedTemplate) {
+      templateData = JSON.parse(selectedTemplate);
+      sessionStorage.removeItem('selectedTemplate');
+    }
+
     if (!formData.campaignObjective || !formData.targetAudience || !formData.uniqueValueProp) {
       toast({
         title: "Missing Information",
@@ -52,8 +61,13 @@ const CreatePage = () => {
     setIsGenerating(true);
 
     try {
+      const requestBody = {
+        ...formData,
+        template: templateData || null
+      };
+
       const { data, error } = await supabase.functions.invoke('generate-landing-page', {
-        body: formData
+        body: requestBody
       });
 
       if (error) {
@@ -63,10 +77,12 @@ const CreatePage = () => {
       if (data.success) {
         toast({
           title: "Page Generated Successfully!",
-          description: "Your AI-generated landing page is ready for review."
+          description: templateData ? 
+            "Template has been customized with your content!" :
+            "Your AI-generated landing page is ready for review."
         });
         
-        // Navigate to the generated page preview
+        // Navigate to the generated page editor
         navigate(`/dashboard/pages/${data.page.id}`);
       } else {
         throw new Error(data.error || 'Failed to generate page');
