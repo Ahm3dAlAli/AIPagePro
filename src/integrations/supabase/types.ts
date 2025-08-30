@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_rationale_reports: {
+        Row: {
+          generated_at: string
+          id: string
+          page_id: string
+          pdf_url: string | null
+          rationale_data: Json
+          report_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          generated_at?: string
+          id?: string
+          page_id: string
+          pdf_url?: string | null
+          rationale_data?: Json
+          report_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          generated_at?: string
+          id?: string
+          page_id?: string
+          pdf_url?: string | null
+          rationale_data?: Json
+          report_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       analytics_data: {
         Row: {
           avg_time_on_page: number | null
@@ -123,6 +156,60 @@ export type Database = {
           },
         ]
       }
+      brand_guidelines: {
+        Row: {
+          brand_name: string
+          compliance_requirements: string | null
+          created_at: string
+          fonts: Json
+          id: string
+          is_active: boolean | null
+          logo_guidelines: Json
+          messaging_guidelines: string | null
+          primary_colors: Json
+          secondary_colors: Json
+          tone_of_voice: string | null
+          updated_at: string
+          usage_examples: Json
+          user_id: string
+          visual_style_notes: string | null
+        }
+        Insert: {
+          brand_name?: string
+          compliance_requirements?: string | null
+          created_at?: string
+          fonts?: Json
+          id?: string
+          is_active?: boolean | null
+          logo_guidelines?: Json
+          messaging_guidelines?: string | null
+          primary_colors?: Json
+          secondary_colors?: Json
+          tone_of_voice?: string | null
+          updated_at?: string
+          usage_examples?: Json
+          user_id: string
+          visual_style_notes?: string | null
+        }
+        Update: {
+          brand_name?: string
+          compliance_requirements?: string | null
+          created_at?: string
+          fonts?: Json
+          id?: string
+          is_active?: boolean | null
+          logo_guidelines?: Json
+          messaging_guidelines?: string | null
+          primary_colors?: Json
+          secondary_colors?: Json
+          tone_of_voice?: string | null
+          updated_at?: string
+          usage_examples?: Json
+          user_id?: string
+          visual_style_notes?: string | null
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           config: Json
@@ -159,6 +246,195 @@ export type Database = {
           target_audience?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      component_exports: {
+        Row: {
+          component_name: string
+          component_type: string
+          created_at: string
+          download_count: number | null
+          export_format: string | null
+          id: string
+          is_public: boolean | null
+          json_schema: Json
+          page_id: string | null
+          react_code: string
+          sitecore_manifest: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          component_name: string
+          component_type: string
+          created_at?: string
+          download_count?: number | null
+          export_format?: string | null
+          id?: string
+          is_public?: boolean | null
+          json_schema?: Json
+          page_id?: string | null
+          react_code: string
+          sitecore_manifest?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          component_name?: string
+          component_type?: string
+          created_at?: string
+          download_count?: number | null
+          export_format?: string | null
+          id?: string
+          is_public?: boolean | null
+          json_schema?: Json
+          page_id?: string | null
+          react_code?: string
+          sitecore_manifest?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      deployment_records: {
+        Row: {
+          created_at: string
+          deployed_at: string | null
+          deployment_config: Json
+          deployment_platform: string
+          deployment_status: string | null
+          deployment_url: string | null
+          error_logs: string | null
+          id: string
+          page_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deployed_at?: string | null
+          deployment_config?: Json
+          deployment_platform: string
+          deployment_status?: string | null
+          deployment_url?: string | null
+          error_logs?: string | null
+          id?: string
+          page_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deployed_at?: string | null
+          deployment_config?: Json
+          deployment_platform?: string
+          deployment_status?: string | null
+          deployment_url?: string | null
+          error_logs?: string | null
+          id?: string
+          page_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      experiment_results: {
+        Row: {
+          audience_targeted: string | null
+          control_description: string | null
+          control_result_primary: number | null
+          created_at: string
+          decision_taken: string | null
+          delta_absolute: number | null
+          end_date: string | null
+          experiment_id: string | null
+          experiment_name: string
+          future_recommendations: string | null
+          hypothesis: string | null
+          id: string
+          key_insights: string | null
+          limitations_notes: string | null
+          owner: string | null
+          p_value: number | null
+          primary_metric: string | null
+          projected_business_impact: string | null
+          sample_size_control: number | null
+          sample_size_variant: number | null
+          secondary_metrics: string[] | null
+          start_date: string | null
+          statistical_significance: boolean | null
+          traffic_allocation: string | null
+          updated_at: string
+          uplift_relative: number | null
+          user_id: string
+          variant_description: string | null
+          variant_result_primary: number | null
+          winning_variant: string | null
+        }
+        Insert: {
+          audience_targeted?: string | null
+          control_description?: string | null
+          control_result_primary?: number | null
+          created_at?: string
+          decision_taken?: string | null
+          delta_absolute?: number | null
+          end_date?: string | null
+          experiment_id?: string | null
+          experiment_name: string
+          future_recommendations?: string | null
+          hypothesis?: string | null
+          id?: string
+          key_insights?: string | null
+          limitations_notes?: string | null
+          owner?: string | null
+          p_value?: number | null
+          primary_metric?: string | null
+          projected_business_impact?: string | null
+          sample_size_control?: number | null
+          sample_size_variant?: number | null
+          secondary_metrics?: string[] | null
+          start_date?: string | null
+          statistical_significance?: boolean | null
+          traffic_allocation?: string | null
+          updated_at?: string
+          uplift_relative?: number | null
+          user_id: string
+          variant_description?: string | null
+          variant_result_primary?: number | null
+          winning_variant?: string | null
+        }
+        Update: {
+          audience_targeted?: string | null
+          control_description?: string | null
+          control_result_primary?: number | null
+          created_at?: string
+          decision_taken?: string | null
+          delta_absolute?: number | null
+          end_date?: string | null
+          experiment_id?: string | null
+          experiment_name?: string
+          future_recommendations?: string | null
+          hypothesis?: string | null
+          id?: string
+          key_insights?: string | null
+          limitations_notes?: string | null
+          owner?: string | null
+          p_value?: number | null
+          primary_metric?: string | null
+          projected_business_impact?: string | null
+          sample_size_control?: number | null
+          sample_size_variant?: number | null
+          secondary_metrics?: string[] | null
+          start_date?: string | null
+          statistical_significance?: boolean | null
+          traffic_allocation?: string | null
+          updated_at?: string
+          uplift_relative?: number | null
+          user_id?: string
+          variant_description?: string | null
+          variant_result_primary?: number | null
+          winning_variant?: string | null
         }
         Relationships: []
       }
@@ -301,6 +577,126 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      historic_campaigns: {
+        Row: {
+          avg_time_on_page: number | null
+          bounce_rate: number | null
+          campaign_date: string
+          campaign_id: string | null
+          campaign_name: string
+          cost_per_conversion: number | null
+          cost_per_session: number | null
+          created_at: string
+          creative_id: string | null
+          creative_name: string | null
+          creative_type: string | null
+          customer_acquisition_cost: number | null
+          device_type: string | null
+          engagement_rate: number | null
+          form_abandonment_rate: number | null
+          form_completions: number | null
+          form_starters: number | null
+          form_views: number | null
+          id: string
+          landing_page_url: string | null
+          lead_to_sql_rate: number | null
+          new_users: number | null
+          opportunity_to_close_rate: number | null
+          primary_conversion_rate: number | null
+          primary_conversions: number | null
+          primary_cta_clicks: number | null
+          scroll_depth: number | null
+          secondary_conversions: number | null
+          sessions: number | null
+          sql_to_opportunity_rate: number | null
+          total_spend: number | null
+          traffic_source: string | null
+          updated_at: string
+          user_id: string
+          users: number | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          avg_time_on_page?: number | null
+          bounce_rate?: number | null
+          campaign_date: string
+          campaign_id?: string | null
+          campaign_name: string
+          cost_per_conversion?: number | null
+          cost_per_session?: number | null
+          created_at?: string
+          creative_id?: string | null
+          creative_name?: string | null
+          creative_type?: string | null
+          customer_acquisition_cost?: number | null
+          device_type?: string | null
+          engagement_rate?: number | null
+          form_abandonment_rate?: number | null
+          form_completions?: number | null
+          form_starters?: number | null
+          form_views?: number | null
+          id?: string
+          landing_page_url?: string | null
+          lead_to_sql_rate?: number | null
+          new_users?: number | null
+          opportunity_to_close_rate?: number | null
+          primary_conversion_rate?: number | null
+          primary_conversions?: number | null
+          primary_cta_clicks?: number | null
+          scroll_depth?: number | null
+          secondary_conversions?: number | null
+          sessions?: number | null
+          sql_to_opportunity_rate?: number | null
+          total_spend?: number | null
+          traffic_source?: string | null
+          updated_at?: string
+          user_id: string
+          users?: number | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          avg_time_on_page?: number | null
+          bounce_rate?: number | null
+          campaign_date?: string
+          campaign_id?: string | null
+          campaign_name?: string
+          cost_per_conversion?: number | null
+          cost_per_session?: number | null
+          created_at?: string
+          creative_id?: string | null
+          creative_name?: string | null
+          creative_type?: string | null
+          customer_acquisition_cost?: number | null
+          device_type?: string | null
+          engagement_rate?: number | null
+          form_abandonment_rate?: number | null
+          form_completions?: number | null
+          form_starters?: number | null
+          form_views?: number | null
+          id?: string
+          landing_page_url?: string | null
+          lead_to_sql_rate?: number | null
+          new_users?: number | null
+          opportunity_to_close_rate?: number | null
+          primary_conversion_rate?: number | null
+          primary_conversions?: number | null
+          primary_cta_clicks?: number | null
+          scroll_depth?: number | null
+          secondary_conversions?: number | null
+          sessions?: number | null
+          sql_to_opportunity_rate?: number | null
+          total_spend?: number | null
+          traffic_source?: string | null
+          updated_at?: string
+          user_id?: string
+          users?: number | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
       }
       page_sections: {
         Row: {
