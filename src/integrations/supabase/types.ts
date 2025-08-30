@@ -79,6 +79,50 @@ export type Database = {
           },
         ]
       }
+      analytics_events: {
+        Row: {
+          event_data: Json | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          page_id: string
+          session_id: string | null
+          timestamp: string | null
+          user_id: string
+          visitor_id: string | null
+        }
+        Insert: {
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          page_id: string
+          session_id?: string | null
+          timestamp?: string | null
+          user_id: string
+          visitor_id?: string | null
+        }
+        Update: {
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          page_id?: string
+          session_id?: string | null
+          timestamp?: string | null
+          user_id?: string
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "generated_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           config: Json
@@ -185,12 +229,16 @@ export type Database = {
       }
       generated_pages: {
         Row: {
+          ai_rationale: string | null
           analytics_config: Json | null
           campaign_id: string | null
           content: Json
           created_at: string
+          generation_prompts: Json | null
           id: string
+          performance_score: number | null
           published_url: string | null
+          sections_config: Json | null
           seo_config: Json | null
           slug: string
           status: string | null
@@ -200,12 +248,16 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_rationale?: string | null
           analytics_config?: Json | null
           campaign_id?: string | null
           content: Json
           created_at?: string
+          generation_prompts?: Json | null
           id?: string
+          performance_score?: number | null
           published_url?: string | null
+          sections_config?: Json | null
           seo_config?: Json | null
           slug: string
           status?: string | null
@@ -215,12 +267,16 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_rationale?: string | null
           analytics_config?: Json | null
           campaign_id?: string | null
           content?: Json
           created_at?: string
+          generation_prompts?: Json | null
           id?: string
+          performance_score?: number | null
           published_url?: string | null
+          sections_config?: Json | null
           seo_config?: Json | null
           slug?: string
           status?: string | null
@@ -242,6 +298,97 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      page_sections: {
+        Row: {
+          ai_prompt: string | null
+          content: Json
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          page_id: string
+          performance_data: Json | null
+          section_type: string
+          updated_at: string | null
+          user_id: string
+          version: number | null
+        }
+        Insert: {
+          ai_prompt?: string | null
+          content: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          page_id: string
+          performance_data?: Json | null
+          section_type: string
+          updated_at?: string | null
+          user_id: string
+          version?: number | null
+        }
+        Update: {
+          ai_prompt?: string | null
+          content?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          page_id?: string
+          performance_data?: Json | null
+          section_type?: string
+          updated_at?: string | null
+          user_id?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_sections_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "generated_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_reports: {
+        Row: {
+          ai_insights: string | null
+          generated_at: string | null
+          id: string
+          metrics: Json
+          page_id: string
+          recommendations: Json | null
+          report_type: string
+          user_id: string
+        }
+        Insert: {
+          ai_insights?: string | null
+          generated_at?: string | null
+          id?: string
+          metrics: Json
+          page_id: string
+          recommendations?: Json | null
+          report_type: string
+          user_id: string
+        }
+        Update: {
+          ai_insights?: string | null
+          generated_at?: string | null
+          id?: string
+          metrics?: Json
+          page_id?: string
+          recommendations?: Json | null
+          report_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_reports_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "generated_pages"
             referencedColumns: ["id"]
           },
         ]
@@ -282,47 +429,106 @@ export type Database = {
         }
         Relationships: []
       }
+      template_sections: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_required: boolean | null
+          order_index: number | null
+          section_config: Json
+          section_type: string
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          order_index?: number | null
+          section_config: Json
+          section_type: string
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          order_index?: number | null
+          section_config?: Json
+          section_type?: string
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_sections_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       templates: {
         Row: {
+          ai_optimized: boolean | null
           category: string
+          complexity_score: number | null
           config: Json
           conversion_rate: number | null
           created_at: string
           description: string | null
           id: string
+          industry_category: string | null
           is_public: boolean | null
           name: string
+          performance_metrics: Json | null
           preview_url: string | null
           tags: string[] | null
+          template_type: string | null
           updated_at: string
+          usage_count: number | null
           user_id: string
         }
         Insert: {
+          ai_optimized?: boolean | null
           category: string
+          complexity_score?: number | null
           config: Json
           conversion_rate?: number | null
           created_at?: string
           description?: string | null
           id?: string
+          industry_category?: string | null
           is_public?: boolean | null
           name: string
+          performance_metrics?: Json | null
           preview_url?: string | null
           tags?: string[] | null
+          template_type?: string | null
           updated_at?: string
+          usage_count?: number | null
           user_id: string
         }
         Update: {
+          ai_optimized?: boolean | null
           category?: string
+          complexity_score?: number | null
           config?: Json
           conversion_rate?: number | null
           created_at?: string
           description?: string | null
           id?: string
+          industry_category?: string | null
           is_public?: boolean | null
           name?: string
+          performance_metrics?: Json | null
           preview_url?: string | null
           tags?: string[] | null
+          template_type?: string | null
           updated_at?: string
+          usage_count?: number | null
           user_id?: string
         }
         Relationships: []
