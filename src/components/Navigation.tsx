@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Sparkles, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -35,8 +36,12 @@ export const Navigation = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost">Sign In</Button>
-            <Button variant="hero">Start Building</Button>
+            <Button variant="ghost" asChild>
+              <Link to="/auth">Sign In</Link>
+            </Button>
+            <Button variant="hero" asChild>
+              <Link to="/auth">Start Building</Link>
+            </Button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -67,8 +72,12 @@ export const Navigation = () => {
                 Pricing
               </a>
               <div className="flex flex-col gap-2 pt-2">
-                <Button variant="ghost" className="justify-start">Sign In</Button>
-                <Button variant="hero" className="justify-start">Start Building</Button>
+                <Button variant="ghost" className="justify-start" asChild>
+                  <Link to="/auth">Sign In</Link>
+                </Button>
+                <Button variant="hero" className="justify-start" asChild>
+                  <Link to="/auth">Start Building</Link>
+                </Button>
               </div>
             </div>
           </div>

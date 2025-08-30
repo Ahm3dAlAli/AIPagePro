@@ -1,0 +1,330 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, Brain, Sparkles, Target, Users, MessageSquare, Zap } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
+const CreatePage = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const [formData, setFormData] = useState({
+    campaignObjective: '',
+    targetAudience: '',
+    uniqueValueProp: '',
+    primaryBenefits: '',
+    features: '',
+    ctaText: 'Get Started Free',
+    toneOfVoice: 'professional',
+    industryType: '',
+    pageTitle: '',
+    seoKeywords: ''
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.campaignObjective || !formData.targetAudience || !formData.uniqueValueProp) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in the campaign objective, target audience, and unique value proposition.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-landing-page', {
+        body: formData
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.success) {
+        toast({
+          title: "Page Generated Successfully!",
+          description: "Your AI-generated landing page is ready for review."
+        });
+        
+        // Navigate to the generated page preview
+        navigate(`/dashboard/pages/${data.page.id}`);
+      } else {
+        throw new Error(data.error || 'Failed to generate page');
+      }
+    } catch (error: any) {
+      console.error('Generation error:', error);
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate landing page. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const campaignTypes = [
+    { value: 'lead-generation', label: 'Lead Generation' },
+    { value: 'product-sales', label: 'Product Sales' },
+    { value: 'signup', label: 'User Signup' },
+    { value: 'demo-booking', label: 'Demo Booking' },
+    { value: 'newsletter', label: 'Newsletter Signup' },
+    { value: 'webinar', label: 'Webinar Registration' }
+  ];
+
+  const toneOptions = [
+    { value: 'professional', label: 'Professional' },
+    { value: 'friendly', label: 'Friendly' },
+    { value: 'urgent', label: 'Urgent' },
+    { value: 'playful', label: 'Playful' },
+    { value: 'authoritative', label: 'Authoritative' },
+    { value: 'conversational', label: 'Conversational' }
+  ];
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+          <Brain className="h-4 w-4" />
+          AI Page Generator
+        </div>
+        <h1 className="text-3xl font-bold">Create Your Landing Page</h1>
+        <p className="text-muted-foreground max-w-2xl mx-auto">
+          Fill in the details below and let our AI generate a high-converting landing page tailored to your campaign goals and target audience.
+        </p>
+      </div>
+
+      <form onSubmit={handleGenerate} className="space-y-8">
+        {/* Campaign Strategy */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-blue-600" />
+              <CardTitle>Campaign Strategy</CardTitle>
+            </div>
+            <CardDescription>
+              Define your campaign goals and core messaging
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="objective">Campaign Objective *</Label>
+                <Select onValueChange={(value) => handleInputChange('campaignObjective', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your primary goal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {campaignTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="industry">Industry/Category</Label>
+                <Input
+                  id="industry"
+                  placeholder="e.g., SaaS, E-commerce, Healthcare"
+                  value={formData.industryType}
+                  onChange={(e) => handleInputChange('industryType', e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="pageTitle">Page Title</Label>
+              <Input
+                id="pageTitle"
+                placeholder="Enter a descriptive title for your landing page"
+                value={formData.pageTitle}
+                onChange={(e) => handleInputChange('pageTitle', e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="uvp">Unique Value Proposition *</Label>
+              <Textarea
+                id="uvp"
+                placeholder="What makes your offer unique? How do you solve your customers' main problem?"
+                value={formData.uniqueValueProp}
+                onChange={(e) => handleInputChange('uniqueValueProp', e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Target Audience */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-green-600" />
+              <CardTitle>Target Audience</CardTitle>
+            </div>
+            <CardDescription>
+              Describe your ideal customer to create personalized messaging
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="audience">Target Audience Description *</Label>
+              <Textarea
+                id="audience"
+                placeholder="Describe your ideal customer: demographics, job roles, pain points, goals, etc."
+                value={formData.targetAudience}
+                onChange={(e) => handleInputChange('targetAudience', e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Product/Service Details */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              <CardTitle>Product/Service Details</CardTitle>
+            </div>
+            <CardDescription>
+              Provide information about what you're offering
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="benefits">Primary Benefits</Label>
+              <Textarea
+                id="benefits"
+                placeholder="List the top 3-5 benefits customers get (outcomes, not features)"
+                value={formData.primaryBenefits}
+                onChange={(e) => handleInputChange('primaryBenefits', e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="features">Key Features</Label>
+              <Textarea
+                id="features"
+                placeholder="List the main features and functionalities of your product/service"
+                value={formData.features}
+                onChange={(e) => handleInputChange('features', e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Content & Style */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-orange-600" />
+              <CardTitle>Content & Style</CardTitle>
+            </div>
+            <CardDescription>
+              Customize the tone and call-to-action for your page
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="tone">Tone of Voice</Label>
+                <Select 
+                  value={formData.toneOfVoice} 
+                  onValueChange={(value) => handleInputChange('toneOfVoice', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {toneOptions.map((tone) => (
+                      <SelectItem key={tone.value} value={tone.value}>
+                        {tone.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="cta">Primary CTA Text</Label>
+                <Input
+                  id="cta"
+                  placeholder="e.g., Get Started Free, Book a Demo"
+                  value={formData.ctaText}
+                  onChange={(e) => handleInputChange('ctaText', e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="keywords">SEO Keywords</Label>
+              <Input
+                id="keywords"
+                placeholder="Enter relevant keywords separated by commas"
+                value={formData.seoKeywords}
+                onChange={(e) => handleInputChange('seoKeywords', e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Separator />
+
+        {/* Generate Button */}
+        <div className="flex flex-col items-center space-y-4">
+          <Button 
+            type="submit" 
+            size="lg" 
+            disabled={isGenerating}
+            className="px-8 py-3 text-lg"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Generating Your Page...
+              </>
+            ) : (
+              <>
+                <Zap className="mr-2 h-5 w-5" />
+                Generate Landing Page
+              </>
+            )}
+          </Button>
+          
+          <p className="text-sm text-muted-foreground text-center max-w-md">
+            This will create an AI-optimized landing page based on your inputs. 
+            You can preview and edit it before publishing.
+          </p>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default CreatePage;
