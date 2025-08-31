@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Brain, Sparkles, Target, Users, MessageSquare, Zap } from 'lucide-react';
+import { Loader2, Brain, Sparkles, Target, Users, MessageSquare, Zap, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -35,6 +35,35 @@ const CreatePage = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const fillExampleData = () => {
+    setFormData({
+      campaignObjective: 'product-sales',
+      targetAudience: 'Creative adults aged 25-55 who enjoy hands-on hobbies, stress relief through art, and personalizing their home decor. Includes beginners looking for a new relaxing hobby, experienced crafters seeking quality materials, parents wanting creative activities with children, and gift-buyers seeking unique presents for artistic friends and family.',
+      uniqueValueProp: 'Transform ordinary clay into stunning masterpieces with our premium ceramic pottery and professional-grade paint sets - everything you need for therapeutic crafting and home decoration in one complete kit.',
+      primaryBenefits: `• Complete all-in-one ceramic and paint kits - no separate shopping needed
+• Therapeutic stress relief through hands-on creativity  
+• Create personalized home decor and unique gifts
+• High-quality, non-toxic materials safe for all skill levels
+• Step-by-step tutorials included for beginners`,
+      features: `• Premium air-dry clay that doesn't require kiln firing
+• 12-color professional acrylic paint set with brushes
+• Sculpting tools and texture stamps included
+• Protective finish coat for durability
+• Beginner-friendly instruction booklet with 15+ project ideas
+• Free online video tutorials and community access`,
+      ctaText: 'Start Creating Today - Order Your Kit',
+      toneOfVoice: 'friendly',
+      industryType: 'Arts & Crafts / Home Decor',
+      pageTitle: 'Premium Ceramic Pottery & Paint Sets - Create Beautiful Art at Home',
+      seoKeywords: 'ceramic pottery kits, paint and clay sets, home crafting supplies, therapeutic art activities, DIY ceramic painting, beginner pottery tools, creative hobby kits'
+    });
+    
+    toast({
+      title: "Example Data Loaded!",
+      description: "Ceramic store example has been filled into the form."
+    });
   };
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -129,6 +158,15 @@ const CreatePage = () => {
         <p className="text-muted-foreground max-w-2xl mx-auto">
           Fill in the details below and let our AI generate a high-converting landing page tailored to your campaign goals and target audience.
         </p>
+        <Button 
+          type="button"
+          variant="outline" 
+          onClick={fillExampleData}
+          className="mt-4"
+        >
+          <Copy className="mr-2 h-4 w-4" />
+          Copy Example: Ceramic Store with Paint
+        </Button>
       </div>
 
       <form onSubmit={handleGenerate} className="space-y-8">
@@ -147,7 +185,10 @@ const CreatePage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="objective">Campaign Objective *</Label>
-                <Select onValueChange={(value) => handleInputChange('campaignObjective', value)}>
+                <Select 
+                  value={formData.campaignObjective}
+                  onValueChange={(value) => handleInputChange('campaignObjective', value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select your primary goal" />
                   </SelectTrigger>
