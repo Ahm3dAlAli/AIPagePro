@@ -14,16 +14,32 @@ serve(async (req) => {
   }
 
   try {
+    // Get authorization header
+    const authHeader = req.headers.get('Authorization');
+    console.log('Authorization header present:', !!authHeader);
+    
+    if (!authHeader) {
+      throw new Error('Authorization header missing');
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     );
 
-    // Get the user
-    const { data: { user } } = await supabaseClient.auth.getUser();
+    // Verify the JWT token
+    const jwt = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(jwt);
+    console.log('Auth response - user:', !!user, 'error:', authError?.message);
+    
     if (!user) {
-      throw new Error('User not authenticated');
+      throw new Error(`User not authenticated: ${authError?.message || 'Invalid token'}`);
     }
 
     const { 
