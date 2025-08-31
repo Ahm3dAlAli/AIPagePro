@@ -8,23 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Edit3, 
-  Wand2, 
-  Eye, 
-  Save, 
-  Settings,
-  RefreshCw,
-  Sparkles,
-  Brain,
-  Download,
-  Loader2,
-  Package
-} from 'lucide-react';
+import { Edit3, Wand2, Eye, Save, Settings, RefreshCw, Sparkles, Brain, Download, Loader2, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import ComponentExportSystem from './ComponentExportSystem';
-
 interface PageSection {
   id: string;
   section_type: string;
@@ -33,25 +20,48 @@ interface PageSection {
   ai_prompt?: string;
   is_active: boolean;
 }
-
 interface PageEditorProps {
   pageId: string;
   initialContent: any;
   onUpdate?: (content: any) => void;
 }
-
-const SECTION_TYPES = [
-  { id: 'hero', name: 'Hero Section', icon: '🎯' },
-  { id: 'benefits', name: 'Benefits', icon: '✨' },
-  { id: 'features', name: 'Features', icon: '🔧' },
-  { id: 'testimonials', name: 'Testimonials', icon: '💬' },
-  { id: 'pricing', name: 'Pricing', icon: '💰' },
-  { id: 'faq', name: 'FAQ', icon: '❓' },
-  { id: 'finalCta', name: 'Final CTA', icon: '🚀' }
-];
-
-export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, onUpdate }) => {
-  const { toast } = useToast();
+const SECTION_TYPES = [{
+  id: 'hero',
+  name: 'Hero Section',
+  icon: '🎯'
+}, {
+  id: 'benefits',
+  name: 'Benefits',
+  icon: '✨'
+}, {
+  id: 'features',
+  name: 'Features',
+  icon: '🔧'
+}, {
+  id: 'testimonials',
+  name: 'Testimonials',
+  icon: '💬'
+}, {
+  id: 'pricing',
+  name: 'Pricing',
+  icon: '💰'
+}, {
+  id: 'faq',
+  name: 'FAQ',
+  icon: '❓'
+}, {
+  id: 'finalCta',
+  name: 'Final CTA',
+  icon: '🚀'
+}];
+export const PageEditor: React.FC<PageEditorProps> = ({
+  pageId,
+  initialContent,
+  onUpdate
+}) => {
+  const {
+    toast
+  } = useToast();
   const [sections, setSections] = useState<PageSection[]>([]);
   const [selectedSection, setSelectedSection] = useState<string>('');
   const [editingSection, setEditingSection] = useState<PageSection | null>(null);
@@ -61,20 +71,15 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
   const [isGeneratingRationale, setIsGeneratingRationale] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [aiRationaleReport, setAiRationaleReport] = useState<any>(null);
-
   useEffect(() => {
     loadPageSections();
   }, [pageId]);
-
   const loadPageSections = async () => {
     try {
-      const { data, error } = await supabase
-        .from('page_sections')
-        .select('*')
-        .eq('page_id', pageId)
-        .eq('is_active', true)
-        .order('section_type');
-
+      const {
+        data,
+        error
+      } = await supabase.from('page_sections').select('*').eq('page_id', pageId).eq('is_active', true).order('section_type');
       if (error) throw error;
 
       // If no sections exist, create them from initial content
@@ -92,13 +97,14 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
       });
     }
   };
-
   const createInitialSections = async () => {
     if (!initialContent?.sections) return;
-
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: {
+        user
+      }
+    } = await supabase.auth.getUser();
     if (!user) return;
-
     const sectionsToCreate = Object.entries(initialContent.sections).map(([type, content]) => ({
       page_id: pageId,
       user_id: user.id,
@@ -107,27 +113,25 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
       version: 1,
       is_active: true
     }));
-
     try {
-      const { data, error } = await supabase
-        .from('page_sections')
-        .insert(sectionsToCreate)
-        .select();
-
+      const {
+        data,
+        error
+      } = await supabase.from('page_sections').insert(sectionsToCreate).select();
       if (error) throw error;
       setSections(data || []);
     } catch (error) {
       console.error('Error creating initial sections:', error);
     }
   };
-
   const generateSection = async (sectionType: string, prompt: string) => {
     setIsGenerating(true);
-    
     try {
       const currentSection = sections.find(s => s.section_type === sectionType);
-      
-      const { data, error } = await supabase.functions.invoke('generate-section', {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('generate-section', {
         body: {
           pageId,
           sectionType,
@@ -135,15 +139,12 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
           currentContent: currentSection?.content
         }
       });
-
       if (error) throw error;
-
       if (data.success) {
         toast({
           title: "Section Updated!",
           description: `${sectionType} section has been regenerated with AI.`
         });
-        
         await loadPageSections();
         setAiPrompt('');
         setEditingSection(null);
@@ -161,24 +162,19 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
       setIsGenerating(false);
     }
   };
-
   const updateSection = async (section: PageSection, newContent: any) => {
     try {
-      const { error } = await supabase
-        .from('page_sections')
-        .update({
-          content: newContent,
-          version: section.version + 1
-        })
-        .eq('id', section.id);
-
+      const {
+        error
+      } = await supabase.from('page_sections').update({
+        content: newContent,
+        version: section.version + 1
+      }).eq('id', section.id);
       if (error) throw error;
-
       toast({
         title: "Section Updated",
         description: "Section content has been saved."
       });
-
       await loadPageSections();
       setEditingSection(null);
     } catch (error) {
@@ -190,40 +186,49 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
       });
     }
   };
-
   const generateAIRationale = async () => {
     setIsGeneratingRationale(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-prd', {
-        body: { pageId }
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('generate-prd', {
+        body: {
+          pageId
+        }
       });
       if (error) throw error;
       if (data.success && data.aiRationale) {
         setAiRationaleReport(data.aiRationale);
-        toast({ title: "AI Rationale Generated!" });
+        toast({
+          title: "AI Rationale Generated!"
+        });
       }
     } catch (error: any) {
-      toast({ title: "Failed to generate rationale", variant: "destructive" });
+      toast({
+        title: "Failed to generate rationale",
+        variant: "destructive"
+      });
     } finally {
       setIsGeneratingRationale(false);
     }
   };
-
   const generatePreview = async () => {
     setIsGeneratingPreview(true);
-    
     try {
-      const { data, error } = await supabase.functions.invoke('generate-prd', {
-        body: { pageId }
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('generate-prd', {
+        body: {
+          pageId
+        }
       });
-
       if (error) throw error;
-
       if (data.success) {
         // Open the generated page in a new tab
         const previewUrl = `https://gidmisqzkobynomutdgp.supabase.co/functions/v1/render-page/${data.generatedPage.id}`;
         window.open(previewUrl, '_blank');
-        
         toast({
           title: "Preview Generated!",
           description: "Your landing page has been generated and opened in a new tab."
@@ -242,12 +247,9 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
       setIsGeneratingPreview(false);
     }
   };
-
   const renderSectionEditor = (section: PageSection) => {
     const sectionInfo = SECTION_TYPES.find(t => t.id === section.section_type);
-    
-    return (
-      <Card key={section.id} className="mb-4">
+    return <Card key={section.id} className="mb-4">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -270,39 +272,21 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="ai-prompt">Describe what you want to change:</Label>
-                      <Textarea
-                        id="ai-prompt"
-                        value={aiPrompt}
-                        onChange={(e) => setAiPrompt(e.target.value)}
-                        placeholder="e.g., Make the headline more urgent, add social proof, emphasize ROI benefits..."
-                        className="min-h-[100px]"
-                      />
+                      <Textarea id="ai-prompt" value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} placeholder="e.g., Make the headline more urgent, add social proof, emphasize ROI benefits..." className="min-h-[100px]" />
                     </div>
-                    <Button 
-                      onClick={() => generateSection(section.section_type, aiPrompt)}
-                      disabled={!aiPrompt.trim() || isGenerating}
-                      className="w-full"
-                    >
-                      {isGenerating ? (
-                        <>
+                    <Button onClick={() => generateSection(section.section_type, aiPrompt)} disabled={!aiPrompt.trim() || isGenerating} className="w-full">
+                      {isGenerating ? <>
                           <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                           Generating...
-                        </>
-                      ) : (
-                        <>
+                        </> : <>
                           <Sparkles className="h-4 w-4 mr-2" />
                           Generate with AI
-                        </>
-                      )}
+                        </>}
                     </Button>
                   </div>
                 </DialogContent>
               </Dialog>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setEditingSection(section)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setEditingSection(section)}>
                 <Edit3 className="h-4 w-4 mr-1" />
                 Edit
               </Button>
@@ -316,76 +300,53 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
             </pre>
           </div>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   };
-
   const renderManualEditor = (section: PageSection) => {
     if (!editingSection || editingSection.id !== section.id) return null;
-
-    return (
-      <Dialog open={true} onOpenChange={() => setEditingSection(null)}>
+    return <Dialog open={true} onOpenChange={() => setEditingSection(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Section Content</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <Label>Section Content (JSON)</Label>
-            <Textarea
-              value={JSON.stringify(editingSection.content, null, 2)}
-              onChange={(e) => {
-                try {
-                  const newContent = JSON.parse(e.target.value);
-                  setEditingSection({
-                    ...editingSection,
-                    content: newContent
-                  });
-                } catch {
-                  // Invalid JSON, keep editing
-                }
-              }}
-              className="min-h-[400px] font-mono text-sm"
-            />
+            <Textarea value={JSON.stringify(editingSection.content, null, 2)} onChange={e => {
+            try {
+              const newContent = JSON.parse(e.target.value);
+              setEditingSection({
+                ...editingSection,
+                content: newContent
+              });
+            } catch {
+              // Invalid JSON, keep editing
+            }
+          }} className="min-h-[400px] font-mono text-sm" />
             <div className="flex gap-2">
-              <Button
-                onClick={() => updateSection(section, editingSection.content)}
-              >
+              <Button onClick={() => updateSection(section, editingSection.content)}>
                 <Save className="h-4 w-4 mr-2" />
                 Save Changes
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => setEditingSection(null)}
-              >
+              <Button variant="outline" onClick={() => setEditingSection(null)}>
                 Cancel
               </Button>
             </div>
           </div>
         </DialogContent>
-      </Dialog>
-    );
+      </Dialog>;
   };
-
-  return (
-    <div className="max-w-6xl mx-auto p-6">
+  return <div className="max-w-6xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Page Editor</h1>
         <div className="flex gap-2">
-          <Button
-            onClick={generatePreview}
-            disabled={isGeneratingPreview || sections.length === 0}
-          >
-            {isGeneratingPreview ? (
-              <>
+          <Button onClick={generatePreview} disabled={isGeneratingPreview || sections.length === 0}>
+            {isGeneratingPreview ? <>
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                 Generating Preview...
-              </>
-            ) : (
-              <>
+              </> : <>
                 <Eye className="h-4 w-4 mr-2" />
                 Generate Preview
-              </>
-            )}
+              </>}
           </Button>
         </div>
       </div>
@@ -393,14 +354,13 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
       <Tabs defaultValue="sections" className="space-y-6">
         <TabsList>
           <TabsTrigger value="sections">Section Editor</TabsTrigger>
-          <TabsTrigger value="settings">Page Settings</TabsTrigger>
+          
           <TabsTrigger value="ai-rationale">AI Rationale</TabsTrigger>
           <TabsTrigger value="export">Sitecore Export</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sections" className="space-y-6">
-          {sections.length === 0 ? (
-            <Card>
+          {sections.length === 0 ? <Card>
               <CardContent className="py-8 text-center">
                 <p className="text-muted-foreground mb-4">No sections found. Loading sections...</p>
                 <Button onClick={loadPageSections}>
@@ -408,10 +368,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
                   Reload Sections
                 </Button>
               </CardContent>
-            </Card>
-          ) : (
-            sections.map(renderSectionEditor)
-          )}
+            </Card> : sections.map(renderSectionEditor)}
           
           {sections.map(section => renderManualEditor(section))}
         </TabsContent>
@@ -439,8 +396,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {aiRationaleReport ? (
-                <div className="space-y-6">
+              {aiRationaleReport ? <div className="space-y-6">
                   {/* Executive Summary */}
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Executive Summary</h3>
@@ -481,12 +437,10 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
                   </div>
 
                   {/* Design Decisions */}
-                  {aiRationaleReport.designDecisions && aiRationaleReport.designDecisions.length > 0 && (
-                    <div>
+                  {aiRationaleReport.designDecisions && aiRationaleReport.designDecisions.length > 0 && <div>
                       <h3 className="text-lg font-semibold mb-3">Design Decisions</h3>
                       <div className="space-y-4">
-                        {aiRationaleReport.designDecisions.slice(0, 3).map((decision: any, index: number) => (
-                          <Card key={index} className="p-4">
+                        {aiRationaleReport.designDecisions.slice(0, 3).map((decision: any, index: number) => <Card key={index} className="p-4">
                             <div className="flex items-start justify-between mb-2">
                               <h4 className="font-medium">{decision.decision || `Decision ${index + 1}`}</h4>
                               <Badge variant="secondary">
@@ -496,15 +450,12 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
                             <p className="text-sm text-muted-foreground">
                               {decision.reasoning || 'Decision based on best practices and data analysis.'}
                             </p>
-                          </Card>
-                        ))}
+                          </Card>)}
                       </div>
-                    </div>
-                  )}
+                    </div>}
 
                   {/* Testing Recommendations */}
-                  {aiRationaleReport.testingRecommendations && (
-                    <div>
+                  {aiRationaleReport.testingRecommendations && <div>
                       <h3 className="text-lg font-semibold mb-3">A/B Testing Recommendations</h3>
                       <Card className="p-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -524,14 +475,11 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
                         <div>
                           <h5 className="font-medium mb-2">Priority Test Elements:</h5>
                           <ul className="text-sm text-muted-foreground space-y-1">
-                            {(aiRationaleReport.testingRecommendations.priorityTests || []).map((test: string, index: number) => (
-                              <li key={index}>• {test}</li>
-                            ))}
+                            {(aiRationaleReport.testingRecommendations.priorityTests || []).map((test: string, index: number) => <li key={index}>• {test}</li>)}
                           </ul>
                         </div>
                       </Card>
-                    </div>
-                  )}
+                    </div>}
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 pt-4 border-t">
@@ -544,40 +492,29 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
                       Download PDF Report
                     </Button>
                   </div>
-                </div>
-              ) : (
-                <div className="text-center py-8">
+                </div> : <div className="text-center py-8">
                   <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                   <h3 className="text-lg font-semibold mb-2">No AI Analysis Available</h3>
                   <p className="text-muted-foreground mb-4">
                     Generate an AI rationale to see detailed decision analysis and performance predictions.
                   </p>
                   <Button onClick={generateAIRationale} disabled={isGeneratingRationale}>
-                    {isGeneratingRationale ? (
-                      <>
+                    {isGeneratingRationale ? <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Generating Analysis...
-                      </>
-                    ) : (
-                      <>
+                      </> : <>
                         <Brain className="mr-2 h-4 w-4" />
                         Generate AI Rationale
-                      </>
-                    )}
+                      </>}
                   </Button>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="export" className="space-y-6">
-          <ComponentExportSystem 
-            pageId={pageId || ''} 
-            pageSections={sections || []} 
-          />
+          <ComponentExportSystem pageId={pageId || ''} pageSections={sections || []} />
         </TabsContent>
       </Tabs>
-    </div>
-  );
+    </div>;
 };
