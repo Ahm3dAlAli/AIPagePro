@@ -13,7 +13,6 @@ import {
   Wand2, 
   Eye, 
   Save, 
-  BarChart3, 
   Settings,
   RefreshCw,
   Sparkles
@@ -319,10 +318,6 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
             <Eye className="h-4 w-4 mr-2" />
             {previewMode ? "Edit Mode" : "Preview"}
           </Button>
-          <Button variant="outline">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Analytics
-          </Button>
         </div>
       </div>
 
@@ -330,7 +325,6 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
         <TabsList>
           <TabsTrigger value="sections">Section Editor</TabsTrigger>
           <TabsTrigger value="settings">Page Settings</TabsTrigger>
-          <TabsTrigger value="analytics">Performance</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sections" className="space-y-6">
@@ -358,17 +352,6 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">Page settings coming soon...</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="analytics">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Analytics dashboard coming soon...</p>
             </CardContent>
           </Card>
         </TabsContent>
