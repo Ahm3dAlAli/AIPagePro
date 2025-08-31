@@ -273,22 +273,21 @@ serve(async (req) => {
       throw new Error('No authorization header found');
     }
 
-    // Initialize Supabase client with proper authentication
+    // Initialize Supabase client with service role key for server-side operations
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         global: {
           headers: { Authorization: authHeader },
-        },
-        auth: {
-          persistSession: false
         }
       }
     );
 
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    // Extract user from JWT token
+    const jwt = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(jwt);
+    
     if (authError) {
       console.error('Auth error:', authError);
       throw new Error(`Authentication failed: ${authError.message}`);
