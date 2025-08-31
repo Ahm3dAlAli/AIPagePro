@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import ComponentExportSystem from './ComponentExportSystem';
 
 interface PageSection {
   id: string;
@@ -571,17 +572,10 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
         </TabsContent>
 
         <TabsContent value="export" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Sitecore Export
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Component export system coming soon...</p>
-            </CardContent>
-          </Card>
+          <ComponentExportSystem 
+            pageId={pageId || ''} 
+            pageSections={sections || []} 
+          />
         </TabsContent>
       </Tabs>
     </div>
