@@ -270,9 +270,10 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('No authorization header');
+      throw new Error('No authorization header found');
     }
 
+    // Initialize Supabase client with proper authentication
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -280,14 +281,24 @@ serve(async (req) => {
         global: {
           headers: { Authorization: authHeader },
         },
+        auth: {
+          persistSession: false
+        }
       }
     );
 
     // Verify user authentication
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      throw new Error('Authentication failed');
+    if (authError) {
+      console.error('Auth error:', authError);
+      throw new Error(`Authentication failed: ${authError.message}`);
     }
+    
+    if (!user) {
+      throw new Error('No authenticated user found');
+    }
+
+    console.log('Authenticated user:', user.id);
 
     const { pageId } = await req.json();
 
