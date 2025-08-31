@@ -41,8 +41,8 @@ interface HistoricCampaign {
   traffic_source: string;
   sessions: number;
   users: number;
-  conversions: number;
   primary_conversions: number;
+  secondary_conversions: number;
   primary_conversion_rate: number;
   cost_per_conversion: number;
   bounce_rate: number;
@@ -142,7 +142,7 @@ const HistoricDataManager = () => {
           traffic_source: record.traffic_source || record.Source || record.source || 'Unknown',
           sessions: parseInt(record.sessions || record.Sessions || record.visits || '0'),
           users: parseInt(record.users || record.Users || record.unique_visitors || '0'),
-          conversions: parseInt(record.conversions || record.Conversions || record.goals || '0'),
+          primary_conversions: parseInt(record.conversions || record.Conversions || record.goals || '0'),
           primary_conversion_rate: parseFloat(record.conversion_rate || record.ConversionRate || '0'),
           bounce_rate: parseFloat(record.bounce_rate || record.BounceRate || '0'),
           avg_time_on_page: parseInt(record.avg_time_on_page || record.AvgTimeOnPage || '0'),
@@ -457,7 +457,7 @@ Headline A/B Test,2024-01-16,2024-01-30,A,8.7,true,Benefit-focused headline outp
                           <Badge variant="outline">{campaign.traffic_source}</Badge>
                         </TableCell>
                         <TableCell>{campaign.sessions.toLocaleString()}</TableCell>
-                        <TableCell>{campaign.conversions}</TableCell>
+                        <TableCell>{campaign.primary_conversions}</TableCell>
                         <TableCell>{(campaign.primary_conversion_rate * 100).toFixed(1)}%</TableCell>
                         <TableCell>{(campaign.bounce_rate * 100).toFixed(1)}%</TableCell>
                         <TableCell>${campaign.cost_per_conversion?.toFixed(2) || '0.00'}</TableCell>
