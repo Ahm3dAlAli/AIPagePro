@@ -10,6 +10,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   Globe, 
   Search, 
@@ -46,6 +57,8 @@ const MyPages = () => {
   const [pages, setPages] = useState<GeneratedPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [pageToDelete, setPageToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -74,16 +87,18 @@ const MyPages = () => {
     }
   };
 
-  const handleDelete = async (pageId: string) => {
+  const handleDelete = async () => {
+    if (!pageToDelete) return;
+    
     try {
       const { error } = await supabase
         .from('generated_pages')
         .delete()
-        .eq('id', pageId);
+        .eq('id', pageToDelete);
 
       if (error) throw error;
       
-      setPages(pages.filter(page => page.id !== pageId));
+      setPages(pages.filter(page => page.id !== pageToDelete));
       toast({
         title: "Page deleted",
         description: "The page has been permanently deleted."
@@ -94,7 +109,15 @@ const MyPages = () => {
         description: error.message,
         variant: "destructive"
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setPageToDelete(null);
     }
+  };
+
+  const confirmDelete = (pageId: string) => {
+    setPageToDelete(pageId);
+    setDeleteDialogOpen(true);
   };
 
   const handleDuplicate = async (page: GeneratedPage) => {
@@ -324,8 +347,8 @@ const MyPages = () => {
                         Duplicate
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={() => handleDelete(page.id)}
-                        className="text-red-600"
+                        onClick={() => confirmDelete(page.id)}
+                        className="text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
@@ -378,6 +401,24 @@ const MyPages = () => {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Page</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this page? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
