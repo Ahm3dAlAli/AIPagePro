@@ -175,32 +175,74 @@ yarn-error.log*`)
   };
 }
 
-async function deployToVercel(deploymentConfig: VercelDeploymentConfig, vercelToken?: string): Promise<any> {
-  // Simulate Vercel deployment
-  // In a real implementation, you would:
-  // 1. Use Vercel API to create deployment
-  // 2. Upload files using their API
-  // 3. Monitor deployment status
-  // 4. Return deployment URLs
-
+async function deployToVercel(deploymentConfig: VercelDeploymentConfig, vercelToken: string): Promise<any> {
   console.log('Deploying to Vercel:', deploymentConfig.name);
-  
-  const mockDeploymentId = `dpl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  const mockUrl = `https://${deploymentConfig.name}-${mockDeploymentId.substr(-6)}.vercel.app`;
-  
-  // Simulate deployment delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  return {
-    id: mockDeploymentId,
-    url: mockUrl,
-    status: 'READY',
-    createdAt: new Date().toISOString(),
-    meta: {
-      framework: deploymentConfig.projectSettings.framework,
-      filesUploaded: Object.keys(deploymentConfig.files).length
+
+  try {
+    // Create deployment using Vercel API
+    const deploymentResponse = await fetch('https://api.vercel.com/v13/deployments', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${vercelToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: deploymentConfig.name,
+        files: deploymentConfig.files,
+        projectSettings: deploymentConfig.projectSettings,
+        target: 'production'
+      })
+    });
+
+    if (!deploymentResponse.ok) {
+      const error = await deploymentResponse.text();
+      throw new Error(`Vercel deployment failed: ${error}`);
     }
-  };
+
+    const deployment = await deploymentResponse.json();
+    
+    // Poll for deployment completion
+    let deploymentStatus = deployment;
+    let attempts = 0;
+    const maxAttempts = 30; // 5 minutes max
+    
+    while (deploymentStatus.readyState !== 'READY' && deploymentStatus.readyState !== 'ERROR' && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+      
+      const statusResponse = await fetch(`https://api.vercel.com/v13/deployments/${deployment.id}`, {
+        headers: {
+          'Authorization': `Bearer ${vercelToken}`
+        }
+      });
+      
+      if (statusResponse.ok) {
+        deploymentStatus = await statusResponse.json();
+      }
+      attempts++;
+    }
+
+    if (deploymentStatus.readyState === 'ERROR') {
+      throw new Error('Deployment failed during build process');
+    }
+
+    return {
+      id: deployment.id,
+      url: deployment.url || `https://${deployment.name}.vercel.app`,
+      status: deploymentStatus.readyState || 'READY',
+      createdAt: deployment.createdAt,
+      meta: {
+        framework: deploymentConfig.projectSettings.framework,
+        filesUploaded: Object.keys(deploymentConfig.files).length,
+        buildTime: deploymentStatus.meta?.buildingAt ? 
+          new Date(deploymentStatus.ready || Date.now()).getTime() - new Date(deploymentStatus.meta.buildingAt).getTime() : 
+          null
+      }
+    };
+
+  } catch (error) {
+    console.error('Vercel deployment error:', error);
+    throw error;
+  }
 }
 
 serve(async (req) => {
@@ -230,10 +272,16 @@ serve(async (req) => {
       throw new Error('Authentication failed');
     }
 
-    const { pageId, customDomain, vercelToken } = await req.json();
+    const { pageId, customDomain } = await req.json();
 
     if (!pageId) {
       throw new Error('Page ID is required');
+    }
+
+    // Get Vercel token from environment
+    const vercelToken = Deno.env.get('VERCEL_API_TOKEN');
+    if (!vercelToken) {
+      throw new Error('Vercel API token not configured. Please add VERCEL_API_TOKEN to your Supabase secrets.');
     }
 
     console.log('Deploying page to Vercel:', pageId);
