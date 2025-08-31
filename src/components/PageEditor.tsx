@@ -52,7 +52,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
   const [editingSection, setEditingSection] = useState<PageSection | null>(null);
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
 
   useEffect(() => {
     loadPageSections();
@@ -180,6 +180,40 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
         description: "Failed to update section",
         variant: "destructive"
       });
+    }
+  };
+
+  const generatePreview = async () => {
+    setIsGeneratingPreview(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-prd', {
+        body: { pageId }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        // Open the generated page in a new tab
+        const previewUrl = `https://gidmisqzkobynomutdgp.supabase.co/functions/v1/render-page/${data.generatedPage.id}`;
+        window.open(previewUrl, '_blank');
+        
+        toast({
+          title: "Preview Generated!",
+          description: "Your landing page has been generated and opened in a new tab."
+        });
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      console.error('Preview generation error:', error);
+      toast({
+        title: "Preview Failed",
+        description: error.message || "Failed to generate preview",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingPreview(false);
     }
   };
 
@@ -312,11 +346,20 @@ export const PageEditor: React.FC<PageEditorProps> = ({ pageId, initialContent, 
         <h1 className="text-2xl font-bold">Page Editor</h1>
         <div className="flex gap-2">
           <Button
-            variant={previewMode ? "default" : "outline"}
-            onClick={() => setPreviewMode(!previewMode)}
+            onClick={generatePreview}
+            disabled={isGeneratingPreview || sections.length === 0}
           >
-            <Eye className="h-4 w-4 mr-2" />
-            {previewMode ? "Edit Mode" : "Preview"}
+            {isGeneratingPreview ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Generating Preview...
+              </>
+            ) : (
+              <>
+                <Eye className="h-4 w-4 mr-2" />
+                Generate Preview
+              </>
+            )}
           </Button>
         </div>
       </div>
