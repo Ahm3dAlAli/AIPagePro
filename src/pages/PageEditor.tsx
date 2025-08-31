@@ -56,6 +56,59 @@ const PageEditor = () => {
     }
   };
 
+  const handlePreviewInNewTab = () => {
+    if (!pageData?.content) return;
+    
+    // Create HTML content for the preview
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${pageData.title}</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+          body { font-family: 'Inter', sans-serif; }
+        </style>
+      </head>
+      <body>
+        <div id="preview-content">
+          ${JSON.stringify(pageData.content)}
+        </div>
+        <script>
+          // Simple renderer for the page content
+          const content = JSON.parse(document.getElementById('preview-content').textContent);
+          document.getElementById('preview-content').innerHTML = '';
+          
+          // Basic rendering logic - this would need to be expanded based on your content structure
+          if (content.sections) {
+            content.sections.forEach(section => {
+              const sectionEl = document.createElement('section');
+              sectionEl.className = 'py-12 px-6';
+              if (section.content) {
+                sectionEl.innerHTML = section.content;
+              }
+              document.getElementById('preview-content').appendChild(sectionEl);
+            });
+          } else {
+            document.getElementById('preview-content').innerHTML = '<div class="p-8 text-center">Preview content will be rendered here</div>';
+          }
+        </script>
+      </body>
+      </html>
+    `;
+    
+    // Create blob URL and open in new tab
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    
+    // Clean up the blob URL after a short delay
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -102,7 +155,7 @@ const PageEditor = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handlePreviewInNewTab}>
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Preview
               </Button>
