@@ -14,6 +14,8 @@ import MyPages from "./pages/MyPages";
 import PageEditor from "./pages/PageEditor";
 import Analytics from "./pages/Analytics";
 import Templates from "./pages/Templates";
+import Experiments from "./pages/Experiments";
+import Campaigns from "./pages/Campaigns";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +41,8 @@ const App = () => (
               <Route path="pages/:pageId" element={<PageEditor />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="templates" element={<Templates />} />
+              <Route path="experiments" element={<Experiments />} />
+              <Route path="campaigns" element={<Campaigns />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
