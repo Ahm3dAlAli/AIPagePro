@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import DataImportManager from '@/components/DataImportManager';
+import DataDrivenInsights from '@/components/DataDrivenInsights';
 import { 
   Table,
   TableBody,
@@ -251,6 +253,7 @@ const Campaigns = () => {
         <TabsList>
           <TabsTrigger value="active">Active Campaigns</TabsTrigger>
           <TabsTrigger value="performance">Performance Data</TabsTrigger>
+          <TabsTrigger value="import">Data Import</TabsTrigger>
           <TabsTrigger value="archived">Archived</TabsTrigger>
         </TabsList>
 
@@ -439,6 +442,11 @@ const Campaigns = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="import" className="space-y-4">
+          <DataImportManager />
+          <DataDrivenInsights />
         </TabsContent>
 
         <TabsContent value="archived" className="space-y-4">
