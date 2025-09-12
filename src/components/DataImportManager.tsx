@@ -16,7 +16,15 @@ interface ImportStats {
   errors: number;
 }
 
-const DataImportManager: React.FC = () => {
+interface DataImportManagerProps {
+  onDataImported?: (data: { campaigns: any[]; experiments: any[] }) => void;
+}
+
+const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported }) => {
+  const [importedData, setImportedData] = useState<{ campaigns: any[]; experiments: any[] }>({
+    campaigns: [],
+    experiments: []
+  });
   const [isImporting, setIsImporting] = useState(false);
   const [importStats, setImportStats] = useState<ImportStats>({ total: 0, imported: 0, errors: 0 });
   const [importType, setImportType] = useState<'campaigns' | 'experiments'>('campaigns');
@@ -297,6 +305,18 @@ const DataImportManager: React.FC = () => {
         description: `Successfully imported ${imported} ${importType} records with ${errors} errors`,
         variant: imported > 0 ? "default" : "destructive"
       });
+
+      // Update local state and notify parent
+      if (imported > 0) {
+        const updatedData = { ...importedData };
+        updatedData[importType] = data.slice(0, imported);
+        setImportedData(updatedData);
+        
+        // Notify parent component if callback is provided
+        if (onDataImported) {
+          onDataImported(updatedData);
+        }
+      }
 
     } catch (error) {
       console.error('File processing error:', error);
