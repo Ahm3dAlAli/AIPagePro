@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, FileSpreadsheet, Database, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { Upload, FileSpreadsheet, Database, CheckCircle, AlertCircle, TrendingUp, Eye, EyeOff } from 'lucide-react';
 
 interface ImportStats {
   total: number;
@@ -28,6 +29,7 @@ const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported })
   const [isImporting, setIsImporting] = useState(false);
   const [importStats, setImportStats] = useState<ImportStats>({ total: 0, imported: 0, errors: 0 });
   const [importType, setImportType] = useState<'campaigns' | 'experiments'>('campaigns');
+  const [showFormat, setShowFormat] = useState(false);
   const { toast } = useToast();
 
   const parseCSVData = (csvText: string, type: 'campaigns' | 'experiments') => {
@@ -330,11 +332,11 @@ const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported })
     }
   };
 
-  const sampleData = importType === 'campaigns' 
-    ? `Date	Campaign Name	Campaign ID	Landing Page URL	Traffic Source	UTM Source	UTM Medium	Device Type	Creative ID	Creative Name	Creative Type	Sessions	Users	New Users	Bounce Rate (%)	Engagement Rate (%)	Average Time on Page	Scroll Depth (%)	Clicks on Primary CTA	Form Views	Form Starters	Form Completions	Form Abandonment Rate (%)	Primary Conversion Count	Primary Conversion Rate (%)	Secondary Conversions	Cost per Session	Cost per Conversion	Total Spend	Lead-to-SQL Rate (%)	SQL-to-Opportunity Rate (%)	Opportunity-to-Close Rate (%)	Customer Acquisition Cost (CAC)
-5/15/2024	Summer Promo Lead Gen	GOOG-2024-SUM-001	https://company.com/summer-promo	Google Paid Search	google	cpc	Desktop	CRT-001-HERO	Hero Banner v2	Image	2847	2234	1789	42.3	58.7	2:34	67.4	487	1203	743	234	68.5	234	8.2	89	4.23	51.5	12051	24.8	42.3	18.7	267.45`
-    : `Experiment Name	Experiment ID	Owner	Hypothesis	Start Date	End Date	Audience Targeted	Traffic Allocation	Sample Size - Control (A)	Sample Size - Variant (B)	Control Description (A)	Variant Description (B)	Primary Metric Measured	Secondary Metrics Measured	Control Result - Primary Metric	Variant Result - Primary Metric	Delta (Absolute %)	Uplift (Relative %)	Statistical Significance Achieved	P-Value	Winning Variant	Decision Taken	Key Insights and Interpretation	Projected Business Impact	Limitations & Notes	Future Recommendations
-Lead Gen Form Position Test	EXP-2024-FORM-002	Conversion Optimization Team	Placing the lead generation form prominently in the hero section	8/20/2024	9/19/2024	Organic and paid traffic visitors to product landing pages	50/50	15672	15834	Lead generation form positioned in middle section	Lead generation form prominently displayed in hero section	Form Completion Rate	Form Views, Form Starts, Time to Form Interaction	5.83%	7.91%	2.08%	35.70%	Yes	0.0018	B (Hero Form)	Roll out hero form placement	Hero form placement significantly outperformed middle placement	Projected monthly form completions to increase from 4200 to 5700	Test primarily focused on B2B SaaS landing pages	Test different hero form designs`;
+  const campaignHeaders = ['Date', 'Campaign Name', 'Campaign ID', 'Landing Page URL', 'Traffic Source', 'UTM Source', 'UTM Medium', 'Device Type', 'Sessions', 'Users', 'Bounce Rate (%)', 'Conversion Rate (%)'];
+  const campaignSampleRow = ['5/15/2024', 'Summer Promo Lead Gen', 'GOOG-2024-SUM-001', 'https://company.com/summer-promo', 'Google Paid Search', 'google', 'cpc', 'Desktop', '2847', '2234', '42.3', '8.2'];
+
+  const experimentHeaders = ['Experiment Name', 'Experiment ID', 'Owner', 'Hypothesis', 'Start Date', 'End Date', 'Sample Size - Control (A)', 'Sample Size - Variant (B)', 'Control Result - Primary Metric', 'Variant Result - Primary Metric', 'Uplift (Relative %)', 'Statistical Significance'];
+  const experimentSampleRow = ['Lead Gen Form Position Test', 'EXP-2024-FORM-002', 'Conversion Optimization Team', 'Placing the lead generation form prominently in the hero section', '8/20/2024', '9/19/2024', '15672', '15834', '5.83%', '7.91%', '35.70%', 'Yes'];
 
   return (
     <div className="space-y-6">
@@ -378,12 +380,46 @@ Lead Gen Form Position Test	EXP-2024-FORM-002	Conversion Optimization Team	Placi
                   </p>
                 </div>
 
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Expected Format (TSV):</h4>
-                  <div className="text-xs font-mono bg-background p-2 rounded border overflow-x-auto">
-                    <pre>{sampleData}</pre>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Expected Format (TSV):</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowFormat(!showFormat)}
+                    className="flex items-center gap-2"
+                  >
+                    {showFormat ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showFormat ? 'Hide Format' : 'Show Format'}
+                  </Button>
                 </div>
+                
+                {showFormat && (
+                  <div className="mt-4 border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {campaignHeaders.map((header, index) => (
+                            <TableHead key={index} className="text-xs whitespace-nowrap">
+                              {header}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          {campaignSampleRow.map((cell, index) => (
+                            <TableCell key={index} className="text-xs">
+                              {cell}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                    <div className="p-2 bg-muted text-xs text-muted-foreground">
+                      Note: This is a sample showing key columns. The full format includes all campaign metrics and creative details.
+                    </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
 
@@ -404,12 +440,46 @@ Lead Gen Form Position Test	EXP-2024-FORM-002	Conversion Optimization Team	Placi
                   </p>
                 </div>
 
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Expected Format (TSV):</h4>
-                  <div className="text-xs font-mono bg-background p-2 rounded border overflow-x-auto">
-                    <pre>{sampleData}</pre>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Expected Format (TSV):</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowFormat(!showFormat)}
+                    className="flex items-center gap-2"
+                  >
+                    {showFormat ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showFormat ? 'Hide Format' : 'Show Format'}
+                  </Button>
                 </div>
+                
+                {showFormat && (
+                  <div className="mt-4 border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {experimentHeaders.map((header, index) => (
+                            <TableHead key={index} className="text-xs whitespace-nowrap">
+                              {header}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          {experimentSampleRow.map((cell, index) => (
+                            <TableCell key={index} className="text-xs">
+                              {cell}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                    <div className="p-2 bg-muted text-xs text-muted-foreground">
+                      Note: This is a sample showing key columns. The full format includes all experiment metrics and results.
+                    </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
