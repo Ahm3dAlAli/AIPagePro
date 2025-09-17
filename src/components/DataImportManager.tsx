@@ -34,15 +34,37 @@ const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported })
 
   const parseCSVData = (csvText: string, type: 'campaigns' | 'experiments') => {
     const lines = csvText.trim().split('\n');
-    const headers = lines[0].split('\t').map(h => h.trim());
+    if (lines.length < 2) {
+      console.warn('CSV file must have at least 2 lines (header + data)');
+      return [];
+    }
+    
+    // Handle both comma and tab delimiters
+    const delimiter = csvText.includes('\t') ? '\t' : ',';
+    const headers = lines[0].split(delimiter).map(h => h.trim().replace(/["']/g, ''));
     const data = [];
+    const errors: string[] = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split('\t');
+      const line = lines[i].trim();
+      if (!line) continue; // Skip empty lines
+      
+      const values = line.split(delimiter).map(v => v.trim().replace(/["']/g, ''));
+      
+      // Validate row has minimum required columns
+      if (values.length < Math.min(headers.length, 3)) {
+        errors.push(`Row ${i + 1}: Insufficient data columns`);
+        continue;
+      }
+      
       const row: any = {};
+      let hasValidData = false;
       
       headers.forEach((header, index) => {
         const value = values[index]?.trim() || '';
+        if (value && value !== 'N/A' && value !== '-') {
+          hasValidData = true;
+        }
         
         if (type === 'campaigns') {
           // Map campaign data fields
@@ -232,8 +254,19 @@ const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported })
         }
       });
       
-      data.push(row);
+      // Only add row if it contains valid data
+      if (hasValidData) {
+        data.push(row);
+      } else {
+        errors.push(`Row ${i + 1}: No valid data found`);
+      }
     }
+    
+    // Log parsing summary
+    if (errors.length > 0) {
+      console.warn(`Parsing completed with ${errors.length} errors:`, errors);
+    }
+    console.log(`Successfully parsed ${data.length} ${type} records`);
     
     return data;
   };
