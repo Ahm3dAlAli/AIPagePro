@@ -170,85 +170,111 @@ const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported })
               break;
           }
         } else if (type === 'experiments') {
-          // Map experiment data fields
+          // Map experiment data fields with fallbacks for required fields
           switch (header) {
             case 'Experiment Name':
-              row.experiment_name = value;
+            case 'Test Name':
+            case 'Name':
+              row.experiment_name = value || `Experiment ${i}`;
               break;
             case 'Experiment ID':
-              row.experiment_id = value;
+            case 'ID':
+              row.experiment_id = value || `exp_${Date.now()}_${i}`;
               break;
             case 'Owner':
-              row.owner = value;
+            case 'Test Owner':
+              row.owner = value || 'Unknown';
               break;
             case 'Hypothesis':
-              row.hypothesis = value;
+            case 'Test Hypothesis':
+              row.hypothesis = value || '';
               break;
             case 'Start Date':
-              row.start_date = value;
+            case 'Test Start Date':
+              row.start_date = value || new Date().toISOString().split('T')[0];
               break;
             case 'End Date':
-              row.end_date = value;
+            case 'Test End Date':
+              row.end_date = value || new Date().toISOString().split('T')[0];
               break;
             case 'Audience Targeted':
-              row.audience_targeted = value;
+            case 'Target Audience':
+              row.audience_targeted = value || 'All users';
               break;
             case 'Traffic Allocation':
-              row.traffic_allocation = value;
+            case 'Traffic Split':
+              row.traffic_allocation = value || '50/50';
               break;
             case 'Sample Size - Control (A)':
+            case 'Control Sample Size':
               row.sample_size_control = parseInt(value) || 0;
               break;
             case 'Sample Size - Variant (B)':
+            case 'Variant Sample Size':
               row.sample_size_variant = parseInt(value) || 0;
               break;
             case 'Control Description (A)':
-              row.control_description = value;
+            case 'Control Description':
+              row.control_description = value || 'Control variant';
               break;
             case 'Variant Description (B)':
-              row.variant_description = value;
+            case 'Variant Description':
+              row.variant_description = value || 'Test variant';
               break;
             case 'Primary Metric Measured':
-              row.primary_metric = value;
+            case 'Primary Metric':
+              row.primary_metric = value || 'Conversion Rate';
               break;
             case 'Secondary Metrics Measured':
-              row.secondary_metrics = value.split(', ');
+            case 'Secondary Metrics':
+              row.secondary_metrics = value ? value.split(', ') : [];
               break;
             case 'Control Result - Primary Metric':
+            case 'Control Result':
               row.control_result_primary = parseFloat(value.replace('%', '')) || 0;
               break;
             case 'Variant Result - Primary Metric':
+            case 'Variant Result':
               row.variant_result_primary = parseFloat(value.replace('%', '')) || 0;
               break;
             case 'Delta (Absolute %)':
+            case 'Delta':
               row.delta_absolute = parseFloat(value.replace('%', '')) || 0;
               break;
             case 'Uplift (Relative %)':
+            case 'Uplift':
               row.uplift_relative = parseFloat(value.replace('%', '')) || 0;
               break;
             case 'Statistical Significance Achieved':
-              row.statistical_significance = value.toLowerCase() === 'yes';
+            case 'Significant':
+              row.statistical_significance = value.toLowerCase() === 'yes' || value.toLowerCase() === 'true';
               break;
             case 'P-Value':
               row.p_value = parseFloat(value) || 0;
               break;
             case 'Winning Variant':
-              row.winning_variant = value;
+            case 'Winner':
+              row.winning_variant = value || 'Control';
               break;
             case 'Decision Taken':
-              row.decision_taken = value;
+            case 'Decision':
+              row.decision_taken = value || 'No decision';
               break;
             case 'Key Insights and Interpretation':
-              row.key_insights = value;
+            case 'Insights':
+              row.key_insights = value || '';
               break;
             case 'Projected Business Impact':
-              row.projected_business_impact = value;
+            case 'Business Impact':
+              row.projected_business_impact = value || '';
               break;
             case 'Limitations & Notes':
-              row.limitations_notes = value;
+            case 'Notes':
+              row.limitations_notes = value || '';
               break;
             case 'Future Recommendations':
-              row.future_recommendations = value;
+            case 'Recommendations':
+              row.future_recommendations = value || '';
               break;
           }
         }
