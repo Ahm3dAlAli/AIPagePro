@@ -42,6 +42,10 @@ const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported })
     // Handle both comma and tab delimiters
     const delimiter = csvText.includes('\t') ? '\t' : ',';
     const headers = lines[0].split(delimiter).map(h => h.trim().replace(/["']/g, ''));
+    
+    // Log detected headers for debugging
+    console.log(`Detected ${type} headers:`, headers);
+    
     const data = [];
     const errors: string[] = [];
 
@@ -170,118 +174,128 @@ const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported })
               break;
           }
         } else if (type === 'experiments') {
-          // Map experiment data fields with fallbacks for required fields
-          switch (header) {
-            case 'Experiment Name':
-            case 'Test Name':
-            case 'Name':
-              row.experiment_name = value || `Experiment ${i}`;
-              break;
-            case 'Experiment ID':
-            case 'ID':
-              row.experiment_id = value || `exp_${Date.now()}_${i}`;
-              break;
-            case 'Owner':
-            case 'Test Owner':
-              row.owner = value || 'Unknown';
-              break;
-            case 'Hypothesis':
-            case 'Test Hypothesis':
-              row.hypothesis = value || '';
-              break;
-            case 'Start Date':
-            case 'Test Start Date':
-              row.start_date = value || new Date().toISOString().split('T')[0];
-              break;
-            case 'End Date':
-            case 'Test End Date':
-              row.end_date = value || new Date().toISOString().split('T')[0];
-              break;
-            case 'Audience Targeted':
-            case 'Target Audience':
-              row.audience_targeted = value || 'All users';
-              break;
-            case 'Traffic Allocation':
-            case 'Traffic Split':
-              row.traffic_allocation = value || '50/50';
-              break;
-            case 'Sample Size - Control (A)':
-            case 'Control Sample Size':
-              row.sample_size_control = parseInt(value) || 0;
-              break;
-            case 'Sample Size - Variant (B)':
-            case 'Variant Sample Size':
-              row.sample_size_variant = parseInt(value) || 0;
-              break;
-            case 'Control Description (A)':
-            case 'Control Description':
-              row.control_description = value || 'Control variant';
-              break;
-            case 'Variant Description (B)':
-            case 'Variant Description':
-              row.variant_description = value || 'Test variant';
-              break;
-            case 'Primary Metric Measured':
-            case 'Primary Metric':
-              row.primary_metric = value || 'Conversion Rate';
-              break;
-            case 'Secondary Metrics Measured':
-            case 'Secondary Metrics':
-              row.secondary_metrics = value ? value.split(', ') : [];
-              break;
-            case 'Control Result - Primary Metric':
-            case 'Control Result':
-              row.control_result_primary = parseFloat(value.replace('%', '')) || 0;
-              break;
-            case 'Variant Result - Primary Metric':
-            case 'Variant Result':
-              row.variant_result_primary = parseFloat(value.replace('%', '')) || 0;
-              break;
-            case 'Delta (Absolute %)':
-            case 'Delta':
-              row.delta_absolute = parseFloat(value.replace('%', '')) || 0;
-              break;
-            case 'Uplift (Relative %)':
-            case 'Uplift':
-              row.uplift_relative = parseFloat(value.replace('%', '')) || 0;
-              break;
-            case 'Statistical Significance Achieved':
-            case 'Significant':
-              row.statistical_significance = value.toLowerCase() === 'yes' || value.toLowerCase() === 'true';
-              break;
-            case 'P-Value':
-              row.p_value = parseFloat(value) || 0;
-              break;
-            case 'Winning Variant':
-            case 'Winner':
-              row.winning_variant = value || 'Control';
-              break;
-            case 'Decision Taken':
-            case 'Decision':
-              row.decision_taken = value || 'No decision';
-              break;
-            case 'Key Insights and Interpretation':
-            case 'Insights':
-              row.key_insights = value || '';
-              break;
-            case 'Projected Business Impact':
-            case 'Business Impact':
-              row.projected_business_impact = value || '';
-              break;
-            case 'Limitations & Notes':
-            case 'Notes':
-              row.limitations_notes = value || '';
-              break;
-            case 'Future Recommendations':
-            case 'Recommendations':
-              row.future_recommendations = value || '';
-              break;
+          // Map experiment data fields - flexible header matching
+          const headerLower = header.toLowerCase().trim();
+          
+          // Experiment Name variations
+          if (headerLower.includes('experiment') && headerLower.includes('name') || 
+              headerLower.includes('test') && headerLower.includes('name') ||
+              headerLower === 'name') {
+            row.experiment_name = value;
+          }
+          // Experiment ID variations  
+          else if (headerLower.includes('experiment') && headerLower.includes('id') ||
+                   headerLower.includes('test') && headerLower.includes('id') ||
+                   headerLower === 'id') {
+            row.experiment_id = value;
+          }
+          // Owner variations
+          else if (headerLower.includes('owner') || headerLower.includes('creator')) {
+            row.owner = value;
+          }
+          // Hypothesis variations
+          else if (headerLower.includes('hypothesis')) {
+            row.hypothesis = value;
+          }
+          // Start Date variations
+          else if (headerLower.includes('start') && headerLower.includes('date')) {
+            row.start_date = value;
+          }
+          // End Date variations
+          else if (headerLower.includes('end') && headerLower.includes('date')) {
+            row.end_date = value;
+          }
+          // Audience variations
+          else if (headerLower.includes('audience') || headerLower.includes('target')) {
+            row.audience_targeted = value;
+          }
+          // Traffic allocation variations
+          else if (headerLower.includes('traffic') || headerLower.includes('split')) {
+            row.traffic_allocation = value;
+          }
+          // Control sample size variations
+          else if ((headerLower.includes('sample') || headerLower.includes('size')) && 
+                   (headerLower.includes('control') || headerLower.includes('(a)'))) {
+            row.sample_size_control = parseInt(value) || 0;
+          }
+          // Variant sample size variations
+          else if ((headerLower.includes('sample') || headerLower.includes('size')) && 
+                   (headerLower.includes('variant') || headerLower.includes('(b)'))) {
+            row.sample_size_variant = parseInt(value) || 0;
+          }
+          // Control description variations
+          else if (headerLower.includes('control') && headerLower.includes('description')) {
+            row.control_description = value;
+          }
+          // Variant description variations
+          else if (headerLower.includes('variant') && headerLower.includes('description')) {
+            row.variant_description = value;
+          }
+          // Primary metric variations
+          else if (headerLower.includes('primary') && headerLower.includes('metric')) {
+            row.primary_metric = value;
+          }
+          // Secondary metrics variations
+          else if (headerLower.includes('secondary') && headerLower.includes('metric')) {
+            row.secondary_metrics = value ? value.split(/[,;]/).map(s => s.trim()) : [];
+          }
+          // Control result variations
+          else if (headerLower.includes('control') && headerLower.includes('result')) {
+            row.control_result_primary = parseFloat(value.replace(/[%$,]/g, '')) || 0;
+          }
+          // Variant result variations
+          else if (headerLower.includes('variant') && headerLower.includes('result')) {
+            row.variant_result_primary = parseFloat(value.replace(/[%$,]/g, '')) || 0;
+          }
+          // Delta variations
+          else if (headerLower.includes('delta') || headerLower.includes('difference')) {
+            row.delta_absolute = parseFloat(value.replace(/[%$,]/g, '')) || 0;
+          }
+          // Uplift variations
+          else if (headerLower.includes('uplift') || headerLower.includes('lift')) {
+            row.uplift_relative = parseFloat(value.replace(/[%$,]/g, '')) || 0;
+          }
+          // Statistical significance variations
+          else if (headerLower.includes('statistical') || headerLower.includes('significant')) {
+            row.statistical_significance = value.toLowerCase().includes('yes') || 
+                                         value.toLowerCase().includes('true') ||
+                                         value.toLowerCase().includes('significant');
+          }
+          // P-value variations
+          else if (headerLower.includes('p-value') || headerLower.includes('pvalue')) {
+            row.p_value = parseFloat(value) || 0;
+          }
+          // Winning variant variations
+          else if (headerLower.includes('winning') || headerLower.includes('winner')) {
+            row.winning_variant = value;
+          }
+          // Decision variations
+          else if (headerLower.includes('decision')) {
+            row.decision_taken = value;
+          }
+          // Insights variations
+          else if (headerLower.includes('insight') || headerLower.includes('interpretation')) {
+            row.key_insights = value;
+          }
+          // Business impact variations
+          else if (headerLower.includes('business') && headerLower.includes('impact')) {
+            row.projected_business_impact = value;
+          }
+          // Limitations variations
+          else if (headerLower.includes('limitation') || headerLower.includes('notes')) {
+            row.limitations_notes = value;
+          }
+          // Recommendations variations
+          else if (headerLower.includes('recommendation') || headerLower.includes('future')) {
+            row.future_recommendations = value;
           }
         }
       });
       
       // Only add row if it contains valid data
       if (hasValidData) {
+        // Log parsed row for debugging
+        console.log(`Parsed ${type} row ${i}:`, row);
         data.push(row);
       } else {
         errors.push(`Row ${i + 1}: No valid data found`);
