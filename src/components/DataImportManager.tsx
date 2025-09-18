@@ -355,19 +355,41 @@ const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported })
           try {
             item.user_id = user.id;
             
+            // Validate required fields before insertion
+            if (importType === 'experiments') {
+              if (!item.experiment_name || item.experiment_name.trim() === '') {
+                console.error('Missing required field experiment_name:', item);
+                errors++;
+                setImportStats({ total: data.length, imported, errors });
+                continue;
+              }
+            } else if (importType === 'campaigns') {
+              if (!item.campaign_name || item.campaign_name.trim() === '') {
+                console.error('Missing required field campaign_name:', item);
+                errors++;
+                setImportStats({ total: data.length, imported, errors });
+                continue;
+              }
+            }
+            
+            console.log(`Attempting to insert ${importType} record:`, item);
+            
             const tableName = importType === 'campaigns' ? 'historic_campaigns' : 'experiment_results';
             const { error } = await supabase
               .from(tableName)
               .insert(item);
 
             if (error) {
-              console.error('Insert error:', error);
+              console.error(`Database insert error for ${importType}:`, error);
+              console.error('Failed record data:', item);
               errors++;
             } else {
+              console.log(`Successfully inserted ${importType} record`);
               imported++;
             }
           } catch (err) {
             console.error('Processing error:', err);
+            console.error('Failed item:', item);
             errors++;
           }
           
