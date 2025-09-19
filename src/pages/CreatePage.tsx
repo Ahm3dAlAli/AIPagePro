@@ -8,11 +8,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Brain, Sparkles, Target, Users, MessageSquare, Zap, Copy, Database, Eye, ExternalLink, FileText } from 'lucide-react';
+import { Loader2, Brain, Sparkles, Target, Users, MessageSquare, Zap, Copy, Database, ExternalLink, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import DataImportManager from '@/components/DataImportManager';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, TrendingUp, Eye, EyeOff } from 'lucide-react';
+
+interface ImportStats {
+  total: number;
+  imported: number;
+  errors: number;
+}
 
 const CreatePage = () => {
   const navigate = useNavigate();
@@ -37,11 +46,173 @@ const CreatePage = () => {
     experiments: []
   });
 
+  // Data import states
+  const [isImporting, setIsImporting] = useState(false);
+  const [importStats, setImportStats] = useState<ImportStats>({ total: 0, imported: 0, errors: 0 });
+  const [importType, setImportType] = useState<'campaigns' | 'experiments'>('campaigns');
+  const [showFormat, setShowFormat] = useState(false);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  // Data import functionality
+  const parseCSVData = (csvText: string, type: 'campaigns' | 'experiments') => {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) {
+      console.warn('CSV file must have at least 2 lines (header + data)');
+      return [];
+    }
+    
+    const delimiter = csvText.includes('\t') ? '\t' : ',';
+    const headers = lines[0].split(delimiter).map(h => h.trim().replace(/["']/g, ''));
+    
+    console.log(`Detected ${type} headers:`, headers);
+    
+    const data = [];
+    const errors: string[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      const values = line.split(delimiter).map(v => v.trim().replace(/["']/g, ''));
+      
+      if (values.length < Math.min(headers.length, 3)) {
+        errors.push(`Row ${i + 1}: Insufficient data columns`);
+        continue;
+      }
+      
+      const row: any = {};
+      let hasValidData = false;
+      
+      headers.forEach((header, index) => {
+        const value = values[index]?.trim() || '';
+        if (value && value !== 'N/A' && value !== '-') {
+          hasValidData = true;
+        }
+        
+        if (type === 'campaigns') {
+          const headerLower = header.toLowerCase().trim();
+          if (headerLower.includes('campaign') && headerLower.includes('name')) row.campaign_name = value;
+          else if (headerLower.includes('campaign') && headerLower.includes('id')) row.campaign_id = value;
+          else if (headerLower.includes('date')) row.campaign_date = value;
+          else if (headerLower.includes('session')) row.sessions = parseInt(value) || 0;
+          else if (headerLower.includes('user') && !headerLower.includes('new')) row.users = parseInt(value) || 0;
+          else if (headerLower.includes('bounce')) row.bounce_rate = parseFloat(value) || 0;
+          else if (headerLower.includes('conversion')) row.primary_conversion_rate = parseFloat(value) || 0;
+        } else if (type === 'experiments') {
+          const headerLower = header.toLowerCase().trim();
+          if (headerLower.includes('experiment') && headerLower.includes('name')) row.experiment_name = value;
+          else if (headerLower.includes('experiment') && headerLower.includes('id')) row.experiment_id = value;
+          else if (headerLower.includes('owner')) row.owner = value;
+          else if (headerLower.includes('hypothesis')) row.hypothesis = value;
+          else if (headerLower.includes('start') && headerLower.includes('date')) row.start_date = value;
+          else if (headerLower.includes('end') && headerLower.includes('date')) row.end_date = value;
+          else if (headerLower.includes('control') && headerLower.includes('result')) row.control_result_primary = parseFloat(value.replace(/[%$,]/g, '')) || 0;
+          else if (headerLower.includes('variant') && headerLower.includes('result')) row.variant_result_primary = parseFloat(value.replace(/[%$,]/g, '')) || 0;
+          else if (headerLower.includes('uplift')) row.uplift_relative = parseFloat(value.replace(/[%$,]/g, '')) || 0;
+          else if (headerLower.includes('statistical')) row.statistical_significance = value.toLowerCase().includes('yes');
+        }
+      });
+      
+      if (hasValidData) {
+        console.log(`Parsed ${type} row ${i}:`, row);
+        data.push(row);
+      }
+    }
+    
+    console.log(`Successfully parsed ${data.length} ${type} records`);
+    return data;
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    setImportStats({ total: 0, imported: 0, errors: 0 });
+
+    try {
+      const text = await file.text();
+      const data = parseCSVData(text, importType);
+      
+      setImportStats(prev => ({ ...prev, total: data.length }));
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to import data",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      let imported = 0;
+      let errors = 0;
+
+      const batchSize = 10;
+      for (let i = 0; i < data.length; i += batchSize) {
+        const batch = data.slice(i, i + batchSize);
+        
+        for (const item of batch) {
+          try {
+            item.user_id = user.id;
+            
+            if (importType === 'experiments' && !item.experiment_name?.trim()) {
+              console.error('Missing required field experiment_name:', item);
+              errors++;
+              continue;
+            } else if (importType === 'campaigns' && !item.campaign_name?.trim()) {
+              console.error('Missing required field campaign_name:', item);
+              errors++;
+              continue;
+            }
+            
+            const tableName = importType === 'campaigns' ? 'historic_campaigns' : 'experiment_results';
+            const { error } = await supabase.from(tableName).insert(item);
+
+            if (error) {
+              console.error(`Database insert error for ${importType}:`, error);
+              errors++;
+            } else {
+              imported++;
+            }
+          } catch (err) {
+            console.error('Processing error:', err);
+            errors++;
+          }
+          
+          setImportStats({ total: data.length, imported, errors });
+        }
+      }
+
+      toast({
+        title: "Import Complete",
+        description: `Successfully imported ${imported} ${importType} records with ${errors} errors`,
+        variant: imported > 0 ? "default" : "destructive"
+      });
+
+      if (imported > 0) {
+        const updatedData = { ...importedData };
+        updatedData[importType] = data.slice(0, imported);
+        setImportedData(updatedData);
+      }
+
+    } catch (error) {
+      console.error('File processing error:', error);
+      toast({
+        title: "Import Failed",
+        description: "Failed to process the uploaded file",
+        variant: "destructive"
+      });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const fillExampleData = () => {
@@ -102,7 +273,7 @@ const CreatePage = () => {
     setIsGenerating(true);
 
     try {
-      // Use autonomous generation for comprehensive AI optimization
+      // Use autonomous generation for comprehensive AI optimization with historic data
       const requestBody = {
         objective: formData.campaignObjective,
         audience: formData.targetAudience,
@@ -120,6 +291,10 @@ const CreatePage = () => {
         seo: {
           title: formData.pageTitle,
           keywords: formData.seoKeywords
+        },
+        historicData: {
+          campaigns: importedData.campaigns,
+          experiments: importedData.experiments
         }
       };
 
@@ -239,7 +414,179 @@ const CreatePage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <DataImportManager onDataImported={setImportedData} />
+            <div className="space-y-6">
+              <Tabs value={importType} onValueChange={(value) => setImportType(value as 'campaigns' | 'experiments')}>
+                <div className="flex items-center justify-between">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="campaigns">Campaign Data</TabsTrigger>
+                    <TabsTrigger value="experiments">Experiment Results</TabsTrigger>
+                  </TabsList>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFormat(!showFormat)}
+                  >
+                    {showFormat ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                    {showFormat ? 'Hide' : 'Show'} Format
+                  </Button>
+                </div>
+
+                <TabsContent value="campaigns" className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center w-full">
+                      <label htmlFor="campaign-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="w-8 h-8 mb-2 text-gray-500" />
+                          <p className="mb-2 text-sm text-gray-500">
+                            <span className="font-semibold">Click to upload</span> campaign CSV/TSV
+                          </p>
+                          <p className="text-xs text-gray-500">CSV or TSV files</p>
+                        </div>
+                        <Input
+                          id="campaign-upload"
+                          type="file"
+                          accept=".csv,.tsv"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          disabled={isImporting}
+                        />
+                      </label>
+                    </div>
+
+                    {showFormat && (
+                      <Card className="bg-blue-50">
+                        <CardHeader>
+                          <CardTitle className="text-sm">Expected Campaign Data Format</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Campaign Name</TableHead>
+                                  <TableHead>Date</TableHead>
+                                  <TableHead>Sessions</TableHead>
+                                  <TableHead>Users</TableHead>
+                                  <TableHead>Conversion Rate (%)</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                <TableRow>
+                                  <TableCell>Summer Promo Lead Gen</TableCell>
+                                  <TableCell>5/15/2024</TableCell>
+                                  <TableCell>2847</TableCell>
+                                  <TableCell>2234</TableCell>
+                                  <TableCell>8.2</TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="experiments" className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center w-full">
+                      <label htmlFor="experiment-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="w-8 h-8 mb-2 text-gray-500" />
+                          <p className="mb-2 text-sm text-gray-500">
+                            <span className="font-semibold">Click to upload</span> experiment CSV/TSV
+                          </p>
+                          <p className="text-xs text-gray-500">CSV or TSV files</p>
+                        </div>
+                        <Input
+                          id="experiment-upload"
+                          type="file"
+                          accept=".csv,.tsv"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          disabled={isImporting}
+                        />
+                      </label>
+                    </div>
+
+                    {showFormat && (
+                      <Card className="bg-blue-50">
+                        <CardHeader>
+                          <CardTitle className="text-sm">Expected Experiment Data Format</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Experiment Name</TableHead>
+                                  <TableHead>Control Result</TableHead>
+                                  <TableHead>Variant Result</TableHead>
+                                  <TableHead>Uplift (%)</TableHead>
+                                  <TableHead>Statistical Significance</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                <TableRow>
+                                  <TableCell>Lead Gen Form Position Test</TableCell>
+                                  <TableCell>5.83%</TableCell>
+                                  <TableCell>7.91%</TableCell>
+                                  <TableCell>35.70%</TableCell>
+                                  <TableCell>Yes</TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              {isImporting && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Importing data...</span>
+                  </div>
+                  <Progress value={(importStats.imported / importStats.total) * 100} />
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                      <FileSpreadsheet className="h-4 w-4 text-blue-500" />
+                      Total: {importStats.total}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      Imported: {importStats.imported}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      Errors: {importStats.errors}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(importedData.campaigns.length > 0 || importedData.experiments.length > 0) && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium">Data Imported Successfully</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">{importedData.campaigns.length}</div>
+                      <div className="text-sm text-blue-600">Campaign Records</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{importedData.experiments.length}</div>
+                      <div className="text-sm text-green-600">Experiment Records</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
