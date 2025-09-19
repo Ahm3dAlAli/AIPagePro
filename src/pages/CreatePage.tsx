@@ -8,10 +8,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Brain, Sparkles, Target, Users, MessageSquare, Zap, Copy, Database } from 'lucide-react';
+import { Loader2, Brain, Sparkles, Target, Users, MessageSquare, Zap, Copy, Database, Eye, ExternalLink, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import DataImportManager from '@/components/DataImportManager';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const CreatePage = () => {
   const navigate = useNavigate();
@@ -72,16 +73,21 @@ const CreatePage = () => {
     });
   };
 
+  const [generatedPage, setGeneratedPage] = useState<any>(null);
+  const [showPagePreview, setShowPagePreview] = useState(false);
+  const [isDeploying, setIsDeploying] = useState(false);
+
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if using a template
-    const selectedTemplate = sessionStorage.getItem('selectedTemplate');
-    let templateData = null;
-    
-    if (selectedTemplate) {
-      templateData = JSON.parse(selectedTemplate);
-      sessionStorage.removeItem('selectedTemplate');
+    // Check if historic data is imported
+    if (importedData.campaigns.length === 0 && importedData.experiments.length === 0) {
+      toast({
+        title: "Historic Data Required",
+        description: "Please import your campaign data and experiment results first. This data is essential for AI optimization.",
+        variant: "destructive"
+      });
+      return;
     }
 
     if (!formData.campaignObjective || !formData.targetAudience || !formData.uniqueValueProp) {
@@ -96,14 +102,28 @@ const CreatePage = () => {
     setIsGenerating(true);
 
     try {
+      // Use autonomous generation for comprehensive AI optimization
       const requestBody = {
-        ...formData,
-        template: templateData || null,
-        historicData: importedData.campaigns,
-        experimentData: importedData.experiments
+        objective: formData.campaignObjective,
+        audience: formData.targetAudience,
+        product: {
+          name: formData.pageTitle || 'Product',
+          valueProposition: formData.uniqueValueProp,
+          benefits: formData.primaryBenefits,
+          features: formData.features
+        },
+        branding: {
+          tone: formData.toneOfVoice,
+          industry: formData.industryType
+        },
+        cta: formData.ctaText,
+        seo: {
+          title: formData.pageTitle,
+          keywords: formData.seoKeywords
+        }
       };
 
-      const { data, error } = await supabase.functions.invoke('generate-landing-page', {
+      const { data, error } = await supabase.functions.invoke('autonomous-generation', {
         body: requestBody
       });
 
@@ -112,15 +132,12 @@ const CreatePage = () => {
       }
 
       if (data.success) {
+        setGeneratedPage(data);
+        setShowPagePreview(true);
         toast({
           title: "Page Generated Successfully!",
-          description: templateData ? 
-            "Template has been customized with your content!" :
-            "Your AI-generated landing page is ready for review."
+          description: "Your AI-optimized landing page with rationale report is ready!"
         });
-        
-        // Navigate to the generated page editor
-        navigate(`/dashboard/pages/${data.page.id}`);
       } else {
         throw new Error(data.error || 'Failed to generate page');
       }
@@ -133,6 +150,38 @@ const CreatePage = () => {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleDeploy = async () => {
+    if (!generatedPage?.page) return;
+    
+    setIsDeploying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('deploy-to-vercel', {
+        body: {
+          pageId: generatedPage.page.id
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Deployment Successful!",
+          description: `Your page is now live at ${data.deploymentUrl}`,
+        });
+      } else {
+        throw new Error(data.error || 'Deployment failed');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Deployment Failed",
+        description: error.message || "Failed to deploy to Vercel",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeploying(false);
     }
   };
 
@@ -404,6 +453,140 @@ const CreatePage = () => {
           </p>
         </div>
       </form>
+
+      {/* Page Preview Dialog */}
+      <Dialog open={showPagePreview} onOpenChange={setShowPagePreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              Generated Landing Page
+            </DialogTitle>
+            <DialogDescription>
+              Your AI-optimized landing page is ready. Review the content and deploy when ready.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {generatedPage && (
+            <div className="space-y-6">
+              {/* Page Preview */}
+              <div className="border rounded-lg bg-background">
+                <div className="p-4 border-b bg-muted/50">
+                  <h3 className="font-semibold">Page Preview</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Title: {generatedPage.page?.title}
+                  </p>
+                </div>
+                <div className="p-6 max-h-60 overflow-y-auto">
+                  {/* Hero Section Preview */}
+                  {generatedPage.pageContent?.hero && (
+                    <div className="mb-6">
+                      <h1 className="text-2xl font-bold mb-2">
+                        {generatedPage.pageContent.hero.headline}
+                      </h1>
+                      <p className="text-muted-foreground mb-4">
+                        {generatedPage.pageContent.hero.subheadline}
+                      </p>
+                      <Button className="mb-4">
+                        {generatedPage.pageContent.hero.ctaText}
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Benefits Preview */}
+                  {generatedPage.pageContent?.benefits && (
+                    <div className="mb-4">
+                      <h2 className="text-xl font-semibold mb-3">Benefits</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {generatedPage.pageContent.benefits.items?.slice(0, 4).map((benefit: any, index: number) => (
+                          <div key={index} className="p-3 border rounded">
+                            <h3 className="font-medium text-sm">{benefit.title}</h3>
+                            <p className="text-xs text-muted-foreground">{benefit.description}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* AI Rationale Summary */}
+              {generatedPage.aiRationale && (
+                <div className="border rounded-lg">
+                  <div className="p-4 border-b bg-muted/50">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      AI Rationale Report
+                    </h3>
+                  </div>
+                  <div className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <strong>Key Decisions:</strong>
+                        <ul className="mt-1 space-y-1">
+                          {Object.entries(generatedPage.aiRationale.keyDecisions || {}).slice(0, 3).map(([key, value]: [string, any]) => (
+                            <li key={key} className="text-muted-foreground">
+                              • {key}: {value.decision}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <strong>Performance Insights:</strong>
+                        <p className="mt-1 text-muted-foreground">
+                          {generatedPage.aiRationale.performanceInsights?.summary || 'Optimized based on historical data'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Component Exports Info */}
+              {generatedPage.componentExports && generatedPage.componentExports.length > 0 && (
+                <div className="border rounded-lg">
+                  <div className="p-4 border-b bg-muted/50">
+                    <h3 className="font-semibold">Sitecore Components Generated</h3>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {generatedPage.componentExports.length} exportable components created
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {generatedPage.componentExports.map((component: any, index: number) => (
+                        <Badge key={index} variant="secondary">
+                          {component.component_name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => generatedPage?.page && navigate(`/dashboard/pages/${generatedPage.page.id}`)}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Open Editor
+            </Button>
+            <Button
+              onClick={handleDeploy}
+              disabled={isDeploying}
+            >
+              {isDeploying ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <ExternalLink className="h-4 w-4 mr-2" />
+              )}
+              Deploy to Vercel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
