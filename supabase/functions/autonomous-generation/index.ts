@@ -74,15 +74,65 @@ serve(async (req) => {
   }
 
   try {
+    // Get authorization header
+    const authHeader = req.headers.get('Authorization');
+    console.log('Authorization header present:', !!authHeader);
+    
+    if (!authHeader) {
+      console.error('No authorization header found');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Authorization header missing' 
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      { 
+        global: { 
+          headers: { 
+            Authorization: authHeader 
+          } 
+        } 
+      }
     );
 
-    const { data: { user } } = await supabaseClient.auth.getUser();
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    console.log('User authentication result:', { user: !!user, error: userError });
+    
+    if (userError) {
+      console.error('User authentication error:', userError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Authentication failed: ${userError.message}` 
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+    
     if (!user) {
-      throw new Error('User not authenticated');
+      console.error('No user found after authentication');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'User not authenticated' 
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const campaignInput: CampaignInput = await req.json();
