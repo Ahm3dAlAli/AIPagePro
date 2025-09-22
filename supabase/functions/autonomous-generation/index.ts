@@ -114,7 +114,7 @@ serve(async (req) => {
     }
 
     const campaignInput: CampaignInput = await req.json();
-    console.log('Starting autonomous generation for user:', user.id);
+    console.log('Starting autonomous generation for user:', userId);
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
@@ -122,7 +122,7 @@ serve(async (req) => {
     }
 
     // Step 1: Gather Historic Data & Insights
-    const historicInsights = await gatherHistoricInsights(supabaseClient, user.id, campaignInput);
+    const historicInsights = await gatherHistoricInsights(supabaseClient, userId, campaignInput);
     
     // Step 2: Generate AI-Powered Landing Page with Data-Driven Decisions
     const generatedContent = await generateAutonomousPage(
@@ -142,7 +142,7 @@ serve(async (req) => {
     // Step 4: Save Everything to Database
     const savedPage = await saveGeneratedPage(
       supabaseClient,
-      user.id,
+      userId,
       campaignInput,
       generatedContent,
       rationaleReport
@@ -151,7 +151,7 @@ serve(async (req) => {
     // Step 5: Generate Component Exports for Sitecore BYOC
     await generateComponentExports(
       supabaseClient,
-      user.id,
+      userId,
       savedPage.id,
       generatedContent
     );
