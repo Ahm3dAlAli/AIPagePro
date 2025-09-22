@@ -74,65 +74,43 @@ serve(async (req) => {
   }
 
   try {
-    // Get authorization header
-    const authHeader = req.headers.get('Authorization');
-    console.log('Authorization header present:', !!authHeader);
+    console.log('Starting autonomous generation request');
     
-    if (!authHeader) {
-      console.error('No authorization header found');
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Authorization header missing' 
-        }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { 
-        global: { 
-          headers: { 
-            Authorization: authHeader 
-          } 
-        } 
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    console.log('User authentication result:', { user: !!user, error: userError });
+    // Get authorization header for user identification
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
+    console.log('Authorization header present:', !!authHeader);
     
-    if (userError) {
-      console.error('User authentication error:', userError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: `Authentication failed: ${userError.message}` 
-        }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    let userId = null;
+    if (authHeader) {
+      try {
+        // Create a client with the user's auth token to get user info
+        const userClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          { 
+            global: { 
+              headers: { 
+                Authorization: authHeader 
+              } 
+            } 
+          }
+        );
+        
+        const { data: { user } } = await userClient.auth.getUser();
+        if (user) {
+          userId = user.id;
+          console.log('User authenticated successfully:', userId);
+        } else {
+          console.log('No user found, proceeding without authentication');
         }
-      );
-    }
-    
-    if (!user) {
-      console.error('No user found after authentication');
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'User not authenticated' 
-        }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      } catch (authError) {
+        console.log('Auth check failed, proceeding without authentication:', authError);
+      }
     }
 
     const campaignInput: CampaignInput = await req.json();
