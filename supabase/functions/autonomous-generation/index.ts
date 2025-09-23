@@ -85,32 +85,44 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
     console.log('Authorization header present:', !!authHeader);
     
-    let userId = null;
-    if (authHeader) {
-      try {
-        // Create a client with the user's auth token to get user info
-        const userClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-          { 
-            global: { 
-              headers: { 
-                Authorization: authHeader 
-              } 
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }), 
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let userId: string;
+    try {
+      // Create a client with the user's auth token to get user info
+      const userClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { 
+          global: { 
+            headers: { 
+              Authorization: authHeader 
             } 
           }
-        );
-        
-        const { data: { user } } = await userClient.auth.getUser();
-        if (user) {
-          userId = user.id;
-          console.log('User authenticated successfully:', userId);
-        } else {
-          console.log('No user found, proceeding without authentication');
         }
-      } catch (authError) {
-        console.log('Auth check failed, proceeding without authentication:', authError);
+      );
+      
+      const { data: { user } } = await userClient.auth.getUser();
+      if (!user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication token' }), 
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
+      
+      userId = user.id;
+      console.log('User authenticated successfully:', userId);
+    } catch (authError) {
+      console.log('Auth check failed:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed' }), 
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const campaignInput: CampaignInput = await req.json();
