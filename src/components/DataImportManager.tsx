@@ -355,7 +355,7 @@ const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported })
           try {
             item.user_id = user.id;
             
-            // Validate required fields before insertion
+            // Ensure required fields and data quality for autonomous generation
             if (importType === 'experiments') {
               if (!item.experiment_name || item.experiment_name.trim() === '') {
                 console.error('Missing required field experiment_name:', item);
@@ -363,6 +363,22 @@ const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported })
                 setImportStats({ total: data.length, imported, errors });
                 continue;
               }
+              
+              // Ensure date fields are properly formatted
+              if (item.start_date && !item.start_date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                // Try to convert common date formats
+                const date = new Date(item.start_date);
+                if (!isNaN(date.getTime())) {
+                  item.start_date = date.toISOString().split('T')[0];
+                }
+              }
+              if (item.end_date && !item.end_date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const date = new Date(item.end_date);
+                if (!isNaN(date.getTime())) {
+                  item.end_date = date.toISOString().split('T')[0];
+                }
+              }
+              
             } else if (importType === 'campaigns') {
               if (!item.campaign_name || item.campaign_name.trim() === '') {
                 console.error('Missing required field campaign_name:', item);
@@ -370,6 +386,22 @@ const DataImportManager: React.FC<DataImportManagerProps> = ({ onDataImported })
                 setImportStats({ total: data.length, imported, errors });
                 continue;
               }
+              
+              // Ensure campaign_date is properly formatted
+              if (item.campaign_date && !item.campaign_date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const date = new Date(item.campaign_date);
+                if (!isNaN(date.getTime())) {
+                  item.campaign_date = date.toISOString().split('T')[0];
+                } else {
+                  item.campaign_date = new Date().toISOString().split('T')[0];
+                }
+              }
+              
+              // Ensure required fields have default values for AI analysis
+              item.sessions = item.sessions || 0;
+              item.users = item.users || 0;
+              item.bounce_rate = item.bounce_rate || 0;
+              item.primary_conversion_rate = item.primary_conversion_rate || 0;
             }
             
             console.log(`Attempting to insert ${importType} record:`, item);
