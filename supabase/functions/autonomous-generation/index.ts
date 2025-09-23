@@ -117,10 +117,11 @@ serve(async (req) => {
       }
     }
 
-    // For now, allow unauthenticated users for testing but generate a temporary user ID
+    // For now, allow unauthenticated users for testing but generate a proper UUID
     if (!userId) {
-      userId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      console.log('No authentication, using temporary user ID:', userId);
+      // Generate a proper UUID for temporary users to avoid database constraint errors
+      userId = crypto.randomUUID();
+      console.log('No authentication, using temporary UUID:', userId);
     }
 
     const campaignInput: CampaignInput = await req.json();
