@@ -130,7 +130,12 @@ const CreatePage = () => {
         eventTrackingSetup: {},
         analyticsIds: {},
         privacyPolicyUrl: '',
-        gdprConsentText: ''
+        gdprConsentText: '',
+        // Include imported data for AI optimization
+        historicData: {
+          campaigns: importedData.campaigns,
+          experiments: importedData.experiments
+        }
       };
 
       const { data, error } = await supabase.functions.invoke('autonomous-generation', {
