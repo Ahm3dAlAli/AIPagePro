@@ -18,6 +18,7 @@ import {
   Zap
 } from 'lucide-react';
 import { useDataImport, ImportedData } from '@/hooks/useDataImport';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EnhancedDataImportProps {
   onDataImported?: (data: ImportedData) => void;
@@ -68,26 +69,84 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
     if (!file) return;
 
     try {
-      const text = await file.text();
-      const data = parseCSV(text);
+      // Enhanced file processing with support for Excel and OCR
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      const isExcel = ['xlsx', 'xls'].includes(fileExtension || '');
+      const isImage = ['jpg', 'jpeg', 'png', 'pdf'].includes(fileExtension || '');
       
-      if (data.length === 0) {
-        alert('No valid data found in the file');
-        return;
-      }
+      let data: any[] = [];
+      
+      if (isExcel) {
+        // Process Excel file via edge function
+        const fileContent = await fileToBase64(file);
+        const response = await supabase.functions.invoke('process-data-files', {
+          body: {
+            fileContent,
+            fileName: file.name,
+            fileType: 'excel'
+          }
+        });
+        
+        if (response.data?.success) {
+          alert(`Successfully processed ${response.data.stored} records from Excel file`);
+          await loadExistingData();
+          return;
+        } else {
+          throw new Error(response.data?.error || 'Failed to process Excel file');
+        }
+      } else if (isImage) {
+        // Process image/PDF with OCR via edge function
+        const fileContent = await fileToBase64(file);
+        const response = await supabase.functions.invoke('process-data-files', {
+          body: {
+            fileContent,
+            fileName: file.name,
+            fileType: 'image'
+          }
+        });
+        
+        if (response.data?.success) {
+          alert(`Successfully extracted ${response.data.stored} records from ${file.name} using OCR`);
+          await loadExistingData();
+          return;
+        } else {
+          throw new Error(response.data?.error || 'Failed to process image/PDF');
+        }
+      } else {
+        // Process CSV file locally
+        const text = await file.text();
+        data = parseCSV(text);
+        
+        if (data.length === 0) {
+          alert('No valid data found in the file');
+          return;
+        }
 
-      const success = await importData(data, type);
-      
-      if (success) {
-        await loadExistingData();
+        const success = await importData(data, type);
+        
+        if (success) {
+          await loadExistingData();
+        }
       }
     } catch (error) {
       console.error('File processing error:', error);
-      alert('Failed to process the uploaded file');
+      alert('Failed to process the uploaded file: ' + (error as Error).message);
     }
     
     // Clear the input
     event.target.value = '';
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]); // Remove data URL prefix
+      };
+      reader.onerror = error => reject(error);
+    });
   };
 
   const getInsights = () => {
@@ -218,7 +277,7 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
                 <Input
                   id="campaigns-file"
                   type="file"
-                  accept=".csv"
+                  accept=".csv,.xlsx,.xls,.jpg,.jpeg,.png,.pdf"
                   onChange={(e) => handleFileUpload(e, 'campaigns')}
                   disabled={isImporting}
                 />
@@ -235,6 +294,12 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
               )}
               
               <div className="text-sm text-muted-foreground">
+                <p className="font-medium mb-2">Supported formats:</p>
+                <ul className="list-disc list-inside space-y-1 mb-3">
+                  <li>CSV files (.csv)</li>
+                  <li>Excel files (.xlsx, .xls)</li>
+                  <li>Images with OCR (.jpg, .png, .pdf)</li>
+                </ul>
                 <p className="font-medium mb-2">Required columns:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Campaign Name</li>
@@ -266,7 +331,7 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
                 <Input
                   id="experiments-file"
                   type="file"
-                  accept=".csv"
+                  accept=".csv,.xlsx,.xls,.jpg,.jpeg,.png,.pdf"
                   onChange={(e) => handleFileUpload(e, 'experiments')}
                   disabled={isImporting}
                 />
@@ -283,6 +348,12 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
               )}
               
               <div className="text-sm text-muted-foreground">
+                <p className="font-medium mb-2">Supported formats:</p>
+                <ul className="list-disc list-inside space-y-1 mb-3">
+                  <li>CSV files (.csv)</li>
+                  <li>Excel files (.xlsx, .xls)</li>
+                  <li>Images with OCR (.jpg, .png, .pdf)</li>
+                </ul>
                 <p className="font-medium mb-2">Required columns:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Experiment Name</li>
