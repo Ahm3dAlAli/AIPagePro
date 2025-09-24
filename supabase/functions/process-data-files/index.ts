@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import * as XLSX from 'https://cdn.skypack.dev/xlsx@0.18.5';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -87,42 +88,93 @@ serve(async (req) => {
 });
 
 async function processExcelFile(fileContent: string, fileName: string): Promise<ProcessedRecord[]> {
-  console.log('Processing Excel file...');
+  console.log('Processing Excel file with XLSX library...');
   
-  // For Excel files, we'll use a simple CSV-like parsing approach
-  // In a real implementation, you'd use a proper Excel parsing library
   const records: ProcessedRecord[] = [];
   
   try {
-    // Convert base64 to text (assuming CSV-like format for now)
-    const content = atob(fileContent);
-    const lines = content.split('\n').filter(line => line.trim());
-    
-    if (lines.length < 2) return records;
-    
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    
-    // Detect if this is campaign or experiment data based on headers
-    const isCampaignData = headers.some(h => 
-      h.includes('campaign') || h.includes('session') || h.includes('conversion')
-    );
-    
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      const record: any = {};
-      
-      headers.forEach((header, index) => {
-        record[header] = values[index] || '';
-      });
-      
-      records.push({
-        type: isCampaignData ? 'campaign' : 'experiment',
-        data: record
-      });
+    // Convert base64 to array buffer
+    const binaryString = atob(fileContent);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
     }
+    
+    // Read the Excel workbook
+    const workbook = XLSX.read(bytes, { type: 'array' });
+    
+    console.log('Available worksheets:', workbook.SheetNames);
+    
+    // Process each worksheet
+    for (const sheetName of workbook.SheetNames) {
+      const worksheet = workbook.Sheets[sheetName];
+      
+      // Convert worksheet to JSON
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+        header: 1,
+        defval: '',
+        raw: false 
+      });
+      
+      if (jsonData.length < 2) continue; // Skip if no data
+      
+      const headers = (jsonData[0] as string[]).map(h => 
+        String(h).trim().toLowerCase().replace(/[^a-z0-9_]/g, '_')
+      );
+      
+      console.log(`Processing sheet "${sheetName}" with headers:`, headers);
+      
+      // Detect data type based on headers and sheet name
+      const isCampaignData = headers.some(h => 
+        h.includes('campaign') || h.includes('session') || h.includes('conversion') || 
+        h.includes('users') || h.includes('bounce') || h.includes('traffic')
+      ) || sheetName.toLowerCase().includes('campaign');
+      
+      const isExperimentData = headers.some(h => 
+        h.includes('experiment') || h.includes('test') || h.includes('variant') || 
+        h.includes('uplift') || h.includes('significance') || h.includes('control')
+      ) || sheetName.toLowerCase().includes('experiment') || sheetName.toLowerCase().includes('test');
+      
+      // Process data rows
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i] as (string | number)[];
+        if (!row || row.length === 0) continue;
+        
+        const record: any = {};
+        
+        headers.forEach((header, index) => {
+          const value = row[index];
+          record[header] = value !== undefined && value !== null ? String(value).trim() : '';
+        });
+        
+        // Skip empty rows
+        if (Object.values(record).every(v => !v)) continue;
+        
+        let recordType: 'campaign' | 'experiment' = 'campaign';
+        if (isExperimentData && !isCampaignData) {
+          recordType = 'experiment';
+        } else if (isCampaignData && !isExperimentData) {
+          recordType = 'campaign';
+        } else {
+          // Auto-detect based on row content
+          const recordString = JSON.stringify(record).toLowerCase();
+          if (recordString.includes('experiment') || recordString.includes('variant') || recordString.includes('control')) {
+            recordType = 'experiment';
+          }
+        }
+        
+        records.push({
+          type: recordType,
+          data: record
+        });
+      }
+    }
+    
+    console.log(`Extracted ${records.length} records from Excel file`);
     
   } catch (error) {
     console.error('Excel processing error:', error);
+    throw new Error(`Failed to process Excel file: ${error.message}`);
   }
   
   return records;
@@ -139,28 +191,62 @@ async function processCSVFile(fileContent: string): Promise<ProcessedRecord[]> {
     
     if (lines.length < 2) return records;
     
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    // Handle different delimiters
+    const delimiter = content.includes('\t') ? '\t' : ',';
+    const headers = lines[0].split(delimiter).map(h => 
+      h.trim().toLowerCase().replace(/["']/g, '').replace(/[^a-z0-9_]/g, '_')
+    );
+    
+    console.log('CSV headers:', headers);
     
     const isCampaignData = headers.some(h => 
-      h.includes('campaign') || h.includes('session') || h.includes('conversion')
+      h.includes('campaign') || h.includes('session') || h.includes('conversion') ||
+      h.includes('users') || h.includes('bounce') || h.includes('traffic')
+    );
+    
+    const isExperimentData = headers.some(h => 
+      h.includes('experiment') || h.includes('test') || h.includes('variant') ||
+      h.includes('uplift') || h.includes('significance') || h.includes('control')
     );
     
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      const values = line.split(delimiter).map(v => v.trim().replace(/["']/g, ''));
       const record: any = {};
       
       headers.forEach((header, index) => {
         record[header] = values[index] || '';
       });
       
+      // Skip empty rows
+      if (Object.values(record).every(v => !v)) continue;
+      
+      let recordType: 'campaign' | 'experiment' = 'campaign';
+      if (isExperimentData && !isCampaignData) {
+        recordType = 'experiment';
+      } else if (isCampaignData && !isExperimentData) {
+        recordType = 'campaign';
+      } else {
+        // Auto-detect based on row content
+        const recordString = JSON.stringify(record).toLowerCase();
+        if (recordString.includes('experiment') || recordString.includes('variant') || recordString.includes('control')) {
+          recordType = 'experiment';
+        }
+      }
+      
       records.push({
-        type: isCampaignData ? 'campaign' : 'experiment',
+        type: recordType,
         data: record
       });
     }
     
+    console.log(`Extracted ${records.length} records from CSV file`);
+    
   } catch (error) {
     console.error('CSV processing error:', error);
+    throw new Error(`Failed to process CSV file: ${error.message}`);
   }
   
   return records;
@@ -211,22 +297,83 @@ async function storeRecords(records: ProcessedRecord[], userId: string) {
   let stored = 0;
   let errors = 0;
   
+  console.log(`Storing ${records.length} records for user ${userId}`);
+  
   for (const record of records) {
     try {
       if (record.type === 'campaign') {
+        // Helper function to find field value with multiple possible column names
+        const findField = (possibleNames: string[]) => {
+          for (const name of possibleNames) {
+            if (record.data[name] !== undefined && record.data[name] !== '') {
+              return record.data[name];
+            }
+          }
+          return null;
+        };
+        
+        const parseNumber = (value: any, defaultValue = 0) => {
+          if (value === null || value === undefined || value === '') return defaultValue;
+          const parsed = parseFloat(String(value).replace(/[,%]/g, ''));
+          return isNaN(parsed) ? defaultValue : parsed;
+        };
+        
+        const parseInt = (value: any, defaultValue = 0) => {
+          if (value === null || value === undefined || value === '') return defaultValue;
+          const parsed = parseInt(String(value).replace(/[,%]/g, ''));
+          return isNaN(parsed) ? defaultValue : parsed;
+        };
+
         const campaignData = {
           user_id: userId,
-          campaign_name: record.data.campaign_name || record.data['campaign name'] || 'Imported Campaign',
-          campaign_date: record.data.campaign_date || record.data.date || new Date().toISOString().split('T')[0],
-          sessions: parseInt(record.data.sessions) || 0,
-          users: parseInt(record.data.users) || 0,
-          bounce_rate: parseFloat(record.data.bounce_rate || record.data['bounce rate']) || 0,
-          primary_conversion_rate: parseFloat(record.data.conversion_rate || record.data['conversion rate'] || record.data.primary_conversion_rate) || 0,
-          primary_conversions: parseInt(record.data.conversions || record.data.primary_conversions) || 0,
-          avg_time_on_page: parseInt(record.data.avg_time_on_page || record.data['avg time on page']) || 0,
-          utm_source: record.data.utm_source || record.data['utm source'] || 'direct',
-          traffic_source: record.data.traffic_source || record.data['traffic source'] || 'direct'
+          campaign_name: findField([
+            'campaign_name', 'campaign', 'name', 'campaign_title', 'title'
+          ]) || 'Imported Campaign',
+          campaign_date: findField([
+            'campaign_date', 'date', 'start_date', 'launch_date', 'created_date'
+          ]) || new Date().toISOString().split('T')[0],
+          sessions: parseInt(findField([
+            'sessions', 'session', 'visits', 'page_views', 'pageviews'
+          ])),
+          users: parseInt(findField([
+            'users', 'user', 'unique_visitors', 'visitors', 'unique_users'
+          ])),
+          bounce_rate: parseNumber(findField([
+            'bounce_rate', 'bounce', 'bounce_rate___', 'bounces'
+          ])),
+          primary_conversion_rate: parseNumber(findField([
+            'primary_conversion_rate', 'conversion_rate', 'cvr', 'cr', 'conv_rate'
+          ])),
+          primary_conversions: parseInt(findField([
+            'primary_conversions', 'conversions', 'conv', 'goals', 'leads'
+          ])),
+          avg_time_on_page: parseInt(findField([
+            'avg_time_on_page', 'time_on_page', 'session_duration', 'avg_session_duration'
+          ])),
+          utm_source: findField([
+            'utm_source', 'source', 'traffic_source', 'referrer'
+          ]) || 'direct',
+          traffic_source: findField([
+            'traffic_source', 'source', 'utm_source', 'channel', 'medium'
+          ]) || 'direct',
+          new_users: parseInt(findField([
+            'new_users', 'new_visitors', 'first_time_visitors'
+          ])),
+          total_spend: parseNumber(findField([
+            'total_spend', 'spend', 'cost', 'budget', 'investment'
+          ])),
+          cost_per_conversion: parseNumber(findField([
+            'cost_per_conversion', 'cpa', 'cost_per_acquisition', 'cpc'
+          ])),
+          engagement_rate: parseNumber(findField([
+            'engagement_rate', 'engagement', 'click_through_rate', 'ctr'
+          ])),
+          scroll_depth: parseNumber(findField([
+            'scroll_depth', 'scroll', 'page_scroll'
+          ]))
         };
+        
+        console.log('Inserting campaign data:', campaignData);
         
         const { error } = await supabase
           .from('historic_campaigns')
@@ -237,20 +384,72 @@ async function storeRecords(records: ProcessedRecord[], userId: string) {
           errors++;
         } else {
           stored++;
+          console.log('Successfully stored campaign record');
         }
         
       } else if (record.type === 'experiment') {
+        const findField = (possibleNames: string[]) => {
+          for (const name of possibleNames) {
+            if (record.data[name] !== undefined && record.data[name] !== '') {
+              return record.data[name];
+            }
+          }
+          return null;
+        };
+        
+        const parseNumber = (value: any, defaultValue = 0) => {
+          if (value === null || value === undefined || value === '') return defaultValue;
+          const parsed = parseFloat(String(value).replace(/[,%]/g, ''));
+          return isNaN(parsed) ? defaultValue : parsed;
+        };
+        
+        const parseBoolean = (value: any) => {
+          if (value === null || value === undefined || value === '') return false;
+          const str = String(value).toLowerCase();
+          return str === 'true' || str === 'yes' || str === '1' || str === 'significant';
+        };
+
         const experimentData = {
           user_id: userId,
-          experiment_name: record.data.experiment_name || record.data['experiment name'] || 'Imported Experiment',
-          start_date: record.data.start_date || record.data['start date'] || new Date().toISOString().split('T')[0],
-          end_date: record.data.end_date || record.data['end date'] || new Date().toISOString().split('T')[0],
-          statistical_significance: Boolean(record.data.statistical_significance || record.data['statistical significance']),
-          uplift_relative: parseFloat(record.data.uplift_relative || record.data['uplift relative'] || record.data.uplift) || 0,
-          control_result_primary: parseFloat(record.data.control_result_primary || record.data['control result']) || 0,
-          variant_result_primary: parseFloat(record.data.variant_result_primary || record.data['variant result']) || 0,
-          winning_variant: record.data.winning_variant || record.data['winning variant'] || 'A'
+          experiment_name: findField([
+            'experiment_name', 'experiment', 'test_name', 'name', 'title'
+          ]) || 'Imported Experiment',
+          start_date: findField([
+            'start_date', 'start', 'launch_date', 'begin_date'
+          ]) || new Date().toISOString().split('T')[0],
+          end_date: findField([
+            'end_date', 'end', 'finish_date', 'completion_date'
+          ]) || new Date().toISOString().split('T')[0],
+          statistical_significance: parseBoolean(findField([
+            'statistical_significance', 'significance', 'significant', 'is_significant'
+          ])),
+          uplift_relative: parseNumber(findField([
+            'uplift_relative', 'uplift', 'lift', 'improvement', 'increase'
+          ])),
+          control_result_primary: parseNumber(findField([
+            'control_result_primary', 'control_result', 'control', 'baseline'
+          ])),
+          variant_result_primary: parseNumber(findField([
+            'variant_result_primary', 'variant_result', 'variant', 'treatment'
+          ])),
+          winning_variant: findField([
+            'winning_variant', 'winner', 'best_variant', 'champion'
+          ]) || 'A',
+          hypothesis: findField([
+            'hypothesis', 'test_hypothesis', 'description', 'goal'
+          ]),
+          p_value: parseNumber(findField([
+            'p_value', 'pvalue', 'p', 'confidence'
+          ])),
+          sample_size_control: parseInt(findField([
+            'sample_size_control', 'control_sample', 'control_size'
+          ])),
+          sample_size_variant: parseInt(findField([
+            'sample_size_variant', 'variant_sample', 'variant_size'
+          ]))
         };
+        
+        console.log('Inserting experiment data:', experimentData);
         
         const { error } = await supabase
           .from('experiment_results')
@@ -261,6 +460,7 @@ async function storeRecords(records: ProcessedRecord[], userId: string) {
           errors++;
         } else {
           stored++;
+          console.log('Successfully stored experiment record');
         }
       }
       
@@ -270,5 +470,6 @@ async function storeRecords(records: ProcessedRecord[], userId: string) {
     }
   }
   
+  console.log(`Storage complete: ${stored} stored, ${errors} errors`);
   return { stored, errors };
 }
