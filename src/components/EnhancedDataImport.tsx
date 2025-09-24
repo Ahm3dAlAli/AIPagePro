@@ -152,26 +152,27 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
   const getInsights = () => {
     const { campaigns, experiments } = importedData;
     
-    if (campaigns.length === 0 && experiments.length === 0) {
+    // Only show insights if we have actual imported data
+    if (!campaigns || !experiments || (campaigns.length === 0 && experiments.length === 0)) {
       return null;
     }
 
     const avgConversionRate = campaigns.length > 0 
-      ? campaigns.reduce((sum, c) => sum + (c.primary_conversion_rate || 0), 0) / campaigns.length 
+      ? campaigns.reduce((sum, c) => sum + (parseFloat(c.primary_conversion_rate) || 0), 0) / campaigns.length 
       : 0;
     
-    const significantExperiments = experiments.filter(e => e.statistical_significance).length;
+    const significantExperiments = experiments.filter(e => e.statistical_significance === true || e.statistical_significance === 'true').length;
     
     const topPerformingCampaign = campaigns.length > 0 
       ? campaigns.reduce((best, current) => 
-          (current.primary_conversion_rate || 0) > (best.primary_conversion_rate || 0) ? current : best
+          (parseFloat(current.primary_conversion_rate) || 0) > (parseFloat(best.primary_conversion_rate) || 0) ? current : best
         )
       : null;
 
     return {
       totalCampaigns: campaigns.length,
       totalExperiments: experiments.length,
-      avgConversionRate: (avgConversionRate * 100).toFixed(1),
+      avgConversionRate: avgConversionRate.toFixed(1),
       significantExperiments,
       topPerformingCampaign,
       readyForAI: campaigns.length >= 5 || (campaigns.length >= 2 && experiments.length >= 2)
