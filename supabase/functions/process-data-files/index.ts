@@ -338,31 +338,40 @@ async function storeRecords(records: ProcessedRecord[], userId: string) {
         const campaignData = {
           user_id: userId,
           campaign_name: findField([
-            'campaign_name', 'campaign', 'name', 'campaign_title', 'title'
+            'campaign_name', 'campaign', 'name', 'campaign_title', 'title',
+            'Campaign Name', 'Campaign', 'Name', 'Campaign Title', 'Title'
           ]) || 'Imported Campaign',
           campaign_date: findField([
-            'campaign_date', 'date', 'start_date', 'launch_date', 'created_date'
+            'campaign_date', 'date', 'start_date', 'launch_date', 'created_date',
+            'Campaign Date', 'Date', 'Start Date', 'Launch Date', 'Created Date'
           ]) || new Date().toISOString().split('T')[0],
           sessions: parseInteger(findField([
-            'sessions', 'session', 'visits', 'page_views', 'pageviews'
+            'sessions', 'session', 'visits', 'page_views', 'pageviews',
+            'Sessions', 'Session', 'Visits', 'Page Views', 'PageViews'
           ])),
           users: parseInteger(findField([
-            'users', 'user', 'unique_visitors', 'visitors', 'unique_users'
+            'users', 'user', 'unique_visitors', 'visitors', 'unique_users',
+            'Users', 'User', 'Unique Visitors', 'Visitors', 'Unique Users'
           ])),
           bounce_rate: parseNumber(findField([
-            'bounce_rate', 'bounce', 'bounce_rate___', 'bounces'
+            'bounce_rate', 'bounce', 'bounce_rate___', 'bounces',
+            'Bounce Rate', 'Bounce', 'Bounce %', 'bounce_rate_%'
           ])),
           primary_conversion_rate: parseNumber(findField([
-            'primary_conversion_rate', 'conversion_rate', 'cvr', 'cr', 'conv_rate'
+            'primary_conversion_rate', 'conversion_rate', 'cvr', 'cr', 'conv_rate',
+            'Conversion Rate', 'Primary Conversion Rate', 'CVR', 'CR'
           ])),
           primary_conversions: parseInteger(findField([
-            'primary_conversions', 'conversions', 'conv', 'goals', 'leads'
+            'primary_conversions', 'conversions', 'conv', 'goals', 'leads',
+            'Primary Conversions', 'Conversions', 'Conv', 'Goals', 'Leads'
           ])),
           avg_time_on_page: parseInteger(findField([
-            'avg_time_on_page', 'time_on_page', 'session_duration', 'avg_session_duration'
+            'avg_time_on_page', 'time_on_page', 'session_duration', 'avg_session_duration',
+            'Average Time on Page', 'average_time_on_page', 'Time on Page', 'Session Duration'
           ])),
           utm_source: findField([
-            'utm_source', 'source', 'traffic_source', 'referrer'
+            'utm_source', 'source', 'traffic_source', 'referrer',
+            'UTM Source', 'Source', 'Traffic Source', 'Referrer'
           ]) || 'direct',
           traffic_source: findField([
             'traffic_source', 'source', 'utm_source', 'channel', 'medium'
@@ -423,7 +432,8 @@ async function storeRecords(records: ProcessedRecord[], userId: string) {
         const experimentData = {
           user_id: userId,
           experiment_name: findField([
-            'experiment_name', 'experiment', 'test_name', 'name', 'title'
+            'experiment_name', 'experiment', 'test_name', 'name', 'title',
+            'Experiment Name', 'Experiment', 'Test Name', 'Name', 'Title'
           ]) || 'Imported Experiment',
           start_date: findField([
             'start_date', 'start', 'launch_date', 'begin_date'
@@ -432,10 +442,12 @@ async function storeRecords(records: ProcessedRecord[], userId: string) {
             'end_date', 'end', 'finish_date', 'completion_date'
           ]) || new Date().toISOString().split('T')[0],
           statistical_significance: parseBoolean(findField([
-            'statistical_significance', 'significance', 'significant', 'is_significant'
+            'statistical_significance', 'significance', 'significant', 'is_significant',
+            'Statistical Significance', 'Significance', 'Significant', 'Is Significant'
           ])),
           uplift_relative: parseNumber(findField([
-            'uplift_relative', 'uplift', 'lift', 'improvement', 'increase'
+            'uplift_relative', 'uplift', 'lift', 'improvement', 'increase',
+            'Uplift Relative', 'Uplift', 'Lift', 'Improvement', 'Increase'
           ])),
           control_result_primary: parseNumber(findField([
             'control_result_primary', 'control_result', 'control', 'baseline'
