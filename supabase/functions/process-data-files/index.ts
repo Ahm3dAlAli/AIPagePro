@@ -339,7 +339,8 @@ async function storeRecords(records: ProcessedRecord[], userId: string) {
           user_id: userId,
           campaign_name: findField([
             'campaign_name', 'campaign', 'name', 'campaign_title', 'title',
-            'Campaign Name', 'Campaign', 'Name', 'Campaign Title', 'Title'
+            'Campaign Name', 'Campaign', 'Name', 'Campaign Title', 'Title',
+            'Product / Service Name', 'Product Service Name', 'Service Name'
           ]) || 'Imported Campaign',
           campaign_date: findField([
             'campaign_date', 'date', 'start_date', 'launch_date', 'created_date',
@@ -351,46 +352,95 @@ async function storeRecords(records: ProcessedRecord[], userId: string) {
           ])),
           users: parseInteger(findField([
             'users', 'user', 'unique_visitors', 'visitors', 'unique_users',
-            'Users', 'User', 'Unique Visitors', 'Visitors', 'Unique Users'
+            'Users', 'User', 'Unique Visitors', 'Visitors', 'Unique Users',
+            'New Users'
           ])),
           bounce_rate: parseNumber(findField([
             'bounce_rate', 'bounce', 'bounce_rate___', 'bounces',
-            'Bounce Rate', 'Bounce', 'Bounce %', 'bounce_rate_%'
+            'Bounce Rate', 'Bounce', 'Bounce %', 'bounce_rate_%', 'Bounce Rate (%)'
           ])),
           primary_conversion_rate: parseNumber(findField([
             'primary_conversion_rate', 'conversion_rate', 'cvr', 'cr', 'conv_rate',
-            'Conversion Rate', 'Primary Conversion Rate', 'CVR', 'CR'
+            'Conversion Rate', 'Primary Conversion Rate', 'CVR', 'CR',
+            'Primary Conversion KPI', 'Primary Conversion Rate (%)', 'Conversion Count/Rate'
           ])),
           primary_conversions: parseInteger(findField([
             'primary_conversions', 'conversions', 'conv', 'goals', 'leads',
-            'Primary Conversions', 'Conversions', 'Conv', 'Goals', 'Leads'
+            'Primary Conversions', 'Conversions', 'Conv', 'Goals', 'Leads',
+            'Primary Conversion Count', 'Conversion Count'
           ])),
           avg_time_on_page: parseInteger(findField([
             'avg_time_on_page', 'time_on_page', 'session_duration', 'avg_session_duration',
-            'Average Time on Page', 'average_time_on_page', 'Time on Page', 'Session Duration'
+            'Average Time on Page', 'average_time_on_page', 'Time on Page', 'Session Duration',
+            'Avg. Time on Page', 'Avg Time on Page'
           ])),
           utm_source: findField([
             'utm_source', 'source', 'traffic_source', 'referrer',
-            'UTM Source', 'Source', 'Traffic Source', 'Referrer'
+            'UTM Source', 'Source', 'Traffic Source', 'Referrer',
+            'UTM Source/Medium', 'Traffic Source / Channel'
           ]) || 'direct',
           traffic_source: findField([
-            'traffic_source', 'source', 'utm_source', 'channel', 'medium'
+            'traffic_source', 'source', 'utm_source', 'channel', 'medium',
+            'Traffic Source / Channel', 'UTM Source/Medium'
           ]) || 'direct',
           new_users: parseInteger(findField([
-            'new_users', 'new_visitors', 'first_time_visitors'
+            'new_users', 'new_visitors', 'first_time_visitors', 'New Users'
           ])),
           total_spend: parseNumber(findField([
-            'total_spend', 'spend', 'cost', 'budget', 'investment'
+            'total_spend', 'spend', 'cost', 'budget', 'investment', 'Total Spend'
           ])),
           cost_per_conversion: parseNumber(findField([
-            'cost_per_conversion', 'cpa', 'cost_per_acquisition', 'cpc'
+            'cost_per_conversion', 'cpa', 'cost_per_acquisition', 'cpc',
+            'Cost per Conversion', 'Cost per Session/Conversion', 'Cost per Session'
+          ])),
+          cost_per_session: parseNumber(findField([
+            'cost_per_session', 'session_cost', 'Cost per Session'
+          ])),
+          customer_acquisition_cost: parseNumber(findField([
+            'customer_acquisition_cost', 'cac', 'CAC'
           ])),
           engagement_rate: parseNumber(findField([
-            'engagement_rate', 'engagement', 'click_through_rate', 'ctr'
+            'engagement_rate', 'engagement', 'click_through_rate', 'ctr',
+            'Engagement Rate', 'Bounce / Engagement Rate', 'Engagement Rate (%)'
           ])),
           scroll_depth: parseNumber(findField([
-            'scroll_depth', 'scroll', 'page_scroll'
-          ]))
+            'scroll_depth', 'scroll', 'page_scroll', 'Scroll Depth',
+            'Scroll Depth (%)', '% of scroll reached'
+          ])),
+          primary_cta_clicks: parseInteger(findField([
+            'primary_cta_clicks', 'cta_clicks', 'button_clicks',
+            'CTA Clicks', 'Main CTA clicks', 'Clicks on Primary CTA'
+          ])),
+          form_views: parseInteger(findField([
+            'form_views', 'form_impressions', 'Form Views'
+          ])),
+          form_starters: parseInteger(findField([
+            'form_starters', 'form_starts', 'Form Starters', 'Form Views / Starters / Completions'
+          ])),
+          form_completions: parseInteger(findField([
+            'form_completions', 'form_submits', 'Form Completions'
+          ])),
+          form_abandonment_rate: parseNumber(findField([
+            'form_abandonment_rate', 'Form Abandonment Rate', 'Form Abandonment Rate (%)'
+          ])),
+          utm_medium: findField([
+            'utm_medium', 'medium', 'UTM Medium', 'UTM Source/Medium'
+          ]),
+          device_type: findField([
+            'device_type', 'device', 'Device Type'
+          ]),
+          creative_id: findField([
+            'creative_id', 'Creative ID'
+          ]),
+          creative_name: findField([
+            'creative_name', 'Creative Name'
+          ]),
+          creative_type: findField([
+            'creative_type', 'Creative Type'
+          ]),
+          landing_page_url: findField([
+            'landing_page_url', 'page_url', 'url', 'Landing Page URL', 'Landing Page URL / ID'
+          ])
         };
         
         console.log('Inserting campaign data:', campaignData);
