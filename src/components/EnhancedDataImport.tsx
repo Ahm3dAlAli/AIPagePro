@@ -278,7 +278,7 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
                 <Input
                   id="campaigns-file"
                   type="file"
-                  accept=".csv,.xlsx,.xls,.jpg,.jpeg,.png,.pdf"
+                  accept=".csv,.xlsx,.xls,.css,.jpg,.jpeg,.png,.pdf"
                   onChange={(e) => handleFileUpload(e, 'campaigns')}
                   disabled={isImporting}
                 />
@@ -299,6 +299,7 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
                 <ul className="list-disc list-inside space-y-1 mb-3">
                   <li>CSV files (.csv)</li>
                   <li>Excel files (.xlsx, .xls)</li>
+                  <li>CSS files with embedded analytics (.css)</li>
                   <li>Images with OCR (.jpg, .png, .pdf)</li>
                 </ul>
                 <p className="font-medium mb-2">Required columns:</p>
@@ -332,7 +333,7 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
                 <Input
                   id="experiments-file"
                   type="file"
-                  accept=".csv,.xlsx,.xls,.jpg,.jpeg,.png,.pdf"
+                  accept=".csv,.xlsx,.xls,.css,.jpg,.jpeg,.png,.pdf"
                   onChange={(e) => handleFileUpload(e, 'experiments')}
                   disabled={isImporting}
                 />
@@ -353,6 +354,7 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
                 <ul className="list-disc list-inside space-y-1 mb-3">
                   <li>CSV files (.csv)</li>
                   <li>Excel files (.xlsx, .xls)</li>
+                  <li>CSS files with embedded analytics (.css)</li>
                   <li>Images with OCR (.jpg, .png, .pdf)</li>
                 </ul>
                 <p className="font-medium mb-2">Required columns:</p>
