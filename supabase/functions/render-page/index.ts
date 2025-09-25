@@ -299,7 +299,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in render-page function:', error);
     return new Response(
-      `<html><body><h1>Error</h1><p>${error.message}</p></body></html>`,
+      `<html><body><h1>Error</h1><p>${error instanceof Error ? error.message : 'An unexpected error occurred'}</p></body></html>`,
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'text/html' }

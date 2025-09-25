@@ -9,7 +9,17 @@ const corsHeaders = {
 
 // Analyze historic campaign data for insights
 function analyzeHistoricData(historicData?: any[], experimentData?: any[], objective?: string) {
-  const insights = {
+  const insights: {
+    topPerformingChannels: Array<{ channel: string; conversionRate: number; [key: string]: any }>;
+    bestConvertingFormPosition: string;
+    optimalCTAText: string;
+    highPerformingDevices: Array<{ device: string; conversionRate: number }>;
+    averageConversionRate: number;
+    bestPerformingTimes: any[];
+    successfulObjectives: any[];
+    topKeywords: any[];
+    recommendedLayout: string;
+  } = {
     topPerformingChannels: [],
     bestConvertingFormPosition: 'middle',
     optimalCTAText: 'Get Started',
@@ -424,7 +434,7 @@ serve(async (req) => {
       pageTitle,
       seoKeywords,
       template
-    }, historicData, experimentData);
+    }, historicData || undefined, experimentData || undefined);
 
     // Generate a unique slug for the page
     const timestamp = Date.now();
@@ -472,7 +482,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'An unexpected error occurred' 
+        error: error instanceof Error ? error.message : 'An unexpected error occurred' 
       }),
       {
         status: 500,

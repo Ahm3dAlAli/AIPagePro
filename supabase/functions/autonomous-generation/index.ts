@@ -179,7 +179,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'An unexpected error occurred' 
+        error: error instanceof Error ? error.message : 'An unexpected error occurred' 
       }),
       {
         status: 500,
@@ -322,14 +322,27 @@ function generateLovablePage(
   );
 
   // Add AI decision summary based on data insights
-  generatedContent.aiDecisionSummary = `Landing page generated using Lovable's data-driven algorithm. Key decisions based on: ${historicInsights.campaignPerformance.length} historic campaigns, ${historicInsights.experimentResults.length} A/B test results, and industry benchmarks showing ${(historicInsights.industryBenchmarks.avgConversionRate * 100).toFixed(1)}% average conversion rate.`;
+  const result = {
+    ...generatedContent,
+    aiDecisionSummary: `Landing page generated using Lovable's data-driven algorithm. Key decisions based on: ${historicInsights.campaignPerformance.length} historic campaigns, ${historicInsights.experimentResults.length} A/B test results, and industry benchmarks showing ${historicInsights.industryBenchmarks?.avgConversionRate ? (historicInsights.industryBenchmarks.avgConversionRate * 100).toFixed(1) : '0'}% average conversion rate.`
+  };
 
-  return Promise.resolve(generatedContent);
+  return Promise.resolve(result);
 }
 
 // Analyze historic campaign data for insights
 function analyzeHistoricData(historicData?: any[], experimentData?: any[], objective?: string) {
-  const insights = {
+  const insights: {
+    topPerformingChannels: Array<{ channel: string; conversionRate: number; [key: string]: any }>;
+    bestConvertingFormPosition: string;
+    optimalCTAText: string;
+    highPerformingDevices: Array<{ device: string; conversionRate: number }>;
+    averageConversionRate: number;
+    bestPerformingTimes: any[];
+    successfulObjectives: any[];
+    topKeywords: any[];
+    recommendedLayout: string;
+  } = {
     topPerformingChannels: [],
     bestConvertingFormPosition: 'middle',
     optimalCTAText: 'Get Started',
