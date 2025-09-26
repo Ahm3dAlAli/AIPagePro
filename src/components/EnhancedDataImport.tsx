@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useDataImport, ImportedData } from '@/hooks/useDataImport';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface EnhancedDataImportProps {
   onDataImported?: (data: ImportedData) => void;
@@ -26,6 +27,7 @@ interface EnhancedDataImportProps {
 
 const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported }) => {
   const { isImporting, importStats, importData, loadImportedData } = useDataImport();
+  const { toast } = useToast();
   const [importedData, setImportedData] = useState<ImportedData>({ campaigns: [], experiments: [] });
   const [activeTab, setActiveTab] = useState('campaigns');
 
@@ -79,6 +81,8 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
       if (isExcel) {
         // Process Excel file via edge function
         const fileContent = await fileToBase64(file);
+        console.log('Processing Excel file:', file.name);
+        
         const response = await supabase.functions.invoke('process-data-files', {
           body: {
             fileContent,
@@ -87,12 +91,19 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
           }
         });
         
+        console.log('Edge function response:', response);
+        
         if (response.data?.success) {
-          alert(`Successfully processed ${response.data.stored} records from Excel file`);
+          toast({
+            title: "Excel Import Successful!",
+            description: `Processed ${response.data.stored} records from ${file.name}. ${response.data.errors || 0} errors occurred.`,
+            variant: response.data.errors > 0 ? "default" : "default"
+          });
           await loadExistingData();
           return;
         } else {
-          throw new Error(response.data?.error || 'Failed to process Excel file');
+          console.error('Edge function error:', response.error || response.data);
+          throw new Error(response.data?.error || response.error?.message || 'Failed to process Excel file');
         }
       } else if (isImage) {
         // Process image/PDF with OCR via edge function
@@ -130,7 +141,11 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
       }
     } catch (error) {
       console.error('File processing error:', error);
-      alert('Failed to process the uploaded file: ' + (error as Error).message);
+      toast({
+        title: "Import Failed",
+        description: 'Failed to process the uploaded file: ' + (error as Error).message,
+        variant: "destructive"
+      });
     }
     
     // Clear the input
@@ -298,18 +313,18 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
                 <p className="font-medium mb-2">Supported formats:</p>
                 <ul className="list-disc list-inside space-y-1 mb-3">
                   <li>CSV files (.csv)</li>
-                  <li>Excel files (.xlsx, .xls)</li>
+                  <li><strong>Excel files (.xlsx, .xls)</strong> - Automatically processed via AI</li>
                   <li>CSS files with embedded analytics (.css)</li>
                   <li>Images with OCR (.jpg, .png, .pdf)</li>
                 </ul>
-                <p className="font-medium mb-2">Required columns:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Campaign Name</li>
-                  <li>Date</li>
-                  <li>Sessions</li>
-                  <li>Users</li>
-                  <li>Bounce Rate (%)</li>
-                  <li>Primary Conversion Rate (%)</li>
+                <p className="font-medium mb-2">Recommended columns (flexible naming):</p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li><strong>Campaign/Product Name:</strong> "Campaign Name", "Product / Service Name", etc.</li>
+                  <li><strong>Date:</strong> "Date", "Campaign Date", etc.</li>
+                  <li><strong>Traffic:</strong> "Sessions", "Users", "New Users", etc.</li>
+                  <li><strong>Performance:</strong> "Conversion Rate", "Primary Conversion KPI", etc.</li>
+                  <li><strong>Engagement:</strong> "Bounce Rate", "Avg Time on Page", etc.</li>
+                  <li><strong>Source:</strong> "Traffic Source", "UTM Source", etc.</li>
                 </ul>
               </div>
             </CardContent>
