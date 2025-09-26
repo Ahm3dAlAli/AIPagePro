@@ -30,6 +30,8 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
   const { toast } = useToast();
   const [importedData, setImportedData] = useState<ImportedData>({ campaigns: [], experiments: [] });
   const [activeTab, setActiveTab] = useState('campaigns');
+  const [uploadedFiles, setUploadedFiles] = useState<{campaigns?: File, experiments?: File}>({});
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     loadExistingData();
@@ -66,146 +68,108 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
     return data;
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'campaigns' | 'experiments') => {
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, type: 'campaigns' | 'experiments') => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log('File upload started:', {
+    console.log('File selected:', {
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
       type: type
     });
 
+    setUploadedFiles(prev => ({ ...prev, [type]: file }));
+    
+    toast({
+      title: "File Selected",
+      description: `${file.name} selected for ${type}. Click 'Process Files' to import data.`,
+    });
+
+    // Clear the input
+    event.target.value = '';
+  };
+
+  const processUploadedFiles = async () => {
+    if (!uploadedFiles.campaigns && !uploadedFiles.experiments) {
+      toast({
+        title: "No Files Selected",
+        description: "Please select at least one file to process.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
     try {
-      // Enhanced file processing with support for Excel and OCR
-      const fileExtension = file.name.split('.').pop()?.toLowerCase();
-      console.log('File extension detected:', fileExtension);
+      const filesToProcess = [];
       
-      const isExcel = ['xlsx', 'xls'].includes(fileExtension || '');
-      const isImage = ['jpg', 'jpeg', 'png', 'pdf'].includes(fileExtension || '');
+      if (uploadedFiles.campaigns) {
+        filesToProcess.push({
+          file: uploadedFiles.campaigns,
+          type: 'campaigns'
+        });
+      }
       
-      console.log('File type classification:', { isExcel, isImage });
-      
-      let data: any[] = [];
-      
-      if (isExcel) {
-        console.log('Processing Excel file...');
-        // Process Excel file via edge function
-        console.log('Converting file to base64...');
-        
-        try {
-          const fileContent = await fileToBase64(file);
-          console.log('File converted to base64, length:', fileContent.length);
-          
-          console.log('Calling edge function with:', {
-            fileName: file.name,
-            fileType: 'excel',
-            contentLength: fileContent.length
-          });
-          
-          const response = await supabase.functions.invoke('process-data-files', {
-            body: {
-              fileContent,
-              fileName: file.name,
-              fileType: 'excel'
-            }
-          });
-          
-          console.log('Edge function response received:', {
-            data: response.data,
-            error: response.error
-          });
-        
-          if (response.data?.success) {
-            console.log('Excel processing successful:', response.data);
-            toast({
-              title: "Excel Import Successful!",
-              description: `Processed ${response.data.stored} records from ${file.name}. ${response.data.errors || 0} errors occurred.`,
-              variant: response.data.errors > 0 ? "default" : "default"
-            });
-            await loadExistingData();
-            return;
-          } else {
-            console.error('Edge function failed:', {
-              responseData: response.data,
-              responseError: response.error,
-              fullResponse: response
-            });
-            throw new Error(response.data?.error || response.error?.message || 'Failed to process Excel file');
-          }
-        } catch (excelError) {
-          console.error('Excel processing failed, trying as CSV:', excelError);
-          // Fallback to CSV processing
-          const text = await file.text();
-          data = parseCSV(text);
-          
-          if (data.length === 0) {
-            throw new Error('No valid data found in Excel file');
-          }
-          
-          console.log('Successfully processed Excel as CSV, found', data.length, 'records');
-          const success = await importData(data, type);
-          
-          if (success) {
-            await loadExistingData();
-          }
-          return;
-        }
-      } else if (isImage) {
-        console.log('Processing image file...');
-        // Process image/PDF with OCR via edge function
+      if (uploadedFiles.experiments) {
+        filesToProcess.push({
+          file: uploadedFiles.experiments,
+          type: 'experiments'
+        });
+      }
+
+      for (const { file, type } of filesToProcess) {
         const fileContent = await fileToBase64(file);
-        console.log('Image converted to base64, calling edge function...');
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
         
+        let fileType = 'csv';
+        if (['xlsx', 'xls'].includes(fileExtension || '')) {
+          fileType = 'excel';
+        } else if (['jpg', 'jpeg', 'png', 'pdf'].includes(fileExtension || '')) {
+          fileType = 'image';
+        }
+
+        console.log('Processing file via edge function:', {
+          fileName: file.name,
+          fileType,
+          dataType: type
+        });
+
         const response = await supabase.functions.invoke('process-data-files', {
           body: {
             fileContent,
             fileName: file.name,
-            fileType: 'image'
+            fileType,
+            dataType: type
           }
         });
-        
-        console.log('Image processing response:', response);
-        
-        if (response.data?.success) {
-          toast({
-            title: "Image/PDF Import Successful!",
-            description: `Extracted ${response.data.stored} records from ${file.name} using OCR`,
-          });
-          await loadExistingData();
-          return;
-        } else {
-          throw new Error(response.data?.error || 'Failed to process image/PDF');
-        }
-      } else {
-        console.log('Processing CSV file locally...');
-        // Process CSV file locally
-        const text = await file.text();
-        data = parseCSV(text);
-        
-        if (data.length === 0) {
-          alert('No valid data found in the file');
-          return;
+
+        if (!response.data?.success) {
+          throw new Error(response.data?.error || response.error?.message || `Failed to process ${file.name}`);
         }
 
-        const success = await importData(data, type);
-        
-        if (success) {
-          await loadExistingData();
-        }
+        console.log('Successfully processed:', response.data);
       }
+
+      toast({
+        title: "Processing Complete!",
+        description: "All files have been processed and data imported successfully.",
+      });
+
+      await loadExistingData();
+      setUploadedFiles({});
+      
     } catch (error) {
       console.error('File processing error:', error);
       toast({
-        title: "Import Failed",
-        description: 'Failed to process the uploaded file: ' + (error as Error).message,
+        title: "Processing Failed",
+        description: (error as Error).message,
         variant: "destructive"
       });
+    } finally {
+      setIsProcessing(false);
     }
-    
-    // Clear the input
-    event.target.value = '';
   };
 
   const fileToBase64 = (file: File): Promise<string> => {
@@ -351,17 +315,22 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
                   type="file"
                   accept=".csv,.xlsx,.xls,.css,.jpg,.jpeg,.png,.pdf"
                   onChange={(e) => handleFileUpload(e, 'campaigns')}
-                  disabled={isImporting}
+                  disabled={isProcessing}
                 />
+                {uploadedFiles.campaigns && (
+                  <div className="text-sm text-green-600">
+                    ✓ {uploadedFiles.campaigns.name} selected
+                  </div>
+                )}
               </div>
               
-              {isImporting && (
+              {isProcessing && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Importing campaigns...</span>
-                    <span>{importStats.imported}/{importStats.total}</span>
+                    <span>Processing files...</span>
+                    <span>Please wait...</span>
                   </div>
-                  <Progress value={(importStats.imported / importStats.total) * 100} />
+                  <Progress value={50} />
                 </div>
               )}
               
@@ -410,13 +379,13 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
                 />
               </div>
               
-              {isImporting && (
+              {isProcessing && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Importing experiments...</span>
-                    <span>{importStats.imported}/{importStats.total}</span>
+                    <span>Processing files...</span>
+                    <span>Please wait...</span>
                   </div>
-                  <Progress value={(importStats.imported / importStats.total) * 100} />
+                  <Progress value={50} />
                 </div>
               )}
               
@@ -442,6 +411,17 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Process Button */}
+      <div className="flex justify-center mt-6">
+        <Button 
+          onClick={processUploadedFiles}
+          disabled={isProcessing || (!uploadedFiles.campaigns && !uploadedFiles.experiments)}
+          className="px-8 py-2"
+        >
+          {isProcessing ? 'Processing Files...' : 'Process Files'}
+        </Button>
+      </div>
     </div>
   );
 };

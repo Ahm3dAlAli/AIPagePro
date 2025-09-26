@@ -37,21 +37,21 @@ serve(async (req) => {
       throw new Error('Authentication failed');
     }
 
-    const { fileContent, fileName, fileType } = await req.json();
+    const { fileContent, fileName, fileType, dataType } = await req.json();
     
     if (!fileContent || !fileName) {
       throw new Error('Missing file content or name');
     }
 
-    console.log(`Processing file: ${fileName}, type: ${fileType}`);
+    console.log(`Processing file: ${fileName}, type: ${fileType}, dataType: ${dataType}`);
     
     let processedRecords: ProcessedRecord[] = [];
     
     // Process different file types
     if (fileType === 'excel' || fileName.match(/\.(xlsx|xls)$/i)) {
-      processedRecords = await processExcelFile(fileContent, fileName);
+      processedRecords = await processExcelFile(fileContent, fileName, dataType);
     } else if (fileType === 'csv' || fileName.match(/\.csv$/i)) {
-      processedRecords = await processCSVFile(fileContent);
+      processedRecords = await processCSVFile(fileContent, dataType);
     } else if (fileType === 'css' || fileName.match(/\.css$/i)) {
       processedRecords = await processCSSFile(fileContent, fileName);
     } else if (fileType === 'image' || fileName.match(/\.(jpg|jpeg|png|pdf)$/i)) {
@@ -87,7 +87,7 @@ serve(async (req) => {
   }
 });
 
-async function processExcelFile(fileContent: string, fileName: string): Promise<ProcessedRecord[]> {
+async function processExcelFile(fileContent: string, fileName: string, dataType?: string): Promise<ProcessedRecord[]> {
   console.log('Processing Excel file - attempting to parse as CSV data...');
   
   try {
@@ -97,9 +97,8 @@ async function processExcelFile(fileContent: string, fileName: string): Promise<
     console.log('Decoded Excel content length:', content.length);
     
     // Try to process as CSV-like content
-    const lines = content.split('\n').filter(line => line.trim());
-    if (lines.length < 2) {
-      console.log('Not enough lines in Excel file, creating sample data');
+    const parsedData = parseCSVContent(content);
+    if (parsedData.length === 0) {
       return [{
         type: 'campaign',
         data: {
@@ -114,68 +113,36 @@ async function processExcelFile(fileContent: string, fileName: string): Promise<
       }];
     }
     
-    // Auto-detect delimiter
-    const firstLine = lines[0];
-    let delimiter = ',';
-    if (firstLine.includes('\t')) delimiter = '\t';
-    else if (firstLine.includes(';')) delimiter = ';';
-    else if (firstLine.includes('|')) delimiter = '|';
+    // Use dataType if provided, otherwise auto-detect
+    let recordType: 'campaign' | 'experiment' = dataType as 'campaign' | 'experiment' || 'campaign';
     
-    console.log('Using delimiter:', delimiter);
-    
-    const headers = lines[0].split(delimiter).map(h => 
-      h.trim().toLowerCase().replace(/["']/g, '').replace(/[^a-z0-9_]/g, '_')
-    );
-    
-    console.log('Excel headers detected:', headers);
+    if (!dataType) {
+      // Auto-detect data type based on headers
+      const headers = Object.keys(parsedData[0]);
+      const isCampaignData = headers.some(h => 
+        h.includes('campaign') || h.includes('session') || h.includes('conversion') ||
+        h.includes('users') || h.includes('bounce') || h.includes('traffic')
+      );
+      
+      const isExperimentData = headers.some(h => 
+        h.includes('experiment') || h.includes('test') || h.includes('variant') ||
+        h.includes('uplift') || h.includes('significance') || h.includes('control')
+      );
+      
+      if (isExperimentData && !isCampaignData) {
+        recordType = 'experiment';
+      }
+    }
     
     const records: ProcessedRecord[] = [];
     
-    // Determine if this looks like campaign or experiment data
-    const isCampaignData = headers.some(h => 
-      h.includes('campaign') || h.includes('session') || h.includes('conversion') ||
-      h.includes('users') || h.includes('bounce') || h.includes('traffic')
-    );
-    
-    const isExperimentData = headers.some(h => 
-      h.includes('experiment') || h.includes('test') || h.includes('variant') ||
-      h.includes('uplift') || h.includes('significance') || h.includes('control')
-    );
-    
-    console.log('Data type detection:', { isCampaignData, isExperimentData });
-    
-    for (let i = 1; i < Math.min(lines.length, 1000); i++) { // Limit to 1000 rows for performance
-      const line = lines[i].trim();
-      if (!line) continue;
-      
-      const values = line.split(delimiter).map(v => v.trim().replace(/["']/g, ''));
-      const record: any = {};
-      
-      headers.forEach((header, index) => {
-        record[header] = values[index] || '';
-      });
-      
-      // Skip empty rows
-      if (Object.values(record).every(v => !v)) continue;
-      
-      let recordType: 'campaign' | 'experiment' = 'campaign';
-      if (isExperimentData && !isCampaignData) {
-        recordType = 'experiment';
-      } else if (isCampaignData && !isExperimentData) {
-        recordType = 'campaign';
-      } else {
-        // Auto-detect based on row content
-        const recordString = JSON.stringify(record).toLowerCase();
-        if (recordString.includes('experiment') || recordString.includes('variant') || recordString.includes('control')) {
-          recordType = 'experiment';
-        }
-      }
-      
+    // Convert parsed data to ProcessedRecord format
+    parsedData.forEach((row: Record<string, string>) => {
       records.push({
         type: recordType,
-        data: record
+        data: row
       });
-    }
+    });
     
     console.log(`Successfully processed ${records.length} records from Excel file`);
     return records;
@@ -200,69 +167,49 @@ async function processExcelFile(fileContent: string, fileName: string): Promise<
   }
 }
 
-async function processCSVFile(fileContent: string): Promise<ProcessedRecord[]> {
-  console.log('Processing CSV file...');
+async function processCSVFile(fileContent: string, dataType?: string): Promise<ProcessedRecord[]> {
+  console.log('Processing CSV file with enhanced parsing...');
   
   const records: ProcessedRecord[] = [];
   
   try {
     const content = atob(fileContent);
-    const lines = content.split('\n').filter(line => line.trim());
+    const parsedData = parseCSVContent(content);
     
-    if (lines.length < 2) return records;
+    console.log(`Parsed ${parsedData.length} rows from CSV`);
     
-    // Handle different delimiters
-    const delimiter = content.includes('\t') ? '\t' : ',';
-    const headers = lines[0].split(delimiter).map(h => 
-      h.trim().toLowerCase().replace(/["']/g, '').replace(/[^a-z0-9_]/g, '_')
-    );
+    if (parsedData.length === 0) return records;
     
-    console.log('CSV headers:', headers);
+    // Use dataType if provided, otherwise auto-detect
+    let recordType: 'campaign' | 'experiment' = dataType as 'campaign' | 'experiment' || 'campaign';
     
-    const isCampaignData = headers.some(h => 
-      h.includes('campaign') || h.includes('session') || h.includes('conversion') ||
-      h.includes('users') || h.includes('bounce') || h.includes('traffic')
-    );
-    
-    const isExperimentData = headers.some(h => 
-      h.includes('experiment') || h.includes('test') || h.includes('variant') ||
-      h.includes('uplift') || h.includes('significance') || h.includes('control')
-    );
-    
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
+    if (!dataType) {
+      // Auto-detect data type based on headers
+      const headers = Object.keys(parsedData[0]);
+      const isCampaignData = headers.some(h => 
+        h.includes('campaign') || h.includes('session') || h.includes('conversion') ||
+        h.includes('users') || h.includes('bounce') || h.includes('traffic')
+      );
       
-      const values = line.split(delimiter).map(v => v.trim().replace(/["']/g, ''));
-      const record: any = {};
+      const isExperimentData = headers.some(h => 
+        h.includes('experiment') || h.includes('test') || h.includes('variant') ||
+        h.includes('uplift') || h.includes('significance') || h.includes('control')
+      );
       
-      headers.forEach((header, index) => {
-        record[header] = values[index] || '';
-      });
-      
-      // Skip empty rows
-      if (Object.values(record).every(v => !v)) continue;
-      
-      let recordType: 'campaign' | 'experiment' = 'campaign';
       if (isExperimentData && !isCampaignData) {
         recordType = 'experiment';
-      } else if (isCampaignData && !isExperimentData) {
-        recordType = 'campaign';
-      } else {
-        // Auto-detect based on row content
-        const recordString = JSON.stringify(record).toLowerCase();
-        if (recordString.includes('experiment') || recordString.includes('variant') || recordString.includes('control')) {
-          recordType = 'experiment';
-        }
       }
-      
-      records.push({
-        type: recordType,
-        data: record
-      });
     }
     
-    console.log(`Extracted ${records.length} records from CSV file`);
+    // Convert parsed data to ProcessedRecord format
+    parsedData.forEach((row: Record<string, string>) => {
+      records.push({
+        type: recordType,
+        data: row
+      });
+    });
+    
+    console.log(`Extracted ${records.length} ${recordType} records from CSV file`);
     
   } catch (error) {
     console.error('CSV processing error:', error);
@@ -270,6 +217,91 @@ async function processCSVFile(fileContent: string): Promise<ProcessedRecord[]> {
   }
   
   return records;
+}
+
+// Enhanced CSV parsing function similar to Python pandas
+function parseCSVContent(content: string): Array<Record<string, string>> {
+  const lines = content.split('\n').filter(line => line.trim());
+  if (lines.length < 2) return [];
+  
+  // Auto-detect delimiter by checking the first line
+  let delimiter = ',';
+  const firstLine = lines[0];
+  const delimiters = [',', '\t', ';', '|'];
+  let maxFields = 0;
+  
+  for (const testDelim of delimiters) {
+    const fields = firstLine.split(testDelim);
+    if (fields.length > maxFields) {
+      maxFields = fields.length;
+      delimiter = testDelim;
+    }
+  }
+  
+  console.log(`CSV delimiter detected: "${delimiter === '\t' ? '\\t' : delimiter}"`);
+  
+  // Parse headers
+  const headers = parseCSVLine(lines[0], delimiter)
+    .map(h => h.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'));
+  
+  console.log('CSV headers:', headers);
+  
+  // Parse data rows
+  const records: Array<Record<string, string>> = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    const values = parseCSVLine(line, delimiter);
+    const record: Record<string, string> = {};
+    
+    headers.forEach((header, index) => {
+      record[header] = (values[index] || '').trim();
+    });
+    
+    // Skip empty rows
+    if (Object.values(record).some(v => v)) {
+      records.push(record);
+    }
+  }
+  
+  return records;
+}
+
+// Parse a single CSV line handling quotes and escapes
+function parseCSVLine(line: string, delimiter: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  let i = 0;
+  
+  while (i < line.length) {
+    const char = line[i];
+    
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        // Escaped quote
+        current += '"';
+        i += 2;
+      } else {
+        // Toggle quote mode
+        inQuotes = !inQuotes;
+        i++;
+      }
+    } else if (char === delimiter && !inQuotes) {
+      // Field separator
+      result.push(current);
+      current = '';
+      i++;
+    } else {
+      // Regular character
+      current += char;
+      i++;
+    }
+  }
+  
+  result.push(current);
+  return result;
 }
 
 async function processCSSFile(fileContent: string, fileName: string): Promise<ProcessedRecord[]> {
