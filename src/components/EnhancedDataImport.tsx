@@ -70,18 +70,37 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log('File upload started:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      type: type
+    });
+
     try {
       // Enhanced file processing with support for Excel and OCR
       const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      console.log('File extension detected:', fileExtension);
+      
       const isExcel = ['xlsx', 'xls'].includes(fileExtension || '');
       const isImage = ['jpg', 'jpeg', 'png', 'pdf'].includes(fileExtension || '');
+      
+      console.log('File type classification:', { isExcel, isImage });
       
       let data: any[] = [];
       
       if (isExcel) {
+        console.log('Processing Excel file...');
         // Process Excel file via edge function
+        console.log('Converting file to base64...');
         const fileContent = await fileToBase64(file);
-        console.log('Processing Excel file:', file.name);
+        console.log('File converted to base64, length:', fileContent.length);
+        
+        console.log('Calling edge function with:', {
+          fileName: file.name,
+          fileType: 'excel',
+          contentLength: fileContent.length
+        });
         
         const response = await supabase.functions.invoke('process-data-files', {
           body: {
@@ -91,9 +110,13 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
           }
         });
         
-        console.log('Edge function response:', response);
+        console.log('Edge function response received:', {
+          data: response.data,
+          error: response.error
+        });
         
         if (response.data?.success) {
+          console.log('Excel processing successful:', response.data);
           toast({
             title: "Excel Import Successful!",
             description: `Processed ${response.data.stored} records from ${file.name}. ${response.data.errors || 0} errors occurred.`,
@@ -102,12 +125,19 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
           await loadExistingData();
           return;
         } else {
-          console.error('Edge function error:', response.error || response.data);
+          console.error('Edge function failed:', {
+            responseData: response.data,
+            responseError: response.error,
+            fullResponse: response
+          });
           throw new Error(response.data?.error || response.error?.message || 'Failed to process Excel file');
         }
       } else if (isImage) {
+        console.log('Processing image file...');
         // Process image/PDF with OCR via edge function
         const fileContent = await fileToBase64(file);
+        console.log('Image converted to base64, calling edge function...');
+        
         const response = await supabase.functions.invoke('process-data-files', {
           body: {
             fileContent,
@@ -116,14 +146,20 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
           }
         });
         
+        console.log('Image processing response:', response);
+        
         if (response.data?.success) {
-          alert(`Successfully extracted ${response.data.stored} records from ${file.name} using OCR`);
+          toast({
+            title: "Image/PDF Import Successful!",
+            description: `Extracted ${response.data.stored} records from ${file.name} using OCR`,
+          });
           await loadExistingData();
           return;
         } else {
           throw new Error(response.data?.error || 'Failed to process image/PDF');
         }
       } else {
+        console.log('Processing CSV file locally...');
         // Process CSV file locally
         const text = await file.text();
         data = parseCSV(text);
