@@ -93,44 +93,64 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
         console.log('Processing Excel file...');
         // Process Excel file via edge function
         console.log('Converting file to base64...');
-        const fileContent = await fileToBase64(file);
-        console.log('File converted to base64, length:', fileContent.length);
         
-        console.log('Calling edge function with:', {
-          fileName: file.name,
-          fileType: 'excel',
-          contentLength: fileContent.length
-        });
-        
-        const response = await supabase.functions.invoke('process-data-files', {
-          body: {
-            fileContent,
+        try {
+          const fileContent = await fileToBase64(file);
+          console.log('File converted to base64, length:', fileContent.length);
+          
+          console.log('Calling edge function with:', {
             fileName: file.name,
-            fileType: 'excel'
+            fileType: 'excel',
+            contentLength: fileContent.length
+          });
+          
+          const response = await supabase.functions.invoke('process-data-files', {
+            body: {
+              fileContent,
+              fileName: file.name,
+              fileType: 'excel'
+            }
+          });
+          
+          console.log('Edge function response received:', {
+            data: response.data,
+            error: response.error
+          });
+        
+          if (response.data?.success) {
+            console.log('Excel processing successful:', response.data);
+            toast({
+              title: "Excel Import Successful!",
+              description: `Processed ${response.data.stored} records from ${file.name}. ${response.data.errors || 0} errors occurred.`,
+              variant: response.data.errors > 0 ? "default" : "default"
+            });
+            await loadExistingData();
+            return;
+          } else {
+            console.error('Edge function failed:', {
+              responseData: response.data,
+              responseError: response.error,
+              fullResponse: response
+            });
+            throw new Error(response.data?.error || response.error?.message || 'Failed to process Excel file');
           }
-        });
-        
-        console.log('Edge function response received:', {
-          data: response.data,
-          error: response.error
-        });
-        
-        if (response.data?.success) {
-          console.log('Excel processing successful:', response.data);
-          toast({
-            title: "Excel Import Successful!",
-            description: `Processed ${response.data.stored} records from ${file.name}. ${response.data.errors || 0} errors occurred.`,
-            variant: response.data.errors > 0 ? "default" : "default"
-          });
-          await loadExistingData();
+        } catch (excelError) {
+          console.error('Excel processing failed, trying as CSV:', excelError);
+          // Fallback to CSV processing
+          const text = await file.text();
+          data = parseCSV(text);
+          
+          if (data.length === 0) {
+            throw new Error('No valid data found in Excel file');
+          }
+          
+          console.log('Successfully processed Excel as CSV, found', data.length, 'records');
+          const success = await importData(data, type);
+          
+          if (success) {
+            await loadExistingData();
+          }
           return;
-        } else {
-          console.error('Edge function failed:', {
-            responseData: response.data,
-            responseError: response.error,
-            fullResponse: response
-          });
-          throw new Error(response.data?.error || response.error?.message || 'Failed to process Excel file');
         }
       } else if (isImage) {
         console.log('Processing image file...');
