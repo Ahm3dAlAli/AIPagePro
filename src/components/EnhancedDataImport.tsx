@@ -384,8 +384,13 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
                   type="file"
                   accept=".csv,.xlsx,.xls,.css,.jpg,.jpeg,.png,.pdf"
                   onChange={(e) => handleFileUpload(e, 'experiments')}
-                  disabled={isImporting}
+                  disabled={isProcessing}
                 />
+                {uploadedFiles.experiments && (
+                  <div className="text-sm text-green-600">
+                    ✓ {uploadedFiles.experiments.name} selected
+                  </div>
+                )}
               </div>
               
               {isProcessing && (
