@@ -35,6 +35,33 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
 
   useEffect(() => {
     loadExistingData();
+    
+    // Set up real-time subscription for data updates
+    const channel = supabase
+      .channel('data-import-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'historic_campaigns'
+        },
+        () => loadExistingData()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'experiment_results'
+        },
+        () => loadExistingData()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadExistingData = async () => {
@@ -165,9 +192,6 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
 
       await loadExistingData();
       setUploadedFiles({});
-      
-      // Refresh the page to show updated metrics
-      window.location.reload();
       
     } catch (error) {
       console.error('File processing error:', error);
