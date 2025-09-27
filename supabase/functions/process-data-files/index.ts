@@ -43,8 +43,9 @@ serve(async (req) => {
       throw new Error('Missing file content or name');
     }
 
-    console.log(`Processing file: ${fileName}, type: ${fileType}, dataType: ${dataType}`);
+    console.log(`Starting processing for: ${fileName}, type: ${fileType}, dataType: ${dataType}`);
     
+    // Process and store data
     let processedRecords: ProcessedRecord[] = [];
     
     // Process different file types
@@ -60,23 +61,30 @@ serve(async (req) => {
       throw new Error(`Unsupported file type: ${fileType}`);
     }
 
-    console.log(`Extracted ${processedRecords.length} records`);
+    console.log(`Extracted ${processedRecords.length} records from ${fileName}`);
 
     // Store records in database
     const results = await storeRecords(processedRecords, user.id);
     
+    console.log(`Processing complete for ${fileName}: ${results.stored} stored, ${results.errors} errors`);
+    
+    // Update user's AI readiness status
+    await updateAIReadinessStatus(user.id);
+    
+    // Return response with processing results
     return new Response(JSON.stringify({
       success: true,
       processed: processedRecords.length,
       stored: results.stored,
       errors: results.errors,
-      message: `Successfully processed ${results.stored} records from ${fileName}`
+      message: `Successfully processed ${results.stored} records from ${fileName}`,
+      aiReady: results.stored > 0
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error processing files:', error);
+    console.error('Error initiating file processing:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to process file'
@@ -675,4 +683,46 @@ async function storeRecords(records: ProcessedRecord[], userId: string) {
   
   console.log(`Storage complete: ${stored} stored, ${errors} errors`);
   return { stored, errors };
+}
+
+// Update user's AI readiness status based on imported data
+async function updateAIReadinessStatus(userId: string) {
+  try {
+    // Check campaign and experiment counts
+    const { data: campaigns, error: campaignError } = await supabase
+      .from('historic_campaigns')
+      .select('id')
+      .eq('user_id', userId);
+    
+    const { data: experiments, error: experimentError } = await supabase
+      .from('experiment_results')
+      .select('id')
+      .eq('user_id', userId);
+    
+    if (campaignError || experimentError) {
+      console.error('Error checking AI readiness:', campaignError || experimentError);
+      return;
+    }
+    
+    const campaignCount = campaigns?.length || 0;
+    const experimentCount = experiments?.length || 0;
+    const isAIReady = campaignCount >= 5 || (campaignCount >= 2 && experimentCount >= 2);
+    
+    console.log(`AI Readiness Status for user ${userId}: ${campaignCount} campaigns, ${experimentCount} experiments, AI Ready: ${isAIReady}`);
+    
+    // Update user profile with AI readiness status
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .upsert({
+        user_id: userId,
+        updated_at: new Date().toISOString()
+      });
+    
+    if (updateError) {
+      console.error('Error updating profile:', updateError);
+    }
+    
+  } catch (error) {
+    console.error('Error in updateAIReadinessStatus:', error);
+  }
 }

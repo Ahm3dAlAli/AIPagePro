@@ -101,6 +101,7 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
     }
 
     setIsProcessing(true);
+    let processedRecords = 0;
 
     try {
       const filesToProcess = [];
@@ -150,11 +151,16 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
         }
 
         console.log('Successfully processed:', response.data);
+        
+        // Track total processed records
+        if (response.data?.stored) {
+          processedRecords += response.data.stored;
+        }
       }
 
       toast({
         title: "Processing Complete!",
-        description: "All files have been processed and data imported successfully.",
+        description: `Files processed successfully. ${processedRecords} records imported.`,
       });
 
       await loadExistingData();
