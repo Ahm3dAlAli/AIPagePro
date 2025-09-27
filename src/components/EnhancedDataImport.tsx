@@ -25,7 +25,12 @@ interface EnhancedDataImportProps {
   onDataImported?: (data: ImportedData) => void;
 }
 
-const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported }) => {
+interface DataImportRef {
+  processFiles: () => Promise<{ success: boolean; processedRecords?: number; error?: string }>;
+  hasFiles: () => boolean;
+}
+
+const EnhancedDataImport = React.forwardRef<DataImportRef, EnhancedDataImportProps>(({ onDataImported }, ref) => {
   const { isImporting, importStats, importData, loadImportedData } = useDataImport();
   const { toast } = useToast();
   const [importedData, setImportedData] = useState<ImportedData>({ campaigns: [], experiments: [] });
@@ -110,21 +115,17 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
     
     toast({
       title: "File Selected",
-      description: `${file.name} selected for ${type}. Click 'Process Files' to import data.`,
+      description: `${file.name} selected for ${type}. It will be automatically processed when you generate a landing page.`,
     });
 
     // Clear the input
     event.target.value = '';
   };
 
+  // Export function to process files (used by landing page generation)
   const processUploadedFiles = async () => {
     if (!uploadedFiles.campaigns && !uploadedFiles.experiments) {
-      toast({
-        title: "No Files Selected",
-        description: "Please select at least one file to process.",
-        variant: "destructive"
-      });
-      return;
+      return { success: false, error: "No files to process" };
     }
 
     setIsProcessing(true);
@@ -158,7 +159,7 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
           fileType = 'image';
         }
 
-        console.log('Processing file via edge function:', {
+        console.log('Auto-processing file for landing page generation:', {
           fileName: file.name,
           fileType,
           dataType: type
@@ -179,31 +180,29 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
 
         console.log('Successfully processed:', response.data);
         
-        // Track total processed records
         if (response.data?.stored) {
           processedRecords += response.data.stored;
         }
       }
 
-      toast({
-        title: "Processing Complete!",
-        description: `Files processed successfully. ${processedRecords} records imported.`,
-      });
-
       await loadExistingData();
       setUploadedFiles({});
       
+      return { success: true, processedRecords };
+      
     } catch (error) {
       console.error('File processing error:', error);
-      toast({
-        title: "Processing Failed",
-        description: (error as Error).message,
-        variant: "destructive"
-      });
+      return { success: false, error: (error as Error).message };
     } finally {
       setIsProcessing(false);
     }
   };
+
+  // Expose processing function to parent
+  React.useImperativeHandle(ref, () => ({
+    processFiles: processUploadedFiles,
+    hasFiles: () => !!(uploadedFiles.campaigns || uploadedFiles.experiments)
+  }), [uploadedFiles]);
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -450,18 +449,31 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
         </TabsContent>
       </Tabs>
 
-      {/* Process Button */}
-      <div className="flex justify-center mt-6">
-        <Button 
-          onClick={processUploadedFiles}
-          disabled={isProcessing || (!uploadedFiles.campaigns && !uploadedFiles.experiments)}
-          className="px-8 py-2"
-        >
-          {isProcessing ? 'Processing Files...' : 'Process Files'}
-        </Button>
-      </div>
+      {/* Files Ready Status */}
+      {(uploadedFiles.campaigns || uploadedFiles.experiments) && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <div>
+                <p className="font-medium text-blue-900">Files Ready for AI Landing Page Generation</p>
+                <p className="text-sm text-blue-700">
+                  {uploadedFiles.campaigns && uploadedFiles.experiments 
+                    ? 'Campaign and experiment data will be automatically processed when you generate a landing page'
+                    : uploadedFiles.campaigns 
+                      ? 'Campaign data will be automatically processed when you generate a landing page'
+                      : 'Experiment data will be automatically processed when you generate a landing page'
+                  }
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
-};
+});
+
+EnhancedDataImport.displayName = 'EnhancedDataImport';
 
 export default EnhancedDataImport;

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import EnhancedDataImport from '@/components/EnhancedDataImport';
 import { ImportedData } from '@/hooks/useDataImport';
+
+interface DataImportRef {
+  processFiles: () => Promise<{ success: boolean; processedRecords?: number; error?: string }>;
+  hasFiles: () => boolean;
+}
 
 const CreatePage = () => {
   const navigate = useNavigate();
@@ -86,6 +92,8 @@ const CreatePage = () => {
   const [showPagePreview, setShowPagePreview] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
 
+  const dataImportRef = React.useRef<DataImportRef>(null);
+
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -101,6 +109,29 @@ const CreatePage = () => {
     setIsGenerating(true);
 
     try {
+      // Auto-process uploaded files if they exist
+      if (dataImportRef.current?.hasFiles()) {
+        toast({
+          title: "Processing Data Files",
+          description: "Automatically processing your uploaded data for AI optimization...",
+        });
+        
+        const processResult = await dataImportRef.current.processFiles();
+        
+        if (processResult.success) {
+          toast({
+            title: "Data Processed Successfully",
+            description: `${processResult.processedRecords} records processed and ready for AI optimization.`,
+          });
+          
+          // Reload data after processing
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Brief wait for data to settle
+        } else {
+          console.warn('File processing warning:', processResult.error);
+          // Continue with generation even if file processing fails
+        }
+      }
+
       // Convert form data to format expected by autonomous generation
       const requestBody = {
         campaignObjective: formData.campaignObjective,
@@ -254,7 +285,7 @@ const CreatePage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <EnhancedDataImport onDataImported={handleDataImported} />
+            <EnhancedDataImport ref={dataImportRef} onDataImported={handleDataImported} />
           </CardContent>
         </Card>
 
