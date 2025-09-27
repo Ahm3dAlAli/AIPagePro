@@ -160,6 +160,9 @@ const EnhancedDataImport: React.FC<EnhancedDataImportProps> = ({ onDataImported 
       await loadExistingData();
       setUploadedFiles({});
       
+      // Refresh the page to show updated metrics
+      window.location.reload();
+      
     } catch (error) {
       console.error('File processing error:', error);
       toast({
