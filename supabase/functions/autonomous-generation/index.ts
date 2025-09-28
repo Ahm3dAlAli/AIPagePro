@@ -117,40 +117,33 @@ serve(async (req) => {
       }
     }
 
-    // For now, allow unauthenticated users for testing but generate a proper UUID
+    // For now, allow unauthenticated users for testing
     if (!userId) {
-      // Generate a proper UUID for temporary users
-      userId = crypto.randomUUID();
-      console.log('No authentication, creating temporary user profile:', userId);
+      // Use a consistent temporary user ID for unauthenticated users
+      userId = '00000000-0000-0000-0000-000000000000';
+      console.log('No authentication, using temporary user profile:', userId);
       
       // Create a temporary profile record to satisfy foreign key constraints
       try {
-        const { data: existingProfile, error: checkError } = await supabaseClient
+        const { error: upsertError } = await supabaseClient
           .from('profiles')
-          .select('user_id')
-          .eq('user_id', userId)
-          .single();
-        
-        if (!existingProfile) {
-          const { error: insertError } = await supabaseClient
-            .from('profiles')
-            .insert({
-              user_id: userId,
-              email: `temp-${userId.slice(0, 8)}@temporary.com`,
-              full_name: 'Temporary User'
-            });
+          .upsert({
+            user_id: userId,
+            email: 'temp@temporary.com',
+            full_name: 'Temporary User'
+          }, {
+            onConflict: 'user_id'
+          });
           
-          if (insertError) {
-            console.error('Failed to create temporary profile:', insertError);
-            throw new Error(`Profile creation failed: ${insertError.message}`);
-          }
-          console.log('Temporary profile created successfully');
-        } else {
-          console.log('Using existing temporary profile');
+        if (upsertError) {
+          console.error('Failed to upsert temporary profile:', upsertError);
+          throw new Error(`Profile upsert failed: ${upsertError.message}`);
         }
+        console.log('Temporary profile ready');
       } catch (profileError) {
         console.error('Profile handling error:', profileError);
-        throw new Error(`Failed to handle user profile: ${profileError.message}`);
+        const errorMessage = profileError instanceof Error ? profileError.message : String(profileError);
+        throw new Error(`Failed to handle user profile: ${errorMessage}`);
       }
     }
 
