@@ -125,17 +125,32 @@ serve(async (req) => {
       
       // Create a temporary profile record to satisfy foreign key constraints
       try {
-        await supabaseClient
+        const { data: existingProfile, error: checkError } = await supabaseClient
           .from('profiles')
-          .insert({
-            user_id: userId,
-            email: `temp-${userId.slice(0, 8)}@temporary.com`,
-            full_name: 'Temporary User'
-          });
-        console.log('Temporary profile created successfully');
+          .select('user_id')
+          .eq('user_id', userId)
+          .single();
+        
+        if (!existingProfile) {
+          const { error: insertError } = await supabaseClient
+            .from('profiles')
+            .insert({
+              user_id: userId,
+              email: `temp-${userId.slice(0, 8)}@temporary.com`,
+              full_name: 'Temporary User'
+            });
+          
+          if (insertError) {
+            console.error('Failed to create temporary profile:', insertError);
+            throw new Error(`Profile creation failed: ${insertError.message}`);
+          }
+          console.log('Temporary profile created successfully');
+        } else {
+          console.log('Using existing temporary profile');
+        }
       } catch (profileError) {
-        console.log('Profile creation error (may already exist):', profileError);
-        // Continue anyway - the profile might already exist
+        console.error('Profile handling error:', profileError);
+        throw new Error(`Failed to handle user profile: ${profileError.message}`);
       }
     }
 
