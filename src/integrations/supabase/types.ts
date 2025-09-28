@@ -576,6 +576,13 @@ export type Database = {
             referencedRelation: "templates"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "generated_pages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       historic_campaigns: {
