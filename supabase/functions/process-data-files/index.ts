@@ -99,7 +99,13 @@ async function processExcelFile(fileContent: string, fileName: string, dataType?
   console.log(`Processing Excel file for ${dataType}: ${fileName}`);
   
   try {
-    const recordType: 'campaign' | 'experiment' = dataType as 'campaign' | 'experiment' || 'campaign';
+    // Handle both singular and plural forms from frontend
+    let recordType: 'campaign' | 'experiment' = 'campaign';
+    if (dataType === 'campaigns' || dataType === 'campaign') {
+      recordType = 'campaign';
+    } else if (dataType === 'experiments' || dataType === 'experiment') {
+      recordType = 'experiment';
+    }
     const records: ProcessedRecord[] = [];
     
     if (recordType === 'campaign') {
