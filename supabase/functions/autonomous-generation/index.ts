@@ -119,9 +119,24 @@ serve(async (req) => {
 
     // For now, allow unauthenticated users for testing but generate a proper UUID
     if (!userId) {
-      // Generate a proper UUID for temporary users to avoid database constraint errors
+      // Generate a proper UUID for temporary users
       userId = crypto.randomUUID();
-      console.log('No authentication, using temporary UUID:', userId);
+      console.log('No authentication, creating temporary user profile:', userId);
+      
+      // Create a temporary profile record to satisfy foreign key constraints
+      try {
+        await supabaseClient
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            email: `temp-${userId.slice(0, 8)}@temporary.com`,
+            full_name: 'Temporary User'
+          });
+        console.log('Temporary profile created successfully');
+      } catch (profileError) {
+        console.log('Profile creation error (may already exist):', profileError);
+        // Continue anyway - the profile might already exist
+      }
     }
 
     const campaignInput: CampaignInput = await req.json();
