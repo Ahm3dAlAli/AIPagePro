@@ -188,8 +188,13 @@ async function processCSVFile(fileContent: string, dataType?: string): Promise<P
     
     if (parsedData.length === 0) return records;
     
-    // Use dataType if provided, otherwise auto-detect
-    let recordType: 'campaign' | 'experiment' = dataType as 'campaign' | 'experiment' || 'campaign';
+    // Handle both singular and plural forms from frontend
+    let recordType: 'campaign' | 'experiment' = 'campaign';
+    if (dataType === 'campaigns' || dataType === 'campaign') {
+      recordType = 'campaign';
+    } else if (dataType === 'experiments' || dataType === 'experiment') {
+      recordType = 'experiment';
+    }
     
     if (!dataType) {
       // Auto-detect data type based on headers
