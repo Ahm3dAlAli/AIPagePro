@@ -307,12 +307,12 @@ serve(async (req) => {
 
     console.log('Generating PRD for page:', pageId);
 
-    // Get page data and sections
+    // Get page data and sections - include demo pages
     const { data: pageData, error: pageError } = await supabaseClient
       .from('generated_pages')
       .select('*')
       .eq('id', pageId)
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},user_id.eq.00000000-0000-0000-0000-000000000000`)
       .maybeSingle();
 
     if (pageError) {
@@ -324,22 +324,22 @@ serve(async (req) => {
       throw new Error('Page not found');
     }
 
-    // Get page sections
+    // Get page sections - include demo pages
     const { data: sections, error: sectionsError } = await supabaseClient
       .from('page_sections')
       .select('*')
       .eq('page_id', pageId)
-      .eq('user_id', user.id);
+      .or(`user_id.eq.${user.id},user_id.eq.00000000-0000-0000-0000-000000000000`);
 
     if (sectionsError) {
       console.error('Error loading sections:', sectionsError);
     }
 
-    // Get historic campaign data for analysis
+    // Get historic campaign data for analysis - include demo data
     const { data: historicData, error: historicError } = await supabaseClient
       .from('historic_campaigns')
       .select('*')
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},user_id.eq.00000000-0000-0000-0000-000000000000`)
       .limit(20);
 
     if (historicError) {
