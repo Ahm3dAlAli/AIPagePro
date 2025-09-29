@@ -44,10 +44,10 @@ interface AIRationaleReport {
 }
 
 async function generatePRD(pageSections: any[], campaignData: any, historicData: any[]): Promise<string> {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
   
-  if (!openaiApiKey) {
-    throw new Error('OpenAI API key not configured');
+  if (!lovableApiKey) {
+    throw new Error('LOVABLE_API_KEY not configured');
   }
 
   const prompt = `
@@ -103,14 +103,14 @@ Format the response as structured data that can be easily parsed and converted t
 Focus on data-driven insights and clear explanations for every recommendation.
 `;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
+      'Authorization': `Bearer ${lovableApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'system',
@@ -135,7 +135,7 @@ Focus on data-driven insights and clear explanations for every recommendation.
 }
 
 async function generateAIRationale(pageSections: any[], campaignData: any, historicData: any[]): Promise<AIRationaleReport> {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
   
   const prompt = `
 Analyze this landing page generation and create a detailed AI decision rationale report.
@@ -192,14 +192,14 @@ Generate a comprehensive analysis following this exact JSON structure:
 Return only valid JSON that matches this structure exactly.
 `;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
+      'Authorization': `Bearer ${lovableApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'system',
