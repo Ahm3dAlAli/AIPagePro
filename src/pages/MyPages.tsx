@@ -33,18 +33,26 @@ const MyPages = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pageToDelete, setPageToDelete] = useState<string | null>(null);
   useEffect(() => {
-    if (user) {
-      fetchPages();
-    }
+    // Fetch pages even if user is not authenticated (for demo mode)
+    fetchPages();
   }, [user]);
   const fetchPages = async () => {
     try {
+      // Fetch pages for both authenticated user and temporary demo user
+      const tempUserId = '00000000-0000-0000-0000-000000000000';
+      const userIds = user?.id ? [user.id, tempUserId] : [tempUserId];
+      
       const {
         data,
         error
-      } = await supabase.from('generated_pages').select('*').eq('user_id', user?.id).order('created_at', {
-        ascending: false
-      });
+      } = await supabase
+        .from('generated_pages')
+        .select('*')
+        .in('user_id', userIds)
+        .order('created_at', {
+          ascending: false
+        });
+      
       if (error) throw error;
       setPages(data || []);
     } catch (error: any) {
@@ -86,11 +94,12 @@ const MyPages = () => {
   };
   const handleDuplicate = async (page: GeneratedPage) => {
     try {
+      const tempUserId = '00000000-0000-0000-0000-000000000000';
       const {
         data,
         error
       } = await supabase.from('generated_pages').insert({
-        user_id: user?.id,
+        user_id: user?.id || tempUserId,
         title: `${page.title} (Copy)`,
         slug: `${page.slug}-copy-${Date.now()}`,
         content: page.content,

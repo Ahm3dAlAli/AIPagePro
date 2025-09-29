@@ -33,9 +33,20 @@ const PageEditor = () => {
         .from('generated_pages')
         .select('*')
         .eq('id', pageId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      
+      if (!data) {
+        toast({
+          title: "Page Not Found",
+          description: "The page you're looking for doesn't exist.",
+          variant: "destructive"
+        });
+        navigate('/dashboard/pages');
+        return;
+      }
+      
       setPageData(data);
     } catch (error) {
       console.error('Error loading page:', error);
