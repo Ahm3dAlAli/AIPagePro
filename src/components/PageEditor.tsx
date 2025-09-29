@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Edit3, Wand2, Eye, Save, Settings, RefreshCw, Sparkles, Brain, Download, Loader2, Package } from 'lucide-react';
+import { Edit3, Wand2, Eye, Save, Settings, RefreshCw, Sparkles, Brain, Download, Loader2, Package, Rocket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import ComponentExportSystem from './ComponentExportSystem';
@@ -213,28 +213,77 @@ export const PageEditor: React.FC<PageEditorProps> = ({
       setIsGeneratingRationale(false);
     }
   };
+  const loadSections = loadPageSections; // Alias for clarity
+
   const generatePreview = async () => {
     setIsGeneratingPreview(true);
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('generate-prd', {
+      // Get current page data
+      const { data: pageData, error: pageError } = await supabase
+        .from('generated_pages')
+        .select('*')
+        .eq('id', pageId)
+        .single();
+
+      if (pageError) throw pageError;
+
+      // Get historic campaigns for optimization
+      const { data: historicData } = await supabase
+        .from('historic_campaigns')
+        .select('*')
+        .limit(20);
+
+      // Get experiment results for optimization
+      const { data: experimentData } = await supabase
+        .from('experiment_results')
+        .select('*')
+        .limit(10);
+
+      // Call autonomous generation with existing page data
+      const content = pageData.content as any;
+      const { data, error } = await supabase.functions.invoke('autonomous-generation', {
         body: {
-          pageId
+          campaignObjective: content?.sections?.hero?.headline || 'Landing Page',
+          targetAudience: content?.sections?.hero?.subheadline || '',
+          uniqueValueProp: content?.sections?.hero?.headline || '',
+          topBenefits: content?.sections?.benefits?.benefits?.map((b: any) => b.title) || [],
+          featureList: content?.sections?.features?.features?.map((f: any) => f.title) || [],
+          primaryCtaText: content?.sections?.hero?.ctaText || 'Get Started',
+          toneOfVoice: content?.designRationale?.match(/friendly|professional|urgent|playful/i)?.[0]?.toLowerCase() || 'professional',
+          pageTitle: pageData.title,
+          historicData: {
+            campaigns: historicData || [],
+            experiments: experimentData || []
+          }
         }
       });
+
       if (error) throw error;
+
       if (data.success) {
-        // Open the generated page in a new tab
-        const previewUrl = `https://gidmisqzkobynomutdgp.supabase.co/functions/v1/render-page/${data.generatedPage.id}`;
-        window.open(previewUrl, '_blank');
+        // Update the page with newly generated content
+        const { error: updateError } = await supabase
+          .from('generated_pages')
+          .update({ 
+            content: data.page.content,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', pageId);
+
+        if (updateError) throw updateError;
+
+        // Refresh sections
+        await loadPageSections();
+        
         toast({
           title: "Preview Generated!",
-          description: "Your landing page has been generated and opened in a new tab."
+          description: "Your AI-optimized landing page has been regenerated with latest data."
         });
+
+        // Open preview in new tab
+        window.open(`/preview/${pageId}`, '_blank');
       } else {
-        throw new Error(data.error);
+        throw new Error(data.error || 'Failed to generate preview');
       }
     } catch (error: any) {
       console.error('Preview generation error:', error);
@@ -335,6 +384,35 @@ export const PageEditor: React.FC<PageEditorProps> = ({
         </DialogContent>
       </Dialog>;
   };
+
+  const handleDeployToVercel = async () => {
+    setIsDeploying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('deploy-to-vercel', {
+        body: { pageId }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Deployed to Vercel!",
+          description: `Your page is live at ${data.deploymentUrl}`,
+        });
+      } else {
+        throw new Error(data.error || 'Deployment failed');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Deployment Failed",
+        description: error.message || "Failed to deploy to Vercel",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
   return <div className="max-w-6xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Page Editor</h1>
@@ -342,10 +420,19 @@ export const PageEditor: React.FC<PageEditorProps> = ({
           <Button onClick={generatePreview} disabled={isGeneratingPreview || sections.length === 0}>
             {isGeneratingPreview ? <>
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Generating Preview...
+                Optimizing with AI...
               </> : <>
                 <Eye className="h-4 w-4 mr-2" />
                 Generate Preview
+              </>}
+          </Button>
+          <Button onClick={handleDeployToVercel} disabled={isDeploying || sections.length === 0} variant="default">
+            {isDeploying ? <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Deploying...
+              </> : <>
+                <Rocket className="h-4 w-4 mr-2" />
+                Deploy to Vercel
               </>}
           </Button>
         </div>

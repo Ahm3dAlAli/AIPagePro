@@ -218,7 +218,16 @@ Return only valid JSON that matches this structure exactly.
   const data = await response.json();
   
   try {
-    return JSON.parse(data.choices[0].message.content);
+    let content = data.choices[0].message.content;
+    
+    // Strip markdown code blocks if present
+    if (content.includes('```json')) {
+      content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    } else if (content.includes('```')) {
+      content = content.replace(/```\s*/g, '');
+    }
+    
+    return JSON.parse(content.trim());
   } catch (e) {
     console.error('Failed to parse AI rationale JSON:', e);
     // Fallback structured response
