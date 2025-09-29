@@ -16,6 +16,7 @@ import Analytics from "./pages/Analytics";
 import Templates from "./pages/Templates";
 import Experiments from "./pages/Experiments";
 import Campaigns from "./pages/Campaigns";
+import Preview from "./pages/Preview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/preview/:pageId" element={<Preview />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <DashboardLayout />
