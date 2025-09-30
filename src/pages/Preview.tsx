@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ interface PageData {
 
 const Preview = () => {
   const { pageId } = useParams<{ pageId: string }>();
+  const navigate = useNavigate();
   const [pageData, setPageData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeploying, setIsDeploying] = useState(false);
@@ -123,11 +124,11 @@ const Preview = () => {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Button 
             variant="ghost" 
-            onClick={() => window.history.back()}
+            onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Editor
+            Back to Dashboard
           </Button>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Preview Mode</span>
