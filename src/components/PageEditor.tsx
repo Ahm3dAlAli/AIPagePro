@@ -277,11 +277,11 @@ export const PageEditor: React.FC<PageEditorProps> = ({
         
         toast({
           title: "Preview Generated!",
-          description: "Your AI-optimized landing page has been regenerated with latest data."
+          description: "Your AI-optimized landing page has been regenerated."
         });
 
-        // Open preview in new tab
-        window.open(`/preview/${pageId}`, '_blank');
+        // Navigate to preview
+        window.location.href = `/preview/${pageId}`;
       } else {
         throw new Error(data.error || 'Failed to generate preview');
       }
@@ -417,22 +417,17 @@ export const PageEditor: React.FC<PageEditorProps> = ({
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Page Editor</h1>
         <div className="flex gap-2">
+          <Button onClick={() => window.location.href = `/preview/${pageId}`} variant="outline" disabled={sections.length === 0}>
+            <Eye className="h-4 w-4 mr-2" />
+            View Preview
+          </Button>
           <Button onClick={generatePreview} disabled={isGeneratingPreview || sections.length === 0}>
             {isGeneratingPreview ? <>
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                 Optimizing with AI...
               </> : <>
-                <Eye className="h-4 w-4 mr-2" />
-                Generate Preview
-              </>}
-          </Button>
-          <Button onClick={handleDeployToVercel} disabled={isDeploying || sections.length === 0} variant="default">
-            {isDeploying ? <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Deploying...
-              </> : <>
-                <Rocket className="h-4 w-4 mr-2" />
-                Deploy to Vercel
+                <Sparkles className="h-4 w-4 mr-2" />
+                Generate with AI
               </>}
           </Button>
         </div>

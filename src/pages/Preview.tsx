@@ -2,7 +2,8 @@ import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Check, Star, Shield, Heart, Zap, Package, Settings, Layers, Play, Book, ChevronDown } from 'lucide-react';
+import { Check, Star, Shield, Heart, Zap, Package, Settings, Layers, Play, Book, ChevronDown, Rocket, ArrowLeft, RefreshCw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface PageData {
   id: string;
@@ -15,6 +16,8 @@ const Preview = () => {
   const { pageId } = useParams<{ pageId: string }>();
   const [pageData, setPageData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (pageId) {
@@ -36,6 +39,34 @@ const Preview = () => {
       console.error('Error loading page:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeployToVercel = async () => {
+    setIsDeploying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('deploy-to-vercel', {
+        body: { pageId }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Deployed to Vercel!",
+          description: `Your page is live at ${data.deployment.url}`,
+        });
+      } else {
+        throw new Error(data.error || 'Deployment failed');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Deployment Failed",
+        description: error.message || "Failed to deploy to Vercel",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeploying(false);
     }
   };
 
@@ -87,6 +118,40 @@ const Preview = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Preview Header */}
+      <div className="sticky top-0 z-50 bg-white border-b shadow-sm">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Button 
+            variant="ghost" 
+            onClick={() => window.history.back()}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Editor
+          </Button>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">Preview Mode</span>
+            <Button 
+              onClick={handleDeployToVercel} 
+              disabled={isDeploying}
+              className="flex items-center gap-2"
+            >
+              {isDeploying ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Deploying...
+                </>
+              ) : (
+                <>
+                  <Rocket className="h-4 w-4" />
+                  Deploy to Vercel
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 text-white py-20 px-6">
         <div className="max-w-6xl mx-auto">
