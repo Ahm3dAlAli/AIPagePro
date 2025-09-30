@@ -446,19 +446,23 @@ export const PageEditor: React.FC<PageEditorProps> = ({
               setPreviewUrl(`/preview/${pageId}`);
               setShowPreviewDialog(true);
             }} 
-            variant="outline" 
+            className="bg-purple-600 hover:bg-purple-700 text-white"
             disabled={sections.length === 0}
           >
             <Eye className="h-4 w-4 mr-2" />
             View Preview
           </Button>
-          <Button onClick={generatePreview} disabled={isGeneratingPreview || sections.length === 0}>
-            {isGeneratingPreview ? <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Optimizing with AI...
+          <Button 
+            onClick={handleDeployToVercel} 
+            disabled={isDeploying}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            {isDeploying ? <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Deploying...
               </> : <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Generate with AI
+                <Rocket className="h-4 w-4 mr-2" />
+                Deploy to Vercel
               </>}
           </Button>
         </div>
