@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Edit3, Wand2, Eye, Save, Settings, RefreshCw, Sparkles, Brain, Download, Loader2, Package, Rocket } from 'lucide-react';
+import { Edit3, Wand2, Eye, Save, Settings, RefreshCw, Sparkles, Brain, Download, Loader2, Package, Rocket, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import ComponentExportSystem from './ComponentExportSystem';
@@ -71,6 +71,8 @@ export const PageEditor: React.FC<PageEditorProps> = ({
   const [isGeneratingRationale, setIsGeneratingRationale] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [aiRationaleReport, setAiRationaleReport] = useState<any>(null);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
   useEffect(() => {
     loadPageSections();
   }, [pageId]);
@@ -280,8 +282,9 @@ export const PageEditor: React.FC<PageEditorProps> = ({
           description: "Your AI-optimized landing page has been regenerated."
         });
 
-        // Navigate to preview
-        window.location.href = `/preview/${pageId}`;
+        // Open preview in dialog
+        setPreviewUrl(`/preview/${pageId}`);
+        setShowPreviewDialog(true);
       } else {
         throw new Error(data.error || 'Failed to generate preview');
       }
@@ -414,10 +417,38 @@ export const PageEditor: React.FC<PageEditorProps> = ({
   };
 
   return <div className="max-w-6xl mx-auto p-6">
+      {/* Preview Dialog */}
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0">
+          <div className="absolute top-4 right-4 z-50">
+            <Button
+              onClick={() => setShowPreviewDialog(false)}
+              variant="secondary"
+              size="icon"
+              className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          <iframe
+            src={previewUrl}
+            className="w-full h-full border-0 rounded-lg"
+            title="Landing Page Preview"
+          />
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Page Editor</h1>
         <div className="flex gap-2">
-          <Button onClick={() => window.location.href = `/preview/${pageId}`} variant="outline" disabled={sections.length === 0}>
+          <Button 
+            onClick={() => {
+              setPreviewUrl(`/preview/${pageId}`);
+              setShowPreviewDialog(true);
+            }} 
+            variant="outline" 
+            disabled={sections.length === 0}
+          >
             <Eye className="h-4 w-4 mr-2" />
             View Preview
           </Button>
