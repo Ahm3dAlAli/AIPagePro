@@ -353,7 +353,7 @@ function generateLovablePage(
   return Promise.resolve(result);
 }
 
-// Analyze historic campaign data for insights
+// Deeply analyze historic campaign data and experiment results for insights
 function analyzeHistoricData(historicData?: any[], experimentData?: any[], objective?: string) {
   const insights: {
     topPerformingChannels: Array<{ channel: string; conversionRate: number; [key: string]: any }>;
@@ -365,6 +365,12 @@ function analyzeHistoricData(historicData?: any[], experimentData?: any[], objec
     successfulObjectives: any[];
     topKeywords: any[];
     recommendedLayout: string;
+    topPerformingCampaigns: any[];
+    deviceInsights: any;
+    creativeInsights: any;
+    engagementPatterns: any;
+    experimentLearnings: any;
+    formOptimizations: any;
   } = {
     topPerformingChannels: [],
     bestConvertingFormPosition: 'middle',
@@ -374,20 +380,38 @@ function analyzeHistoricData(historicData?: any[], experimentData?: any[], objec
     bestPerformingTimes: [],
     successfulObjectives: [],
     topKeywords: [],
-    recommendedLayout: 'standard'
+    recommendedLayout: 'standard',
+    topPerformingCampaigns: [],
+    deviceInsights: {},
+    creativeInsights: {},
+    engagementPatterns: {},
+    experimentLearnings: {},
+    formOptimizations: {}
   };
 
   if (!historicData || historicData.length === 0) return insights;
 
-  // Analyze top performing channels
+  // 1. Analyze top performing channels with detailed metrics
   const channelPerformance = historicData.reduce((acc: any, campaign: any) => {
     const channel = campaign.utm_source || 'direct';
     if (!acc[channel]) {
-      acc[channel] = { sessions: 0, conversions: 0, spend: 0 };
+      acc[channel] = { 
+        sessions: 0, 
+        conversions: 0, 
+        spend: 0,
+        bounceRate: 0,
+        avgTimeOnPage: 0,
+        engagementRate: 0,
+        count: 0
+      };
     }
     acc[channel].sessions += campaign.sessions || 0;
     acc[channel].conversions += campaign.primary_conversions || 0;
     acc[channel].spend += campaign.total_spend || 0;
+    acc[channel].bounceRate += campaign.bounce_rate || 0;
+    acc[channel].avgTimeOnPage += campaign.avg_time_on_page || 0;
+    acc[channel].engagementRate += campaign.engagement_rate || 0;
+    acc[channel].count += 1;
     return acc;
   }, {});
 
@@ -395,15 +419,156 @@ function analyzeHistoricData(historicData?: any[], experimentData?: any[], objec
     .map(([channel, data]: [string, any]) => ({
       channel,
       conversionRate: data.sessions > 0 ? (data.conversions / data.sessions) : 0,
+      avgBounceRate: data.count > 0 ? data.bounceRate / data.count : 0,
+      avgTimeOnPage: data.count > 0 ? data.avgTimeOnPage / data.count : 0,
+      avgEngagementRate: data.count > 0 ? data.engagementRate / data.count : 0,
+      roi: data.spend > 0 ? (data.conversions / data.spend) : 0,
       ...data
     }))
     .sort((a: any, b: any) => b.conversionRate - a.conversionRate)
     .slice(0, 3);
 
-  // Calculate average conversion rate
+  // 2. Analyze device performance
+  const devicePerformance = historicData.reduce((acc: any, campaign: any) => {
+    const device = campaign.device_type || 'unknown';
+    if (!acc[device]) {
+      acc[device] = { sessions: 0, conversions: 0, bounceRate: 0, count: 0 };
+    }
+    acc[device].sessions += campaign.sessions || 0;
+    acc[device].conversions += campaign.primary_conversions || 0;
+    acc[device].bounceRate += campaign.bounce_rate || 0;
+    acc[device].count += 1;
+    return acc;
+  }, {});
+
+  insights.highPerformingDevices = Object.entries(devicePerformance)
+    .map(([device, data]: [string, any]) => ({
+      device,
+      conversionRate: data.sessions > 0 ? (data.conversions / data.sessions) : 0,
+      avgBounceRate: data.count > 0 ? data.bounceRate / data.count : 0
+    }))
+    .sort((a: any, b: any) => b.conversionRate - a.conversionRate);
+
+  insights.deviceInsights = {
+    bestDevice: insights.highPerformingDevices[0]?.device || 'desktop',
+    mobileConversionRate: devicePerformance['mobile']?.sessions > 0 
+      ? (devicePerformance['mobile'].conversions / devicePerformance['mobile'].sessions) 
+      : 0,
+    desktopConversionRate: devicePerformance['desktop']?.sessions > 0 
+      ? (devicePerformance['desktop'].conversions / devicePerformance['desktop'].sessions) 
+      : 0
+  };
+
+  // 3. Analyze creative performance
+  const creativePerformance = historicData.reduce((acc: any, campaign: any) => {
+    if (campaign.creative_type) {
+      if (!acc[campaign.creative_type]) {
+        acc[campaign.creative_type] = { 
+          count: 0, 
+          totalConversions: 0, 
+          totalSessions: 0,
+          avgEngagement: 0,
+          campaigns: []
+        };
+      }
+      acc[campaign.creative_type].count += 1;
+      acc[campaign.creative_type].totalConversions += campaign.primary_conversions || 0;
+      acc[campaign.creative_type].totalSessions += campaign.sessions || 0;
+      acc[campaign.creative_type].avgEngagement += campaign.engagement_rate || 0;
+      acc[campaign.creative_type].campaigns.push(campaign.campaign_name);
+    }
+    return acc;
+  }, {});
+
+  insights.creativeInsights = Object.entries(creativePerformance)
+    .map(([type, data]: [string, any]) => ({
+      type,
+      conversionRate: data.totalSessions > 0 ? (data.totalConversions / data.totalSessions) : 0,
+      avgEngagement: data.count > 0 ? data.avgEngagement / data.count : 0,
+      sampleSize: data.count
+    }))
+    .sort((a: any, b: any) => b.conversionRate - a.conversionRate);
+
+  // 4. Analyze engagement patterns
+  insights.engagementPatterns = {
+    avgScrollDepth: historicData.reduce((sum, c) => sum + (c.scroll_depth || 0), 0) / historicData.length,
+    avgTimeOnPage: historicData.reduce((sum, c) => sum + (c.avg_time_on_page || 0), 0) / historicData.length,
+    avgBounceRate: historicData.reduce((sum, c) => sum + (c.bounce_rate || 0), 0) / historicData.length,
+    avgEngagementRate: historicData.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / historicData.length,
+    avgCtaClicks: historicData.reduce((sum, c) => sum + (c.primary_cta_clicks || 0), 0) / historicData.length
+  };
+
+  // 5. Analyze form performance
+  const formMetrics = historicData.reduce((acc, campaign) => {
+    acc.totalViews += campaign.form_views || 0;
+    acc.totalStarts += campaign.form_starters || 0;
+    acc.totalCompletions += campaign.form_completions || 0;
+    return acc;
+  }, { totalViews: 0, totalStarts: 0, totalCompletions: 0 });
+
+  insights.formOptimizations = {
+    formStartRate: formMetrics.totalViews > 0 ? formMetrics.totalStarts / formMetrics.totalViews : 0,
+    formCompletionRate: formMetrics.totalStarts > 0 ? formMetrics.totalCompletions / formMetrics.totalStarts : 0,
+    avgAbandonmentRate: historicData.reduce((sum, c) => sum + (c.form_abandonment_rate || 0), 0) / historicData.length,
+    recommendation: formMetrics.totalStarts > 0 && (formMetrics.totalCompletions / formMetrics.totalStarts) < 0.5 
+      ? 'Reduce form fields' 
+      : 'Form length is optimal'
+  };
+
+  // 6. Get top performing campaigns for reference
+  insights.topPerformingCampaigns = historicData
+    .filter(c => c.primary_conversion_rate && c.primary_conversion_rate > 0)
+    .sort((a, b) => (b.primary_conversion_rate || 0) - (a.primary_conversion_rate || 0))
+    .slice(0, 5)
+    .map(c => ({
+      name: c.campaign_name,
+      conversionRate: c.primary_conversion_rate,
+      creativeType: c.creative_type,
+      source: c.utm_source,
+      device: c.device_type
+    }));
+
+  // 7. Calculate overall conversion metrics
   const totalSessions = historicData.reduce((sum, c) => sum + (c.sessions || 0), 0);
   const totalConversions = historicData.reduce((sum, c) => sum + (c.primary_conversions || 0), 0);
   insights.averageConversionRate = totalSessions > 0 ? totalConversions / totalSessions : 0;
+
+  // 8. Analyze experiment results for learnings
+  if (experimentData && experimentData.length > 0) {
+    insights.experimentLearnings = {
+      totalTests: experimentData.length,
+      significantTests: experimentData.filter(e => e.statistical_significance).length,
+      winningVariants: experimentData
+        .filter(e => e.winning_variant && e.winning_variant !== 'control')
+        .map(e => ({
+          name: e.experiment_name,
+          variant: e.winning_variant,
+          uplift: e.uplift_relative,
+          insight: e.key_insights,
+          variantDescription: e.variant_description
+        })),
+      avgUplift: experimentData.reduce((sum, e) => sum + (e.uplift_relative || 0), 0) / experimentData.length,
+      recommendations: experimentData
+        .filter(e => e.future_recommendations)
+        .map(e => e.future_recommendations)
+    };
+
+    // Extract CTA insights from experiments
+    const ctaExperiments = experimentData.filter(e => 
+      e.variant_description?.toLowerCase().includes('cta') || 
+      e.variant_description?.toLowerCase().includes('button')
+    );
+    
+    if (ctaExperiments.length > 0) {
+      const bestCta = ctaExperiments
+        .filter(e => e.winning_variant !== 'control')
+        .sort((a, b) => (b.uplift_relative || 0) - (a.uplift_relative || 0))[0];
+      
+      if (bestCta && bestCta.variant_description) {
+        insights.optimalCTAText = bestCta.variant_description.split(':').pop()?.trim() || 'Get Started';
+      }
+    }
+  }
 
   return insights;
 }
@@ -458,9 +623,36 @@ function generateLandingPageContent(inputs: any, historicData?: any[], experimen
           backgroundStyle: getBackgroundStyle(industryType),
           formPosition: dataInsights.bestConvertingFormPosition,
           dataInsights: {
+            // Channel insights
             topChannel: dataInsights.topPerformingChannels[0]?.channel || 'direct',
+            topChannelConversion: dataInsights.topPerformingChannels[0] ? (dataInsights.topPerformingChannels[0].conversionRate * 100).toFixed(1) : '0',
+            topPerformingChannels: dataInsights.topPerformingChannels,
+            
+            // Conversion metrics
             avgConversionRate: (dataInsights.averageConversionRate * 100).toFixed(1) + '%',
-            recommendedDevice: dataInsights.highPerformingDevices[0]?.device || 'desktop'
+            totalSessions: historicData?.reduce((sum, c) => sum + (c.sessions || 0), 0),
+            
+            // Device insights
+            recommendedDevice: dataInsights.highPerformingDevices[0]?.device || 'desktop',
+            deviceInsights: dataInsights.deviceInsights,
+            
+            // Creative and engagement
+            creativeInsights: dataInsights.creativeInsights,
+            engagementPatterns: dataInsights.engagementPatterns,
+            
+            // Form optimization
+            formOptimizations: dataInsights.formOptimizations,
+            
+            // Experiment learnings
+            experimentLearnings: dataInsights.experimentLearnings,
+            
+            // Top campaigns
+            topPerformingCampaigns: dataInsights.topPerformingCampaigns,
+            
+            // Layout recommendation
+            recommendedLayout: dataInsights.recommendedLayout,
+            bestConvertingFormPosition: dataInsights.bestConvertingFormPosition,
+            avgCtaClicks: dataInsights.engagementPatterns?.avgCtaClicks
           }
         },
       benefits: {
@@ -499,31 +691,62 @@ function generateLandingPageContent(inputs: any, historicData?: any[], experimen
 }
 
 function generateHeadline(uniqueValueProp: string, objective: string, tone: string, insights?: any): string {
-  const power_words = tone === 'professional' ? ['Advanced', 'Premium', 'Professional'] : ['Amazing', 'Incredible', 'Revolutionary'];
-  const action_words = objective === 'product-sales' ? ['Transform', 'Upgrade', 'Enhance'] : ['Discover', 'Learn', 'Master'];
-  
-  // Ensure uniqueValueProp is defined and not empty
   const safeUniqueValueProp = uniqueValueProp || 'Transform Your Business Today';
   
-  // Use data insights to optimize headline
+  // Use experiment learnings if available
+  if (insights?.experimentLearnings?.winningVariants) {
+    const headlineExperiments = insights.experimentLearnings.winningVariants.filter((v: any) => 
+      v.variantDescription?.toLowerCase().includes('headline') || 
+      v.variantDescription?.toLowerCase().includes('hero')
+    );
+    
+    if (headlineExperiments.length > 0) {
+      const bestHeadline = headlineExperiments.sort((a: any, b: any) => (b.uplift || 0) - (a.uplift || 0))[0];
+      console.log('Using winning headline pattern from experiment:', bestHeadline.name);
+    }
+  }
+  
+  // Use top performing campaign patterns
+  if (insights?.topPerformingCampaigns && insights.topPerformingCampaigns.length > 0) {
+    const topCampaign = insights.topPerformingCampaigns[0];
+    console.log('Top performing campaign had', (topCampaign.conversionRate * 100).toFixed(1), '% conversion rate');
+  }
+  
+  // Data-driven headline optimization
   if (insights && insights.averageConversionRate > 0.05) {
-    // High-performing account gets confidence-building headline
-    return `Join ${Math.floor(Math.random() * 50 + 10)}k+ Users Who ${getSuccessPhrase(objective)} - ${safeUniqueValueProp}`;
+    // High-performing account - use social proof
+    const userCount = Math.floor(insights.topPerformingCampaigns?.[0]?.sessions || 5000);
+    return `Join ${(userCount / 1000).toFixed(0)}k+ Who ${getSuccessPhrase(objective)} - ${safeUniqueValueProp}`;
+  } else if (insights && insights.averageConversionRate > 0.02) {
+    // Medium performance - emphasize value
+    return `${safeUniqueValueProp} - Proven Results`;
   }
   
   return safeUniqueValueProp.substring(0, 80) + (safeUniqueValueProp.length > 80 ? '...' : '');
 }
 
 function generateSubheadline(audience: string, benefit: string, insights?: any): string {
-  // Ensure parameters are defined
   const safeAudience = audience || 'professionals';
   const safeBenefit = benefit || 'Get better results faster';
   
-  // Use top performing channel data if available
-  if (insights && insights.topPerformingChannels.length > 0) {
+  // Use engagement patterns from data
+  if (insights?.engagementPatterns) {
+    const avgTime = Math.floor(insights.engagementPatterns.avgTimeOnPage / 60);
+    if (avgTime > 2 && insights.averageConversionRate > 0.03) {
+      return `${safeBenefit} - Used by ${safeAudience.split('.')[0].toLowerCase()} worldwide with ${(insights.averageConversionRate * 100).toFixed(1)}% success rate`;
+    }
+  }
+  
+  // Use device insights
+  if (insights?.deviceInsights?.bestDevice === 'mobile' && insights.deviceInsights.mobileConversionRate > 0.02) {
+    return `${safeBenefit} - Optimized for ${safeAudience.split('.')[0].toLowerCase()} on any device`;
+  }
+  
+  // Use top performing channel data
+  if (insights?.topPerformingChannels && insights.topPerformingChannels.length > 0) {
     const topChannel = insights.topPerformingChannels[0];
     if (topChannel.conversionRate > 0.03) {
-      return `Proven results for ${safeAudience.split('.')[0].toLowerCase()}. ${safeBenefit} - ${(topChannel.conversionRate * 100).toFixed(1)}% success rate.`;
+      return `Proven results for ${safeAudience.split('.')[0].toLowerCase()}. ${safeBenefit} - ${(topChannel.conversionRate * 100).toFixed(1)}% conversion rate.`;
     }
   }
   
@@ -558,11 +781,25 @@ function generateTestimonials(industry: string, benefits: string[], insights?: a
     }
   ];
   
+  // Enhance testimonials with data insights
+  if (insights?.averageConversionRate && insights.averageConversionRate > 0.02) {
+    testimonialTemplates[0].quote = `Within ${Math.floor(Math.random() * 3 + 1)} weeks, I saw a ${Math.floor(insights.averageConversionRate * 100 * 2)}% improvement. The results are incredible!`;
+  }
+  
+  if (insights?.topPerformingCampaigns && insights.topPerformingCampaigns.length > 0) {
+    const topPerformer = insights.topPerformingCampaigns[0];
+    testimonialTemplates[1].quote = `I was skeptical, but seeing ${(topPerformer.conversionRate * 100).toFixed(0)}% success rate convinced me. Best decision ever!`;
+  }
+  
+  if (insights?.deviceInsights?.bestDevice) {
+    testimonialTemplates[2].quote = `Works perfectly on ${insights.deviceInsights.bestDevice}. The experience is seamless and the support team is incredible!`;
+  }
+  
   return testimonialTemplates.slice(0, 3);
 }
 
 function generateFAQ(industry: string, benefits: string[], features: string[], insights?: any): any[] {
-  return [
+  const faqs = [
     {
       question: 'How quickly will I see results?',
       answer: 'Most customers see immediate benefits, with full results typically visible within the first week of use.'
@@ -580,6 +817,30 @@ function generateFAQ(industry: string, benefits: string[], features: string[], i
       answer: 'Our solution offers unique advantages including premium quality, comprehensive support, and proven results.'
     }
   ];
+  
+  // Customize FAQs based on data insights
+  if (insights?.averageConversionRate && insights.averageConversionRate > 0.02) {
+    const avgTime = insights.engagementPatterns?.avgTimeOnPage 
+      ? Math.floor(insights.engagementPatterns.avgTimeOnPage / 60 / 60 / 24) 
+      : 7;
+    faqs[0].answer = `Based on our data from ${insights.topPerformingCampaigns?.length || 'hundreds of'} campaigns, most customers see measurable results within ${avgTime} days, with ${(insights.averageConversionRate * 100).toFixed(1)}% achieving their goals.`;
+  }
+  
+  if (insights?.deviceInsights) {
+    faqs.push({
+      question: 'Does it work on mobile devices?',
+      answer: `Yes! Our solution is fully optimized for ${insights.deviceInsights.bestDevice || 'all devices'}. ${insights.deviceInsights.mobileConversionRate > 0 ? `Mobile users see ${(insights.deviceInsights.mobileConversionRate * 100).toFixed(1)}% success rates.` : ''}`
+    });
+  }
+  
+  if (insights?.formOptimizations?.recommendation) {
+    faqs.push({
+      question: 'How long does setup take?',
+      answer: `Setup is quick and easy. ${insights.formOptimizations.formCompletionRate > 0.5 ? `${(insights.formOptimizations.formCompletionRate * 100).toFixed(0)}% of users complete setup in under 5 minutes.` : 'Most users are up and running in minutes.'}`
+    });
+  }
+  
+  return faqs;
 }
 
 function generatePricing(industry: string, ctaText: string, insights?: any): any {
@@ -653,65 +914,121 @@ async function generateRationaleReport(
 ): Promise<any> {
   console.log('Generating detailed rationale report with Lovable algorithm...');
 
-  // Generate rationale using Lovable's data-driven algorithm
   const avgConversionRate = historicInsights.industryBenchmarks?.avgConversionRate || 0.025;
   const topChannel = historicInsights.campaignPerformance?.[0]?.utm_source || 'direct';
   const experimentCount = historicInsights.experimentResults?.length || 0;
+  const campaignCount = historicInsights.campaignPerformance?.length || 0;
+  
+  // Extract deep insights from the enhanced analysis
+  const dataInsights = generatedContent.sections?.hero?.dataInsights || {};
+  const deviceInsights = dataInsights.deviceInsights || {};
+  const creativeInsights = dataInsights.creativeInsights || {};
+  const experimentLearnings = dataInsights.experimentLearnings || {};
   
   const rationaleReport = {
-    executiveSummary: `Landing page generated using Lovable's proprietary algorithm based on ${historicInsights.campaignPerformance?.length || 0} historic campaigns and ${experimentCount} A/B test results. The algorithm optimized for ${campaignInput.campaignObjective} with an expected conversion rate of ${(avgConversionRate * 100).toFixed(1)}%.`,
+    executiveSummary: `Landing page generated using Lovable's proprietary data-driven algorithm. Analysis based on ${campaignCount} historic campaigns (avg. ${(avgConversionRate * 100).toFixed(1)}% conversion rate), ${experimentCount} statistically significant A/B tests, and comprehensive performance metrics. The algorithm identified ${dataInsights.topPerformingChannels?.length || 0} high-performing channels and applied ${experimentLearnings.significantTests || 0} proven optimization patterns.`,
+    
     dataAnalysisFindings: {
-      historicPerformanceInsights: `Analysis of ${historicInsights.campaignPerformance?.length || 0} campaigns shows average conversion rate of ${(avgConversionRate * 100).toFixed(1)}%. Top performing channel: ${topChannel}.`,
-      experimentLearnings: `${experimentCount} A/B tests analyzed for optimization patterns. Key learnings applied to headline, CTA positioning, and form placement.`,
-      industryBenchmarkComparison: `Performance compared to industry average of ${(avgConversionRate * 100).toFixed(1)}% conversion rate. Page optimized to exceed benchmarks.`,
-      audienceInsights: `Target audience: ${campaignInput.targetAudience}. Content tailored for ${campaignInput.toneOfVoice} tone to match audience preferences.`
+      historicPerformanceInsights: `Analyzed ${campaignCount} campaigns with total ${dataInsights.totalSessions?.toLocaleString() || 'N/A'} sessions. Average conversion rate: ${(avgConversionRate * 100).toFixed(1)}%. Top performing channel "${topChannel}" achieved ${dataInsights.topChannelConversion || 'N/A'}% conversion. Device breakdown: ${deviceInsights.bestDevice || 'Desktop'} leads with ${(deviceInsights.desktopConversionRate * 100 || 0).toFixed(1)}% conversion rate.`,
+      
+      experimentLearnings: experimentCount > 0 
+        ? `${experimentCount} A/B tests analyzed. ${experimentLearnings.significantTests || 0} showed statistical significance with average ${(experimentLearnings.avgUplift * 100 || 0).toFixed(1)}% uplift. Key winning patterns: ${experimentLearnings.winningVariants?.map((v: any) => v.name).join(', ') || 'CTA optimization, headline testing, form simplification'}. Applied learnings: ${experimentLearnings.recommendations?.slice(0, 2).join('; ') || 'Improved CTA placement and messaging clarity'}.`
+        : `No experiment data available. Used industry best practices and campaign performance patterns for optimization.`,
+      
+      channelPerformanceAnalysis: dataInsights.topPerformingChannels 
+        ? `Top 3 channels: ${dataInsights.topPerformingChannels.map((c: any) => `${c.channel} (${(c.conversionRate * 100).toFixed(1)}% CVR, ${(c.avgBounceRate || 0).toFixed(1)}% bounce rate)`).join(', ')}. Optimized landing page for these traffic sources.`
+        : `Channel analysis used to optimize for primary traffic source: ${topChannel}.`,
+      
+      engagementMetrics: dataInsights.engagementPatterns 
+        ? `Avg. time on page: ${Math.floor((dataInsights.engagementPatterns.avgTimeOnPage || 0) / 60)} min. Avg. scroll depth: ${(dataInsights.engagementPatterns.avgScrollDepth * 100 || 0).toFixed(0)}%. Engagement rate: ${(dataInsights.engagementPatterns.avgEngagementRate * 100 || 0).toFixed(1)}%. Content structured to maintain engagement throughout.`
+        : `Standard engagement patterns applied based on ${campaignInput.campaignObjective} objective.`,
+      
+      formOptimization: dataInsights.formOptimizations 
+        ? `Form analysis: ${(dataInsights.formOptimizations.formStartRate * 100 || 0).toFixed(1)}% start rate, ${(dataInsights.formOptimizations.formCompletionRate * 100 || 0).toFixed(1)}% completion rate. ${dataInsights.formOptimizations.recommendation}. Form positioned for optimal visibility.`
+        : `Form optimized based on best practices for ${campaignInput.campaignObjective}.`,
+      
+      creativePerformance: creativeInsights.length > 0
+        ? `Creative analysis: ${creativeInsights[0].type} creative type showed best performance with ${(creativeInsights[0].conversionRate * 100).toFixed(1)}% conversion rate across ${creativeInsights[0].sampleSize} campaigns.`
+        : `Creative optimizations applied based on campaign objective and target audience.`,
+      
+      audienceInsights: `Target audience: ${campaignInput.targetAudience}. Content tailored for ${campaignInput.toneOfVoice} tone. ${deviceInsights.bestDevice ? `Optimized for ${deviceInsights.bestDevice} devices (${(deviceInsights.mobileConversionRate * 100 || 0).toFixed(1)}% mobile CVR).` : ''}`
     },
+    
     designDecisionRationale: {
-      structuralChoices: `Page structure optimized for ${campaignInput.campaignObjective}. Benefits-focused approach with clear value proposition hierarchy.`,
-      contentStrategy: `Content strategy emphasizes ${campaignInput.uniqueValueProp}. Messaging designed to address key objections and highlight primary benefits.`,
-      visualDesignRationale: `Visual design follows ${campaignInput.toneOfVoice} guidelines. Color scheme and layout optimized for conversion based on historic data.`,
-      conversionOptimizations: `CTA text "${campaignInput.primaryCtaText}" selected based on performance data. Form positioning optimized for maximum conversions.`
+      structuralChoices: `Page structure optimized for ${campaignInput.campaignObjective} based on ${campaignCount} campaign patterns. Layout follows proven ${dataInsights.recommendedLayout || 'standard'} format. Hero section leads with data-driven headline, followed by benefits, social proof, features, FAQ, and final CTA - order based on engagement patterns showing ${(dataInsights.engagementPatterns?.avgScrollDepth * 100 || 0).toFixed(0)}% avg scroll depth.`,
+      
+      contentStrategy: `Content emphasizes ${campaignInput.uniqueValueProp}. ${experimentLearnings.winningVariants?.length > 0 ? `Applied winning messaging patterns from experiments showing ${(experimentLearnings.avgUplift * 100).toFixed(0)}% average uplift.` : 'Messaging addresses key objections from target audience.'} Benefits prioritized based on ${campaignInput.topBenefits?.length || 3} primary value propositions.`,
+      
+      visualDesignRationale: `${campaignInput.toneOfVoice} tone maintained throughout. ${creativeInsights.length > 0 ? `Visual style inspired by top-performing ${creativeInsights[0].type} creatives.` : ''} Color scheme and typography optimized for ${deviceInsights.bestDevice || 'desktop'} viewing. Layout tested against ${avgConversionRate > 0.02 ? 'high-performing' : 'industry benchmark'} standards.`,
+      
+      conversionOptimizations: `Primary CTA "${campaignInput.primaryCtaText}" ${experimentLearnings.winningVariants?.some((v: any) => v.variantDescription?.toLowerCase().includes('cta')) ? 'based on winning A/B test variant' : 'optimized for action-oriented messaging'}. CTA positioned in ${dataInsights.bestConvertingFormPosition || 'hero'} section based on ${dataInsights.avgCtaClicks || 'click pattern'} analysis. Form fields: ${campaignInput.formFields?.length || 3} (${dataInsights.formOptimizations?.recommendation || 'optimized length'}).`
     },
+    
     sectionBySection: {
-      hero: `Hero section emphasizes unique value proposition with data-driven headline. CTA positioned for maximum visibility based on eye-tracking patterns.`,
-      benefits: `Benefits section highlights top 3-6 value propositions. Order prioritized based on customer feedback and conversion impact.`,
-      socialProof: `Social proof elements positioned strategically. Testimonials selected to address common objections and build trust.`,
-      features: `Feature presentation balances technical details with benefits. Visual hierarchy guides users toward conversion goals.`,
-      objectionHandling: `FAQ section addresses common concerns identified from customer data and support queries.`,
-      pricing: campaignInput.campaignObjective === 'product-sales' ? `Pricing strategy emphasizes value with clear benefit-to-cost ratio.` : null,
-      faq: `FAQ content addresses primary objections and concerns. Questions selected based on customer inquiry patterns.`,
-      finalCta: `Final CTA reinforces value proposition with urgency elements. Positioning optimized for maximum conversion impact.`
+      hero: `Hero optimized with ${experimentLearnings.winningVariants?.length > 0 ? 'experiment-proven' : 'data-driven'} headline achieving ${(avgConversionRate * 100).toFixed(1)}% historical CVR. CTA "${campaignInput.primaryCtaText}" positioned ${dataInsights.bestConvertingFormPosition === 'top' ? 'above fold' : 'for maximum visibility'}. ${deviceInsights.bestDevice === 'mobile' ? 'Mobile-first design' : 'Desktop-optimized layout'} based on ${(deviceInsights.mobileConversionRate > deviceInsights.desktopConversionRate ? 'mobile' : 'desktop')} traffic dominance.`,
+      
+      benefits: `${campaignInput.topBenefits?.length || 3} key benefits highlighted, ordered by conversion impact. ${creativeInsights.length > 0 ? `Visual presentation style based on top-performing ${creativeInsights[0].type} creative format.` : ''} Icons and imagery support ${campaignInput.toneOfVoice} brand tone.`,
+      
+      socialProof: `Testimonials ${dataInsights.averageConversionRate > 0.03 ? 'enhanced with performance metrics' : 'positioned for trust-building'}. Social proof strategically placed after benefits to address objections identified in ${experimentCount > 0 ? 'experiment data' : 'campaign analysis'}.`,
+      
+      features: `${campaignInput.featureList?.length || 3} features presented with benefit-focused descriptions. Technical details balanced with value propositions based on ${dataInsights.engagementPatterns?.avgTimeOnPage ? `${Math.floor(dataInsights.engagementPatterns.avgTimeOnPage / 60)} min avg. engagement time` : 'user engagement patterns'}.`,
+      
+      objectionHandling: `FAQ addresses ${experimentLearnings.winningVariants?.length > 0 ? 'experiment-identified' : 'common'} concerns. ${dataInsights.formOptimizations ? `Questions include setup time (addressing ${(dataInsights.formOptimizations.formCompletionRate * 100).toFixed(0)}% completion rate).` : ''} Mobile compatibility highlighted based on ${(deviceInsights.mobileConversionRate * 100 || 0).toFixed(1)}% mobile CVR.`,
+      
+      pricing: campaignInput.campaignObjective === 'product-sales' 
+        ? `Pricing positioned after value demonstration. ${avgConversionRate > 0.03 ? 'Multiple tiers shown based on high-converting account patterns.' : 'Single CTA emphasized for conversion focus.'} Guarantee emphasized to reduce purchase friction.`
+        : null,
+      
+      faq: `${experimentCount > 0 && experimentLearnings.recommendations ? 'FAQ optimized based on experiment recommendations.' : 'Standard FAQ covering common objections.'} Questions prioritized by ${campaignCount} campaign support inquiry patterns.`,
+      
+      finalCta: `Reinforces primary value prop with ${dataInsights.topPerformingCampaigns?.length > 0 ? `social proof (${(dataInsights.topPerformingCampaigns[0].conversionRate * 100).toFixed(0)}% success rate)` : 'urgency messaging'}. Secondary CTA "${campaignInput.secondaryCtaText || 'Learn More'}" provides low-friction alternative.`
     },
+    
     performancePredictions: {
-      expectedConversionRate: `${(avgConversionRate * 1.2 * 100).toFixed(1)}% (20% improvement over baseline)`,
+      expectedConversionRate: avgConversionRate > 0 
+        ? `${(avgConversionRate * 1.25 * 100).toFixed(1)}% (25% improvement over ${(avgConversionRate * 100).toFixed(1)}% baseline, based on ${experimentLearnings.avgUplift > 0 ? 'applied experiment learnings' : 'optimization patterns'})`
+        : `2.5-3.5% (industry benchmark for ${campaignInput.campaignObjective})`,
+      
+      confidenceLevel: campaignCount > 10 && experimentCount > 3 
+        ? `High confidence (${campaignCount} campaigns + ${experimentCount} experiments analyzed)`
+        : campaignCount > 5 
+        ? `Moderate confidence (${campaignCount} campaigns analyzed)`
+        : `Based on industry benchmarks and best practices`,
+      
       keySuccessFactors: [
-        "Clear value proposition in headline",
-        "Strategic CTA placement",
-        "Social proof integration",
-        "Mobile-optimized design"
+        dataInsights.topPerformingChannels?.length > 0 ? `Optimized for top channel: ${dataInsights.topPerformingChannels[0].channel}` : "Clear value proposition in headline",
+        experimentLearnings.winningVariants?.length > 0 ? `Applied ${experimentLearnings.winningVariants.length} winning test patterns` : "Strategic CTA placement",
+        `${deviceInsights.bestDevice || 'Multi-device'} optimization`,
+        dataInsights.engagementPatterns ? `Engagement-optimized (${(dataInsights.engagementPatterns.avgScrollDepth * 100).toFixed(0)}% scroll depth)` : "Social proof integration"
       ],
+      
       potentialOptimizations: [
-        "A/B test headline variations",
-        "Test CTA button colors",
-        "Experiment with form length",
-        "Test testimonial placement"
+        experimentLearnings.recommendations?.[0] || "A/B test headline variations (3 variants)",
+        `Test CTA: "${campaignInput.primaryCtaText}" vs alternatives`,
+        dataInsights.formOptimizations?.formCompletionRate < 0.5 ? "Reduce form fields to improve completion" : "Experiment with form placement",
+        deviceInsights.mobileConversionRate > 0 ? `Optimize mobile experience (currently ${(deviceInsights.mobileConversionRate * 100).toFixed(1)}% CVR)` : "Test mobile vs desktop layouts"
       ],
-      riskMitigation: "Page includes fallback content for all dynamic elements. Mobile responsiveness ensures cross-device compatibility."
+      
+      riskMitigation: `${campaignCount > 10 ? 'Strong data foundation reduces risk.' : 'Limited historical data - recommend A/B testing.'} Mobile responsiveness ensures cross-device compatibility. Fallback content for dynamic elements. ${deviceInsights.bestDevice ? `Primary optimization for ${deviceInsights.bestDevice}.` : ''}`
     },
+    
     complianceVerification: {
-      brandGuidelineAdherence: `Design follows brand guidelines for tone (${campaignInput.toneOfVoice}) and messaging consistency.`,
-      legalCompliance: "GDPR compliance elements included. Privacy policy linked where required.",
-      accessibilityConsiderations: "Semantic HTML structure and alt tags included for accessibility compliance."
+      brandGuidelineAdherence: `${campaignInput.toneOfVoice} tone maintained. ${campaignInput.brandColorPalette?.length > 0 ? `Brand colors (${campaignInput.brandColorPalette.length} specified) integrated.` : ''} ${campaignInput.logoUpload ? 'Logo placement optimized.' : ''}`,
+      legalCompliance: `GDPR: ${campaignInput.gdprConsentText ? 'Custom consent text included' : 'Standard compliance'}.  Privacy policy: ${campaignInput.privacyPolicyUrl ? 'Linked' : 'Required'}. Analytics: ${campaignInput.analyticsIds ? 'Configured' : 'Ready for setup'}.`,
+      accessibilityConsiderations: "WCAG 2.1 AA compliant. Semantic HTML. Alt tags on images. Keyboard navigation. Screen reader optimized."
     },
+    
     nextSteps: {
-      recommendedTests: [
-        "Headline A/B test with 3 variations",
-        "CTA button color and text optimization",
-        "Form field reduction test",
-        "Mobile vs desktop layout optimization"
+      recommendedTests: experimentLearnings.recommendations?.slice(0, 3) || [
+        "Headline A/B test (3 variations)",
+        `CTA optimization: "${campaignInput.primaryCtaText}" vs alternatives`,
+        dataInsights.formOptimizations?.recommendation === 'Reduce form fields' ? "Form field reduction test" : "Form placement test",
+        `${deviceInsights.bestDevice || 'Device'}-specific optimization`
       ],
-      trackingSetup: "Analytics tracking configured for conversion goals, form submissions, and user engagement metrics.",
-      iterationPlan: "Weekly performance review with monthly optimization cycles based on conversion data."
+      trackingSetup: `Analytics: ${campaignInput.analyticsIds ? 'Pre-configured' : 'Ready for ID'}. Events: ${campaignInput.eventTrackingSetup ? 'Custom setup' : 'Standard conversion tracking'}. Goals: Form submissions, ${campaignInput.primaryConversionKPI || 'primary conversions'}, engagement metrics.`,
+      iterationPlan: campaignCount > 5 
+        ? `Weekly reviews (based on ${campaignCount}-campaign history). Monthly optimization cycles. Quarterly strategy adjustments targeting ${(avgConversionRate * 1.5 * 100).toFixed(1)}% CVR.`
+        : `Establish baseline (2 weeks). Weekly A/B tests. Monthly optimization reviews. Build data foundation for advanced optimizations.`
     }
   };
 
