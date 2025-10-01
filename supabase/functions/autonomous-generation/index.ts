@@ -727,15 +727,199 @@ Landing page designed to achieve ${campaignInput.campaignObjective} for ${campai
   };
 }
 
-// Generate landing page from PRD using Shadcn UI
+// Generate landing page from PRD using v0 API
 async function generateLandingPageFromPRD(
   campaignInput: CampaignInput,
   historicInsights: HistoricInsights,
   prdDocument: any
 ): Promise<any> {
-  console.log('Generating page based on PRD with Shadcn UI components...');
+  console.log('Generating page based on PRD with v0 API and Shadcn components...');
 
-  // Convert campaign input to format expected with safe defaults
+  try {
+    const V0_API_KEY = Deno.env.get('V0_API_KEY');
+    if (!V0_API_KEY) {
+      console.log('V0_API_KEY not found, falling back to standard generation');
+      return generateFallbackLandingPage(campaignInput, historicInsights, prdDocument);
+    }
+
+    // Build comprehensive prompt for v0 API based on PRD and campaign data
+    const v0Prompt = buildV0Prompt(campaignInput, historicInsights, prdDocument);
+    
+    console.log('Calling v0 API to generate React components...');
+    
+    // Call v0 API to generate the landing page
+    const response = await fetch('https://api.v0.dev/v1/chats', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${V0_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: v0Prompt
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('v0 API error:', response.status, errorText);
+      return generateFallbackLandingPage(campaignInput, historicInsights, prdDocument);
+    }
+
+    const v0Data = await response.json();
+    console.log('v0 API response received, extracting components...');
+
+    // Extract generated React components from v0 response
+    const v0Components = extractV0Components(v0Data);
+    
+    // Also generate structured data for backward compatibility
+    const inputs = {
+      campaignObjective: campaignInput.campaignObjective || 'lead-generation',
+      targetAudience: campaignInput.targetAudience || 'business professionals',
+      uniqueValueProp: campaignInput.uniqueValueProp || 'Transform Your Business with Our Solution',
+      primaryBenefits: campaignInput.topBenefits?.join('\n') || 'Increase efficiency\nReduce costs\nImprove results',
+      features: campaignInput.featureList?.join('\n') || 'Easy to use\nFast implementation\nExpert support',
+      ctaText: campaignInput.primaryCtaText || 'Get Started Today',
+      toneOfVoice: campaignInput.toneOfVoice || 'professional',
+      industryType: 'Technology',
+      pageTitle: campaignInput.productServiceName || 'Our Solution',
+      seoKeywords: campaignInput.targetSeoKeywords?.join(', ') || '',
+      template: campaignInput.templateId || 'standard',
+      emotionalTriggers: campaignInput.emotionalTriggers?.join(', ') || '',
+      testimonials: campaignInput.testimonials || [],
+      trustIndicators: campaignInput.trustIndicators?.join(', ') || ''
+    };
+
+    const structuredContent = generateLandingPageContent(
+      inputs, 
+      historicInsights.campaignPerformance, 
+      historicInsights.experimentResults
+    );
+
+    // Combine v0 components with structured data
+    const result = {
+      ...structuredContent,
+      prd: prdDocument,
+      v0Components: v0Components,
+      v0ChatId: v0Data.id,
+      v0DemoUrl: v0Data.demo,
+      aiDecisionSummary: `Landing page generated using v0 AI with PRD based on ${prdDocument.dataSourcesUsed.campaignCount} campaigns and ${prdDocument.dataSourcesUsed.experimentCount} experiments. Generated production-ready React components with Shadcn UI.`,
+      componentLibrary: 'shadcn-ui',
+      technicalStack: {
+        ui: 'shadcn-ui',
+        framework: 'react',
+        styling: 'tailwindcss',
+        generator: 'v0-api',
+        components: ['Button', 'Card', 'Badge', 'Accordion', 'Form', 'Input', 'Textarea']
+      }
+    };
+
+    return result;
+  } catch (error) {
+    console.error('Error generating with v0 API:', error);
+    return generateFallbackLandingPage(campaignInput, historicInsights, prdDocument);
+  }
+}
+
+// Build comprehensive prompt for v0 API
+function buildV0Prompt(
+  campaignInput: CampaignInput,
+  historicInsights: HistoricInsights,
+  prdDocument: any
+): string {
+  const dataInsights = analyzeHistoricData(
+    historicInsights.campaignPerformance,
+    historicInsights.experimentResults,
+    campaignInput.campaignObjective
+  );
+
+  return `Create a modern, conversion-optimized landing page with these specifications:
+
+## Campaign Details
+- Product/Service: ${campaignInput.productServiceName}
+- Objective: ${campaignInput.campaignObjective}
+- Target Audience: ${campaignInput.targetAudience}
+- Value Proposition: ${campaignInput.uniqueValueProp}
+- Primary CTA: ${campaignInput.primaryCtaText}
+- Tone: ${campaignInput.toneOfVoice}
+
+## Key Benefits (highlight these prominently)
+${campaignInput.topBenefits?.map((b, i) => `${i + 1}. ${b}`).join('\n')}
+
+## Features to Include
+${campaignInput.featureList?.map((f, i) => `${i + 1}. ${f}`).join('\n')}
+
+## Design Requirements
+- Use Shadcn UI components exclusively
+- Modern, clean, professional design
+- Responsive for all devices (optimize for ${dataInsights.highPerformingDevices[0]?.device || 'desktop'})
+- Color palette: ${campaignInput.brandColorPalette?.join(', ') || 'Modern blue gradient'}
+- Font style: ${campaignInput.fontStyleGuide || 'Clean, professional sans-serif'}
+
+## Page Structure
+1. Hero Section with attention-grabbing headline, subheadline, and prominent CTA
+2. Benefits Section showcasing the top 3-5 benefits with icons
+3. Features Section highlighting key features with descriptions
+4. Social Proof Section with testimonials (${campaignInput.testimonials?.length || 3} testimonials)
+5. Trust Indicators: ${campaignInput.trustIndicators?.join(', ') || 'Security badges, certifications'}
+6. FAQ Section addressing common questions
+${campaignInput.campaignObjective === 'product-sales' ? '7. Pricing Section with clear pricing tiers' : ''}
+8. Final CTA Section with strong call-to-action
+
+## Data-Driven Optimizations
+- Best performing channel: ${dataInsights.topPerformingChannels[0]?.channel || 'direct'}
+- Optimal form position: ${dataInsights.bestConvertingFormPosition}
+- Average conversion rate to beat: ${(dataInsights.averageConversionRate * 100).toFixed(1)}%
+
+## Technical Requirements
+- Use TypeScript and React
+- Implement proper form handling for lead capture
+- Include proper semantic HTML for SEO
+- Add proper meta tags for: ${campaignInput.targetSeoKeywords?.join(', ')}
+- Mobile-first responsive design
+- Accessibility compliant (WCAG 2.1)
+
+## Emotional Triggers
+${campaignInput.emotionalTriggers?.join(', ') || 'Trust, urgency, social proof'}
+
+Generate a complete, production-ready landing page that maximizes conversions based on these specifications.`;
+}
+
+// Extract React components from v0 response
+function extractV0Components(v0Data: any): any {
+  try {
+    // v0 returns files with React component code
+    if (v0Data.files && Array.isArray(v0Data.files)) {
+      return {
+        files: v0Data.files,
+        mainComponent: v0Data.files.find((f: any) => 
+          f.name?.includes('page') || f.name?.includes('index') || f.name?.includes('app')
+        ),
+        components: v0Data.files.filter((f: any) => 
+          f.name?.includes('component') || f.type === 'component'
+        )
+      };
+    }
+    
+    return {
+      files: [],
+      mainComponent: null,
+      components: [],
+      rawResponse: v0Data
+    };
+  } catch (error) {
+    console.error('Error extracting v0 components:', error);
+    return { error: error.message };
+  }
+}
+
+// Fallback to standard generation if v0 API fails
+function generateFallbackLandingPage(
+  campaignInput: CampaignInput,
+  historicInsights: HistoricInsights,
+  prdDocument: any
+): any {
+  console.log('Using fallback landing page generation...');
+  
   const inputs = {
     campaignObjective: campaignInput.campaignObjective || 'lead-generation',
     targetAudience: campaignInput.targetAudience || 'business professionals',
@@ -753,18 +937,16 @@ async function generateLandingPageFromPRD(
     trustIndicators: campaignInput.trustIndicators?.join(', ') || ''
   };
 
-  // Generate content based on PRD and data insights
   const generatedContent = generateLandingPageContent(
     inputs, 
     historicInsights.campaignPerformance, 
     historicInsights.experimentResults
   );
 
-  // Add PRD and AI decision summary
-  const result = {
+  return {
     ...generatedContent,
     prd: prdDocument,
-    aiDecisionSummary: `Landing page generated from AI-powered PRD based on ${prdDocument.dataSourcesUsed.campaignCount} campaigns and ${prdDocument.dataSourcesUsed.experimentCount} experiments. Using Shadcn UI components for production-ready implementation.`,
+    aiDecisionSummary: `Landing page generated from PRD based on ${prdDocument.dataSourcesUsed.campaignCount} campaigns and ${prdDocument.dataSourcesUsed.experimentCount} experiments. Using Shadcn UI components.`,
     componentLibrary: 'shadcn-ui',
     technicalStack: {
       ui: 'shadcn-ui',
@@ -773,8 +955,6 @@ async function generateLandingPageFromPRD(
       components: ['Button', 'Card', 'Badge', 'Accordion', 'Form', 'Input', 'Textarea']
     }
   };
-
-  return result;
 }
 
 // Lovable's landing page generation algorithm
