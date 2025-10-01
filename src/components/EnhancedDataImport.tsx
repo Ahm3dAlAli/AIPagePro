@@ -38,36 +38,8 @@ const EnhancedDataImport = React.forwardRef<DataImportRef, EnhancedDataImportPro
   const [uploadedFiles, setUploadedFiles] = useState<{campaigns?: File, experiments?: File}>({});
   const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    loadExistingData();
-    
-    // Set up real-time subscription for data updates
-    const channel = supabase
-      .channel('data-import-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'historic_campaigns'
-        },
-        () => loadExistingData()
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'experiment_results'
-        },
-        () => loadExistingData()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+  // Data is now loaded only when explicitly uploaded/processed
+  // No automatic loading from database
 
   const loadExistingData = async () => {
     const data = await loadImportedData();
