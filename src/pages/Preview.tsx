@@ -119,7 +119,7 @@ const Preview = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Preview Header */}
+      {/* Preview Header - Clean View */}
       <div className="sticky top-0 z-50 bg-white border-b shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Button 
@@ -130,26 +130,6 @@ const Preview = () => {
             <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
           </Button>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">Preview Mode</span>
-            <Button 
-              onClick={handleDeployToVercel} 
-              disabled={isDeploying}
-              className="flex items-center gap-2"
-            >
-              {isDeploying ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  Deploying...
-                </>
-              ) : (
-                <>
-                  <Rocket className="h-4 w-4" />
-                  Deploy to Vercel
-                </>
-              )}
-            </Button>
-          </div>
         </div>
       </div>
 
