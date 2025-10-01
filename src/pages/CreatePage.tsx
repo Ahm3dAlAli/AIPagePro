@@ -91,6 +91,8 @@ const CreatePage = () => {
   const [generatedPage, setGeneratedPage] = useState<any>(null);
   const [showPagePreview, setShowPagePreview] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [generationStep, setGenerationStep] = useState<'idle' | 'prd' | 'components' | 'complete'>('idle');
+  const [prdDocument, setPrdDocument] = useState<any>(null);
 
   const dataImportRef = React.useRef<DataImportRef>(null);
 
@@ -107,6 +109,7 @@ const CreatePage = () => {
     }
 
     setIsGenerating(true);
+    setGenerationStep('idle');
 
     try {
       // Auto-process uploaded files if they exist
@@ -124,69 +127,103 @@ const CreatePage = () => {
             description: `${processResult.processedRecords} records processed and ready for AI optimization.`,
           });
           
-          // Reload data after processing
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Brief wait for data to settle
+          await new Promise(resolve => setTimeout(resolve, 1000));
         } else {
           console.warn('File processing warning:', processResult.error);
-          // Continue with generation even if file processing fails
         }
       }
 
-      // Convert form data to format expected by autonomous generation
-      const requestBody = {
+      // STEP 1: Generate PRD and Engineering Prompt
+      setGenerationStep('prd');
+      toast({
+        title: "Step 1/2: Generating PRD",
+        description: "Creating product requirements document based on your data..."
+      });
+
+      const campaignConfig = {
         campaignObjective: formData.campaignObjective,
         primaryConversionKPI: formData.campaignObjective,
         targetAudience: formData.targetAudience,
-        buyerPersonaKeywords: [],
         productServiceName: formData.pageTitle || 'Our Product',
         primaryOffer: formData.uniqueValueProp,
         uniqueValueProp: formData.uniqueValueProp,
         topBenefits: formData.primaryBenefits.split('\n').filter(b => b.trim()),
         featureList: formData.features.split('\n').filter(f => f.trim()),
-        emotionalTriggers: [],
-        objectionsToOvercome: [],
+        emotionalTriggers: ['innovation', 'trust', 'value'],
         testimonials: [],
-        trustIndicators: [],
+        trustIndicators: ['Secure', 'Trusted', 'Verified'],
         primaryCtaText: formData.ctaText,
-        secondaryCtaText: '',
-        formFields: ['name', 'email'],
-        formApiConfig: {},
-        heroImages: [],
-        secondaryImages: [],
         toneOfVoice: formData.toneOfVoice,
-        brandColorPalette: [],
-        fontStyleGuide: '',
-        pageLayoutPreference: 'standard',
+        brandColorPalette: ['#3b82f6', '#1e40af', '#60a5fa'],
+        fontStyleGuide: 'Modern sans-serif',
         targetSeoKeywords: formData.seoKeywords.split(',').map(k => k.trim()).filter(k => k),
-        eventTrackingSetup: {},
-        analyticsIds: {},
-        privacyPolicyUrl: '',
-        gdprConsentText: '',
-        // Include imported data for AI optimization
-        historicData: {
-          campaigns: importedData.campaigns,
-          experiments: importedData.experiments
-        }
       };
 
-      const { data, error } = await supabase.functions.invoke('autonomous-generation', {
-        body: requestBody
+      const { data: prdData, error: prdError } = await supabase.functions.invoke('generate-prd-prompt', {
+        body: { campaignConfig }
       });
 
-      if (error) {
-        throw error;
+      if (prdError) throw prdError;
+
+      if (!prdData.success) {
+        throw new Error('Failed to generate PRD');
       }
 
-      if (data.success) {
-        setGeneratedPage(data);
-        setShowPagePreview(true);
-        toast({
-          title: "Page Generated Successfully!",
-          description: "Your AI-optimized landing page with rationale report is ready!"
-        });
-      } else {
-        throw new Error(data.error || 'Failed to generate page');
+      setPrdDocument(prdData);
+      
+      toast({
+        title: "PRD Generated Successfully!",
+        description: `Based on ${prdData.historicDataSummary.campaignCount} campaigns and ${prdData.historicDataSummary.experimentCount} experiments.`,
+      });
+
+      // STEP 2: Generate v0 Components
+      setGenerationStep('components');
+      toast({
+        title: "Step 2/2: Generating Components",
+        description: "Using v0 API to create production-ready React components with Shadcn UI..."
+      });
+
+      const { data: v0Data, error: v0Error } = await supabase.functions.invoke('generate-v0-app', {
+        body: {
+          engineeringPrompt: prdData.engineeringPrompt,
+          prdDocument: prdData.prdDocument,
+          campaignConfig
+        }
+      });
+
+      if (v0Error) throw v0Error;
+
+      if (!v0Data.success) {
+        throw new Error('Failed to generate v0 components');
       }
+
+      // Combine all data for preview
+      const completePageData = {
+        success: true,
+        page: {
+          id: crypto.randomUUID(),
+          title: formData.pageTitle || 'Generated Landing Page',
+          slug: `v0-page-${Date.now()}`,
+          content: {
+            v0Data: v0Data.v0Data,
+            prdDocument: prdData.prdDocument,
+            engineeringPrompt: prdData.engineeringPrompt,
+            campaignConfig
+          }
+        },
+        rationale: prdData.prdDocument,
+        v0Components: v0Data.v0Data
+      };
+
+      setGeneratedPage(completePageData);
+      setGenerationStep('complete');
+      setShowPagePreview(true);
+      
+      toast({
+        title: "🎉 Page Generated Successfully!",
+        description: "Your production-ready landing page is ready with v0 components!",
+      });
+
     } catch (error: any) {
       console.error('Generation error:', error);
       toast({
@@ -194,6 +231,7 @@ const CreatePage = () => {
         description: error.message || "Failed to generate landing page. Please try again.",
         variant: "destructive"
       });
+      setGenerationStep('idle');
     } finally {
       setIsGenerating(false);
     }
@@ -460,12 +498,14 @@ const CreatePage = () => {
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Generating AI-Optimized Page...
+                {generationStep === 'prd' && 'Step 1/2: Generating PRD...'}
+                {generationStep === 'components' && 'Step 2/2: Creating Components with v0...'}
+                {generationStep === 'idle' && 'Generating AI-Optimized Page...'}
               </>
             ) : (
               <>
                 <Brain className="mr-2 h-5 w-5" />
-                Generate Landing Page
+                Generate Landing Page with v0
               </>
             )}
           </Button>
@@ -477,72 +517,101 @@ const CreatePage = () => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              🎉 Your AI-Generated Landing Page is Ready!
+              🎉 Your v0-Generated Landing Page is Ready!
             </DialogTitle>
             <DialogDescription>
-              Review your optimized landing page and deploy it when you're satisfied
+              Review your production-ready components generated by v0 AI
             </DialogDescription>
           </DialogHeader>
           
           {generatedPage && (
             <div className="space-y-6">
+              {/* v0 Demo Link */}
+              {generatedPage.v0Components?.demoUrl && (
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 rounded-lg text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-lg mb-1">Live v0 Demo</h4>
+                      <p className="text-sm text-blue-100">View and interact with your generated components</p>
+                    </div>
+                    <Button 
+                      asChild
+                      variant="secondary"
+                      className="bg-white text-blue-600 hover:bg-blue-50"
+                    >
+                      <a href={generatedPage.v0Components.demoUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Open v0 Demo
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Quick Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-blue-50 p-3 rounded-lg text-center">
                   <div className="text-2xl font-bold text-blue-600">
-                    {generatedPage.content?.sections ? Object.keys(generatedPage.content.sections).length : 0}
+                    {generatedPage.v0Components?.files?.length || 0}
                   </div>
-                  <div className="text-sm text-blue-600">Sections</div>
+                  <div className="text-sm text-blue-600">v0 Components</div>
                 </div>
                 <div className="bg-green-50 p-3 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-green-600">A+</div>
-                  <div className="text-sm text-green-600">SEO Score</div>
+                  <div className="text-2xl font-bold text-green-600">Shadcn</div>
+                  <div className="text-sm text-green-600">UI Library</div>
                 </div>
                 <div className="bg-purple-50 p-3 rounded-lg text-center">
                   <div className="text-2xl font-bold text-purple-600">
-                    {importedData.campaigns.length + importedData.experiments.length}
+                    {prdDocument?.historicDataSummary?.campaignCount || 0}
                   </div>
-                  <div className="text-sm text-purple-600">Data Points</div>
+                  <div className="text-sm text-purple-600">Campaigns</div>
                 </div>
                 <div className="bg-orange-50 p-3 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-orange-600">AI</div>
-                  <div className="text-sm text-orange-600">Optimized</div>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {prdDocument?.historicDataSummary?.experimentCount || 0}
+                  </div>
+                  <div className="text-sm text-orange-600">Experiments</div>
                 </div>
               </div>
 
-              {/* Page Content Preview */}
-              <div className="border rounded-lg p-6 bg-gradient-to-br from-blue-50 to-purple-50">
-                <h3 className="text-xl font-bold mb-4">Generated Content Preview</h3>
-                
-                {generatedPage.content?.sections?.hero && (
-                  <div className="mb-6 p-4 bg-white rounded-lg border">
-                    <h4 className="font-semibold text-green-600 mb-2">🎯 Hero Section</h4>
-                    <h5 className="text-lg font-bold">{generatedPage.content.sections.hero.headline}</h5>
-                    <p className="text-gray-600">{generatedPage.content.sections.hero.subheadline}</p>
-                    <div className="mt-2">
-                      <Badge variant="outline">{generatedPage.content.sections.hero.ctaText}</Badge>
-                    </div>
+              {/* PRD Preview */}
+              {prdDocument?.prdDocument && (
+                <div className="border rounded-lg p-6 bg-gradient-to-br from-blue-50 to-purple-50">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FileText className="h-5 w-5 text-purple-600" />
+                    <h3 className="text-xl font-bold">Product Requirements Document</h3>
                   </div>
-                )}
-
-                {generatedPage.content?.sections?.benefits && (
-                  <div className="mb-6 p-4 bg-white rounded-lg border">
-                    <h4 className="font-semibold text-blue-600 mb-2">✨ Benefits Section</h4>
-                    <p className="text-sm text-gray-600">
-                      {generatedPage.content.sections.benefits.benefits?.length || 0} key benefits highlighted
-                    </p>
-                  </div>
-                )}
-
-                {generatedPage.rationale && (
+                  
                   <div className="p-4 bg-white rounded-lg border">
-                    <h4 className="font-semibold text-purple-600 mb-2">🧠 AI Rationale</h4>
-                    <p className="text-sm text-gray-600">
-                      Complete rationale report generated with data-driven insights
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-6">
+                      {prdDocument.prdDocument.content?.substring(0, 500)}...
                     </p>
+                    <Button variant="link" className="mt-2 p-0">
+                      View Full PRD
+                    </Button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* Component Files */}
+              {generatedPage.v0Components?.components && (
+                <div className="border rounded-lg p-6 bg-white">
+                  <h3 className="text-xl font-bold mb-4">Generated Components</h3>
+                  <div className="space-y-2">
+                    {generatedPage.v0Components.components.allFiles?.slice(0, 5).map((file: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{file.type || 'tsx'}</Badge>
+                          <span className="text-sm font-mono">{file.name}</span>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <Separator />
 

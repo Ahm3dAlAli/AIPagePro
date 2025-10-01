@@ -58,5 +58,11 @@ verify_jwt = true
 [functions.generate-prd]  
 verify_jwt = true
 
+[functions.generate-prd-prompt]
+verify_jwt = true
+
+[functions.generate-v0-app]
+verify_jwt = true
+
 [functions.render-page]
 verify_jwt = false
