@@ -60,9 +60,9 @@ serve(async (req) => {
     console.log('Calling v0 API with engineering prompt...');
     console.log('Engineering prompt length:', engineeringPrompt?.length || 0);
     
-    // Create a chat with v0 API with timeout
+    // Create a chat with v0 API with extended timeout for complex generation
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
     
     try {
       const v0Response = await fetch('https://api.v0.dev/v1/chats', {
@@ -125,7 +125,7 @@ serve(async (req) => {
     } catch (fetchError: any) {
       console.error('v0 API fetch error:', fetchError);
       if (fetchError.name === 'AbortError') {
-        throw new Error('v0 API request timed out after 55 seconds');
+        throw new Error('v0 API request timed out after 3 minutes. The generation may be too complex or the v0 API is experiencing delays.');
       }
       throw new Error(`v0 API request failed: ${fetchError.message}`);
     }
