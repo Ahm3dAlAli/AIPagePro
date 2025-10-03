@@ -21,7 +21,7 @@ interface VercelDeploymentConfig {
   };
 }
 
-function generateNextJSFiles(pageData: any, pageHtml: string): VercelDeploymentConfig {
+function generateNextJSFiles(pageData: any, pageHtml: string, prdDocument?: any): VercelDeploymentConfig {
   const pageName = pageData.slug || 'landing-page';
   
   // Generate package.json
@@ -165,7 +165,40 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*`)
-      }
+      },
+      ...(prdDocument ? {
+        "docs/PRD.md": {
+          file: btoa(typeof prdDocument === 'string' ? prdDocument : prdDocument?.content || JSON.stringify(prdDocument, null, 2))
+        },
+        "README.md": {
+          file: btoa(`# ${pageData.title || 'Landing Page'}
+
+This landing page was generated with AI-driven optimization.
+
+## Documentation
+
+See [docs/PRD.md](./docs/PRD.md) for the complete Product Requirements Document including:
+- Big Picture & Strategy
+- Data Models
+- API Design
+- UX/UI Specifications
+- Technical Implementation
+
+## Deployment
+
+This project is deployed on Vercel.
+
+## Getting Started
+
+\`\`\`bash
+npm install
+npm run dev
+\`\`\`
+
+Open [http://localhost:3000](http://localhost:3000) to view the page.
+`)
+        }
+      } : {})
     },
     projectSettings: {
       framework: "nextjs",
@@ -316,8 +349,12 @@ serve(async (req) => {
 
     const pageHtml = await renderResponse.text();
 
-    // Generate deployment files
-    const deploymentConfig = generateNextJSFiles(pageData, pageHtml);
+    // Extract PRD document from page content if available
+    const prdDocument = pageData.content?.prdDocument || pageData.content?.chatId ? 
+      pageData.content : null;
+
+    // Generate deployment files with PRD documentation
+    const deploymentConfig = generateNextJSFiles(pageData, pageHtml, prdDocument);
 
     // Deploy to Vercel
     const deploymentResult = await deployToVercel(deploymentConfig, vercelToken);
