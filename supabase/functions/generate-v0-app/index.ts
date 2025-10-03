@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { createClient as createSupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { createClient } from 'https://esm.sh/v0-sdk@0.14.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,7 +28,10 @@ serve(async (req) => {
       throw new Error('V0_API_KEY is not configured');
     }
 
-    const supabaseClient = createClient(
+    // Initialize v0 SDK client
+    const v0 = createClient({ apiKey: V0_API_KEY });
+
+    const supabaseClient = createSupabaseClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
@@ -37,7 +41,7 @@ serve(async (req) => {
     
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '');
-      const userClient = createClient(
+      const userClient = createSupabaseClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_ANON_KEY') ?? '',
         { 
@@ -57,74 +61,70 @@ serve(async (req) => {
 
     const { engineeringPrompt, prdDocument, campaignConfig, pageId } = await req.json() as GenerateRequest;
     
-    console.log('Calling v0 API...');
-    console.log('Engineering prompt length:', engineeringPrompt?.length || 0);
+    console.log('Initializing v0 chat with context files...');
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 50000); // 50 second timeout
+    // Step 1: Initialize chat with PRD and campaign config as context files (fast, no AI processing)
+    const prdContent = typeof prdDocument === 'string' ? prdDocument : JSON.stringify(prdDocument, null, 2);
+    const campaignContent = JSON.stringify(campaignConfig, null, 2);
     
-    try {
-      const v0Response = await fetch('https://api.v0.dev/v1/chats', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${V0_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: engineeringPrompt
-        }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!v0Response.ok) {
-        const errorText = await v0Response.text();
-        console.error('v0 API error:', v0Response.status, errorText);
-        throw new Error(`v0 API failed: ${v0Response.status}`);
-      }
-
-      const v0Data = await v0Response.json();
-      console.log('v0 API response received');
-      console.log('Chat ID:', v0Data.id);
-      console.log('Demo URL:', v0Data.demo);
-      console.log('Files count:', v0Data.files?.length || 0);
-
-      // Extract and save components
-      const components = extractComponents(v0Data);
-      
-      if (pageId) {
-        console.log('Saving v0 components...');
-        await saveV0Components(supabaseClient, userId, pageId, {
-          chatId: v0Data.id,
-          demoUrl: v0Data.demo,
-          components,
-          files: v0Data.files,
-          prdDocument,
-          campaignConfig
-        });
-      }
-
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          chatId: v0Data.id,
-          demoUrl: v0Data.demo,
-          filesCount: v0Data.files?.length || 0
-        }),
+    const chat = await v0.chats.init({
+      type: 'files',
+      files: [
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      
-      if (fetchError.name === 'AbortError') {
-        console.error('v0 API request timed out');
-        throw new Error('v0 API request timed out after 50 seconds');
-      }
-      throw fetchError;
+          name: 'PRD.md',
+          content: prdContent,
+          locked: true, // Don't let AI modify the PRD
+        },
+        {
+          name: 'campaign-config.json',
+          content: campaignContent,
+          locked: true, // Don't let AI modify campaign config
+        },
+      ],
+      name: `Landing Page - ${new Date().toISOString()}`,
+    });
+
+    console.log('Chat initialized:', chat.id);
+    console.log('Chat demo URL:', chat.demo);
+
+    // Step 2: Send the engineering prompt as a message (triggers AI generation asynchronously)
+    console.log('Sending engineering prompt to chat...');
+    console.log('Prompt length:', engineeringPrompt?.length || 0);
+    
+    const messageResponse = await v0.chats.sendMessage({
+      chatId: chat.id,
+      message: engineeringPrompt,
+    });
+
+    console.log('Message sent successfully');
+    console.log('Files generated:', messageResponse.files?.length || 0);
+
+    // Extract and save components
+    const components = extractComponents(messageResponse);
+    
+    if (pageId) {
+      console.log('Saving v0 components...');
+      await saveV0Components(supabaseClient, userId, pageId, {
+        chatId: chat.id,
+        demoUrl: chat.demo,
+        components,
+        files: messageResponse.files,
+        prdDocument,
+        campaignConfig
+      });
     }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        chatId: chat.id,
+        demoUrl: chat.demo,
+        filesCount: messageResponse.files?.length || 0
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
 
   } catch (error) {
     console.error('Error generating v0 app:', error);
