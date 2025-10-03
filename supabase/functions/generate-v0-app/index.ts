@@ -57,81 +57,103 @@ serve(async (req) => {
 
     const { engineeringPrompt, prdDocument, campaignConfig, pageId } = await req.json() as GenerateRequest;
     
-    console.log('Calling v0 API with engineering prompt...');
+    console.log('Starting background v0 generation task');
     console.log('Engineering prompt length:', engineeringPrompt?.length || 0);
     
-    // Create a chat with v0 API with extended timeout for complex generation
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minute timeout
-    
-    try {
-      const v0Response = await fetch('https://api.v0.dev/v1/chats', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${V0_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: engineeringPrompt
-        }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!v0Response.ok) {
-        const errorText = await v0Response.text();
-        console.error('v0 API error:', v0Response.status, errorText);
-        throw new Error(`v0 API failed: ${v0Response.status} - ${errorText}`);
-      }
-
-      const v0Data = await v0Response.json();
-      console.log('v0 API response received successfully');
-      console.log('Chat ID:', v0Data.id);
-      console.log('Demo URL:', v0Data.demo);
-      console.log('Files count:', v0Data.files?.length || 0);
-
-      // Extract components from v0 response
-      const components = extractComponents(v0Data);
-      
-      // Save to database if pageId provided
-      if (pageId) {
-        console.log('Saving v0 components to database...');
-        await saveV0Components(supabaseClient, userId, pageId, {
-          chatId: v0Data.id,
-          demoUrl: v0Data.demo,
-          components,
-          files: v0Data.files,
-          prdDocument,
-          campaignConfig
+    // Start background task for v0 API call
+    const backgroundTask = async () => {
+      try {
+        console.log('Background task: Calling v0 API...');
+        
+        const v0Response = await fetch('https://api.v0.dev/v1/chats', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${V0_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: engineeringPrompt
+          })
         });
-      }
 
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          v0Data: {
+        if (!v0Response.ok) {
+          const errorText = await v0Response.text();
+          console.error('Background task: v0 API error:', v0Response.status, errorText);
+          
+          // Update page with error status
+          if (pageId) {
+            await supabaseClient
+              .from('generated_pages')
+              .update({
+                content: {
+                  error: `v0 API failed: ${v0Response.status}`,
+                  status: 'failed'
+                },
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', pageId);
+          }
+          return;
+        }
+
+        const v0Data = await v0Response.json();
+        console.log('Background task: v0 API response received');
+        console.log('Chat ID:', v0Data.id);
+        console.log('Demo URL:', v0Data.demo);
+        console.log('Files count:', v0Data.files?.length || 0);
+
+        // Extract and save components
+        const components = extractComponents(v0Data);
+        
+        if (pageId) {
+          console.log('Background task: Saving v0 components...');
+          await saveV0Components(supabaseClient, userId, pageId, {
             chatId: v0Data.id,
             demoUrl: v0Data.demo,
+            components,
             files: v0Data.files,
-            components
-          },
-          message: 'Landing page generated successfully with v0 API'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            prdDocument,
+            campaignConfig
+          });
+          console.log('Background task: Complete');
         }
-      );
-    } catch (fetchError: any) {
-      console.error('v0 API fetch error:', fetchError);
-      if (fetchError.name === 'AbortError') {
-        throw new Error('v0 API request timed out after 3 minutes. The generation may be too complex or the v0 API is experiencing delays.');
+      } catch (error) {
+        console.error('Background task error:', error);
+        
+        // Update page with error status
+        if (pageId) {
+          await supabaseClient
+            .from('generated_pages')
+            .update({
+              content: {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                status: 'failed'
+              },
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', pageId);
+        }
       }
-      throw new Error(`v0 API request failed: ${fetchError.message}`);
-    }
+    };
+
+    // Start background task without waiting
+    EdgeRuntime.waitUntil(backgroundTask());
+    
+    // Return immediately with processing status
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        status: 'processing',
+        pageId: pageId,
+        message: 'v0 generation started in background. This may take 2-3 minutes.'
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
 
   } catch (error) {
-    console.error('Error generating v0 app:', error);
+    console.error('Error starting v0 generation:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
