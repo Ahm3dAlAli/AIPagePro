@@ -9,10 +9,8 @@ const corsHeaders = {
 };
 
 interface GenerateRequest {
-  engineeringPrompt: string;
-  prdDocument: any;
   campaignConfig: any;
-  pageId?: string;
+  pageId: string;
 }
 
 serve(async (req) => {
@@ -59,12 +57,35 @@ serve(async (req) => {
       userId = '00000000-0000-0000-0000-000000000000';
     }
 
-    const { engineeringPrompt, prdDocument, campaignConfig, pageId } = await req.json() as GenerateRequest;
+    const { campaignConfig, pageId } = await req.json() as GenerateRequest;
     
-    console.log('Initializing v0 chat with context files...');
+    console.log('Step 1: Calling PRD generation function...');
     
-    // Step 1: Initialize chat with PRD and campaign config as context files (fast, no AI processing)
-    const prdContent = typeof prdDocument === 'string' ? prdDocument : JSON.stringify(prdDocument, null, 2);
+    // Call the generate-prd-prompt function to get PRD and engineering prompt
+    const prdResponse = await supabaseClient.functions.invoke('generate-prd-prompt', {
+      body: { campaignConfig }
+    });
+
+    if (prdResponse.error) {
+      console.error('PRD generation error:', prdResponse.error);
+      throw new Error(`Failed to generate PRD: ${prdResponse.error.message}`);
+    }
+
+    const { prdDocument, engineeringPrompt } = prdResponse.data;
+    
+    if (!prdDocument || !engineeringPrompt) {
+      throw new Error('PRD or engineering prompt not generated');
+    }
+
+    console.log('PRD generated successfully');
+    console.log('Engineering prompt length:', engineeringPrompt?.length || 0);
+    
+    console.log('Step 2: Initializing v0 chat with context files...');
+    
+    // Initialize chat with PRD and campaign config as context files (fast, no AI processing)
+    const prdContent = typeof prdDocument === 'string' 
+      ? prdDocument 
+      : prdDocument?.content || JSON.stringify(prdDocument, null, 2);
     const campaignContent = JSON.stringify(campaignConfig, null, 2);
     
     const chat = await v0.chats.init({
@@ -87,8 +108,8 @@ serve(async (req) => {
     console.log('Chat initialized:', chat.id);
     console.log('Chat demo URL:', chat.demo);
 
-    // Step 2: Send the engineering prompt as a message (triggers AI generation asynchronously)
-    console.log('Sending engineering prompt to chat...');
+    // Step 3: Send the engineering prompt as a message (triggers AI generation)
+    console.log('Step 3: Sending engineering prompt to chat...');
     console.log('Prompt length:', engineeringPrompt?.length || 0);
     
     const messageResponse = await v0.chats.sendMessage({
