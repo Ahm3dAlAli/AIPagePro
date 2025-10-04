@@ -329,9 +329,7 @@ const CreatePage = () => {
               <Target className="h-5 w-5 text-green-600" />
               <CardTitle>Campaign Configuration</CardTitle>
             </div>
-            <CardDescription>
-              Define your campaign goals and target audience for optimal page generation
-            </CardDescription>
+            
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -383,9 +381,7 @@ const CreatePage = () => {
               <Sparkles className="h-5 w-5 text-purple-600" />
               <CardTitle>Product/Service Details</CardTitle>
             </div>
-            <CardDescription>
-              Provide key information about what you're offering
-            </CardDescription>
+            
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
