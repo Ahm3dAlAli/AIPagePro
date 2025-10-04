@@ -321,15 +321,7 @@ const EnhancedDataImport = React.forwardRef<DataImportRef, EnhancedDataImportPro
         
         <TabsContent value="experiments" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Import A/B Test Results
-              </CardTitle>
-              <CardDescription>
-                Upload your A/B test and experiment results. This helps AI understand what optimizations work best.
-              </CardDescription>
-            </CardHeader>
+            
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="experiments-file">Upload CSV File</Label>
