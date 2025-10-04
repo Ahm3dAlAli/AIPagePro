@@ -38,6 +38,7 @@ export default function GeneratedPageView() {
   const [editedContent, setEditedContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [generatingSitecore, setGeneratingSitecore] = useState(false);
+  const [fetchingFiles, setFetchingFiles] = useState(false);
 
   useEffect(() => {
     fetchPage();
@@ -180,6 +181,34 @@ export default function GeneratedPageView() {
       toast.error("Failed to generate Sitecore components");
     } finally {
       setGeneratingSitecore(false);
+    }
+  };
+
+  const handleFetchFilesFromV0 = async () => {
+    if (!page?.content?.chatId) {
+      toast.error("No v0 chat ID found");
+      return;
+    }
+
+    setFetchingFiles(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-v0-files", {
+        body: { 
+          pageId: id,
+          chatId: page.content.chatId 
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(`Successfully fetched ${data.savedCount} files from v0`);
+      fetchComponentExports();
+      fetchPage();
+    } catch (error) {
+      console.error("Error fetching files from v0:", error);
+      toast.error("Failed to fetch files from v0");
+    } finally {
+      setFetchingFiles(false);
     }
   };
 
@@ -384,9 +413,23 @@ export default function GeneratedPageView() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground py-12">
-                  No components available
-                </p>
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">
+                    No components available
+                  </p>
+                  <Button 
+                    onClick={handleFetchFilesFromV0}
+                    disabled={fetchingFiles || !page.content?.chatId}
+                    variant="outline"
+                  >
+                    {fetchingFiles ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    Fetch Files from v0
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>

@@ -158,6 +158,26 @@ serve(async (req) => {
           campaignConfig
         });
         console.log('Components saved successfully');
+
+        // Now fetch all files from v0 and store them properly
+        console.log('Fetching all files from v0 chat...');
+        try {
+          const fetchResult = await supabaseClient.functions.invoke('fetch-v0-files', {
+            body: { 
+              pageId: pageId,
+              chatId: chat.id 
+            }
+          });
+
+          if (fetchResult.error) {
+            console.error('Error fetching v0 files:', fetchResult.error);
+          } else {
+            console.log('Successfully fetched and stored files:', fetchResult.data);
+          }
+        } catch (fetchError) {
+          console.error('Failed to invoke fetch-v0-files:', fetchError);
+          // Don't fail the whole request if file fetching fails
+        }
       }
 
       return new Response(

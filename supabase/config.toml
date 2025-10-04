@@ -64,5 +64,11 @@ verify_jwt = true
 [functions.generate-v0-app]
 verify_jwt = true
 
+[functions.fetch-v0-files]
+verify_jwt = true
+
 [functions.render-page]
 verify_jwt = false
+
+[functions.process-data-files]
+verify_jwt = true
