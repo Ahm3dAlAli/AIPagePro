@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import EnhancedDataImport from '@/components/EnhancedDataImport';
-import { ImportedData } from '@/hooks/useDataImport';
+import CampaignDataImport from '@/components/CampaignDataImport';
 import DataDrivenInsights from '@/components/DataDrivenInsights';
 import { 
   Table,
@@ -66,11 +65,6 @@ interface HistoricCampaign {
   [key: string]: any; // Allow additional properties from database
 }
 
-interface DataImportRef {
-  processFiles: () => Promise<{ success: boolean; processedRecords?: number; error?: string }>;
-  hasFiles: () => boolean;
-}
-
 const Campaigns = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -78,8 +72,6 @@ const Campaigns = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [historicCampaigns, setHistoricCampaigns] = useState<HistoricCampaign[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const dataImportRef = useRef<DataImportRef>(null);
 
   useEffect(() => {
     loadCampaigns();
@@ -128,51 +120,14 @@ const Campaigns = () => {
     }
   };
 
-  const handleDataImported = (data: ImportedData) => {
+  const handleDataImported = (data: { campaigns: any[]; experiments: any[] }) => {
     toast({
-      title: "Data Imported Successfully",
-      description: `Imported ${data.campaigns.length} campaigns and ${data.experiments.length} experiments.`,
+      title: "Data Imported",
+      description: "Your campaign data has been processed successfully.",
     });
     
-    // Reload campaigns data to show the newly imported data
+    // Reload campaigns to show newly imported data
     loadHistoricCampaigns();
-  };
-
-  const handleProcessFiles = async () => {
-    if (!dataImportRef.current?.hasFiles()) {
-      toast({
-        title: "No Files Selected",
-        description: "Please select files to process first.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    
-    try {
-      const result = await dataImportRef.current.processFiles();
-      
-      if (result.success) {
-        toast({
-          title: "Files Processed Successfully",
-          description: `Processed ${result.processedRecords} records successfully.`,
-        });
-        
-        // Reload campaigns data
-        await loadHistoricCampaigns();
-      } else {
-        throw new Error(result.error || 'Processing failed');
-      }
-    } catch (error: any) {
-      toast({
-        title: "Processing Failed",
-        description: error.message || "Failed to process files",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
   };
 
   const getStatusColor = (status: string) => {
@@ -505,33 +460,11 @@ const Campaigns = () => {
             <CardHeader>
               <CardTitle>Import Campaign & Experiment Data</CardTitle>
               <CardDescription>
-                Upload your historical campaign performance data and A/B test results in XLSX or CSV format
+                Upload XLSX or CSV files with your campaign performance and A/B test data
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <EnhancedDataImport ref={dataImportRef} onDataImported={handleDataImported} />
-              
-              {dataImportRef.current?.hasFiles() && (
-                <div className="flex justify-end pt-4">
-                  <Button 
-                    onClick={handleProcessFiles}
-                    disabled={isProcessing}
-                    size="lg"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processing Files...
-                      </>
-                    ) : (
-                      <>
-                        <Database className="h-4 w-4 mr-2" />
-                        Process & Store Data
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
+            <CardContent>
+              <CampaignDataImport onDataImported={handleDataImported} />
             </CardContent>
           </Card>
           
