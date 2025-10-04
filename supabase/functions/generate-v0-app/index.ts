@@ -94,12 +94,12 @@ serve(async (req) => {
         {
           name: 'PRD.md',
           content: prdContent,
-          locked: true, // Don't let AI modify the PRD
+          locked: true,
         },
         {
           name: 'campaign-config.json',
           content: campaignContent,
-          locked: true, // Don't let AI modify campaign config
+          locked: true,
         },
       ],
       name: `Landing Page - ${new Date().toISOString()}`,
@@ -108,39 +108,79 @@ serve(async (req) => {
     console.log('Chat initialized:', chat.id);
     console.log('Chat demo URL:', chat.demo);
 
-    // Step 3: Send the engineering prompt as a message (triggers AI generation)
-    console.log('Step 3: Sending engineering prompt to chat...');
-    console.log('Prompt length:', engineeringPrompt?.length || 0);
-    
-    const messageResponse = await v0.chats.sendMessage({
-      chatId: chat.id,
-      message: engineeringPrompt,
-    });
-
-    console.log('Message sent successfully');
-    console.log('Files generated:', messageResponse.files?.length || 0);
-
-    // Extract and save components
-    const components = extractComponents(messageResponse);
-    
+    // Save initial chat info immediately
     if (pageId) {
-      console.log('Saving v0 components...');
-      await saveV0Components(supabaseClient, userId, pageId, {
-        chatId: chat.id,
-        demoUrl: chat.demo,
-        components,
-        files: messageResponse.files,
-        prdDocument,
-        campaignConfig
-      });
+      await supabaseClient
+        .from('generated_pages')
+        .update({
+          content: {
+            chatId: chat.id,
+            demoUrl: chat.demo,
+            prdDocument,
+            campaignConfig,
+            generatedWith: 'v0-api',
+            status: 'generating',
+            timestamp: new Date().toISOString()
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', pageId);
     }
 
+    // Background task: Send message and process results
+    const backgroundTask = async () => {
+      try {
+        console.log('Background: Sending engineering prompt...');
+        const messageResponse = await v0.chats.sendMessage({
+          chatId: chat.id,
+          message: engineeringPrompt,
+        });
+
+        console.log('Background: Message sent, files:', messageResponse.files?.length || 0);
+
+        const components = extractComponents(messageResponse);
+        
+        if (pageId) {
+          await saveV0Components(supabaseClient, userId, pageId, {
+            chatId: chat.id,
+            demoUrl: chat.demo,
+            components,
+            files: messageResponse.files,
+            prdDocument,
+            campaignConfig
+          });
+          console.log('Background: Components saved successfully');
+        }
+      } catch (error) {
+        console.error('Background task error:', error);
+        if (pageId) {
+          await supabaseClient
+            .from('generated_pages')
+            .update({
+              content: {
+                chatId: chat.id,
+                demoUrl: chat.demo,
+                error: error instanceof Error ? error.message : 'Generation failed',
+                status: 'error',
+                timestamp: new Date().toISOString()
+              }
+            })
+            .eq('id', pageId);
+        }
+      }
+    };
+
+    // Start background task
+    EdgeRuntime.waitUntil(backgroundTask());
+
+    // Return immediately with chat info
     return new Response(
       JSON.stringify({ 
         success: true,
         chatId: chat.id,
         demoUrl: chat.demo,
-        filesCount: messageResponse.files?.length || 0
+        status: 'generating',
+        message: 'Generation started in background'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
