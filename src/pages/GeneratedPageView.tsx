@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ArrowLeft, Download, ExternalLink, Rocket } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, Rocket, Edit, Save, FileCode, FileJson, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface GeneratedPage {
@@ -13,6 +14,17 @@ interface GeneratedPage {
   title: string;
   content: any;
   created_at: string;
+  published_url?: string;
+}
+
+interface ComponentExport {
+  id: string;
+  component_name: string;
+  component_type: string;
+  react_code: string;
+  export_format: string;
+  json_schema: any;
+  sitecore_manifest: any;
 }
 
 export default function GeneratedPageView() {
@@ -21,9 +33,15 @@ export default function GeneratedPageView() {
   const [page, setPage] = useState<GeneratedPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [deploying, setDeploying] = useState(false);
+  const [componentExports, setComponentExports] = useState<ComponentExport[]>([]);
+  const [editingFile, setEditingFile] = useState<ComponentExport | null>(null);
+  const [editedContent, setEditedContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [generatingSitecore, setGeneratingSitecore] = useState(false);
 
   useEffect(() => {
     fetchPage();
+    fetchComponentExports();
 
     // Subscribe to real-time updates
     const channel = supabase
@@ -65,6 +83,20 @@ export default function GeneratedPageView() {
     }
   };
 
+  const fetchComponentExports = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("component_exports")
+        .select("*")
+        .eq("page_id", id);
+
+      if (error) throw error;
+      setComponentExports(data || []);
+    } catch (error) {
+      console.error("Error fetching components:", error);
+    }
+  };
+
   const handleDeploy = async () => {
     if (!page) return;
     
@@ -85,6 +117,69 @@ export default function GeneratedPageView() {
       toast.error("Failed to deploy page");
     } finally {
       setDeploying(false);
+    }
+  };
+
+  const handleEditFile = (component: ComponentExport) => {
+    setEditingFile(component);
+    setEditedContent(component.react_code);
+  };
+
+  const handleSaveFile = async () => {
+    if (!editingFile) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("component_exports")
+        .update({
+          react_code: editedContent,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", editingFile.id);
+
+      if (error) throw error;
+
+      toast.success("Component updated successfully");
+      setEditingFile(null);
+      fetchComponentExports();
+    } catch (error) {
+      console.error("Error updating component:", error);
+      toast.error("Failed to update component");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleGenerateSitecore = async () => {
+    setGeneratingSitecore(true);
+    try {
+      // This would call an edge function to generate Sitecore manifests
+      toast.info("Sitecore component generation coming soon!");
+      
+      // For now, just update the sitecore_manifest field with placeholder data
+      for (const component of componentExports) {
+        await supabase
+          .from("component_exports")
+          .update({
+            sitecore_manifest: {
+              componentName: component.component_name,
+              fields: [],
+              rendering: {
+                componentName: component.component_name,
+                dataSource: ""
+              }
+            }
+          })
+          .eq("id", component.id);
+      }
+      
+      fetchComponentExports();
+    } catch (error) {
+      console.error("Error generating Sitecore components:", error);
+      toast.error("Failed to generate Sitecore components");
+    } finally {
+      setGeneratingSitecore(false);
     }
   };
 
@@ -208,13 +303,15 @@ export default function GeneratedPageView() {
       )}
 
       <Tabs defaultValue="preview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="components">Components</TabsTrigger>
+          <TabsTrigger value="editor">Editor</TabsTrigger>
           <TabsTrigger value="rationale">AI Rationale</TabsTrigger>
-          <TabsTrigger value="sitecore">Sitecore Exports</TabsTrigger>
+          <TabsTrigger value="sitecore">Sitecore</TabsTrigger>
         </TabsList>
 
+        {/* Preview Tab */}
         <TabsContent value="preview" className="space-y-4">
           <Card>
             <CardHeader>
@@ -239,36 +336,50 @@ export default function GeneratedPageView() {
           </Card>
         </TabsContent>
 
+        {/* Components Tab - List view */}
         <TabsContent value="components" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Generated Components</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <FileCode className="h-5 w-5" />
+                Generated Components ({componentExports.length})
+              </CardTitle>
               <CardDescription>
-                React components generated by v0
+                React components stored per user per landing page
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {page.content.components?.allFiles?.length ? (
-                <div className="space-y-4">
-                  {page.content.components.allFiles.map((file, idx) => (
-                    <Card key={idx}>
+              {componentExports.length > 0 ? (
+                <div className="space-y-3">
+                  {componentExports.map((component) => (
+                    <Card key={component.id}>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                          {file.name}
-                        </CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => downloadComponent(file.name, file.content)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+                        <div>
+                          <CardTitle className="text-sm font-medium">
+                            {component.component_name}
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground">
+                            {component.component_type} • {component.export_format}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditFile(component)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => downloadComponent(`${component.component_name}.tsx`, component.react_code)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </CardHeader>
-                      <CardContent>
-                        <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs">
-                          <code>{file.content}</code>
-                        </pre>
-                      </CardContent>
                     </Card>
                   ))}
                 </div>
@@ -281,12 +392,95 @@ export default function GeneratedPageView() {
           </Card>
         </TabsContent>
 
+        {/* Editor Tab - Code editing */}
+        <TabsContent value="editor" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* File List */}
+            <Card className="lg:col-span-1">
+              <CardHeader>
+                <CardTitle>Files</CardTitle>
+                <CardDescription>Select a file to edit</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {componentExports.length > 0 ? (
+                  <div className="space-y-2">
+                    {componentExports.map((component) => (
+                      <button
+                        key={component.id}
+                        onClick={() => handleEditFile(component)}
+                        className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                          editingFile?.id === component.id
+                            ? "bg-primary/10 border-primary"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        <p className="font-medium text-sm">{component.component_name}</p>
+                        <p className="text-xs text-muted-foreground">{component.component_type}</p>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No files available
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Code Editor */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Code Editor</CardTitle>
+                <CardDescription>
+                  {editingFile ? `Editing: ${editingFile.component_name}` : 'Select a file to edit'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {editingFile ? (
+                  <div className="space-y-4">
+                    <Textarea
+                      value={editedContent}
+                      onChange={(e) => setEditedContent(e.target.value)}
+                      className="font-mono text-sm min-h-[600px] resize-none"
+                      placeholder="Component code..."
+                    />
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleSaveFile}
+                        disabled={saving}
+                      >
+                        {saving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        Save Changes
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => setEditingFile(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-[600px] border rounded-lg bg-muted/50">
+                    <p className="text-muted-foreground">Select a file from the list to start editing</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* AI Rationale Tab */}
         <TabsContent value="rationale" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Product Requirements Document</CardTitle>
               <CardDescription>
-                AI-generated PRD that guided the landing page creation
+                AI-generated PRD that guided the landing page creation based on your historic data
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -299,18 +493,77 @@ export default function GeneratedPageView() {
           </Card>
         </TabsContent>
 
+        {/* Sitecore Tab */}
         <TabsContent value="sitecore" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Sitecore Component Exports</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <FileJson className="h-5 w-5" />
+                Sitecore Component Exports
+              </CardTitle>
               <CardDescription>
-                Components formatted for Sitecore integration
+                Generate and export components for Sitecore integration
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-center text-muted-foreground py-12">
-                Sitecore exports will be available here
-              </p>
+            <CardContent className="space-y-4">
+              <Button 
+                onClick={handleGenerateSitecore}
+                disabled={generatingSitecore || componentExports.length === 0}
+              >
+                {generatingSitecore ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileJson className="h-4 w-4 mr-2" />
+                )}
+                Generate Sitecore Components
+              </Button>
+
+              {componentExports.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium">Available for Export:</h4>
+                  {componentExports.map((comp) => (
+                    <Card key={comp.id}>
+                      <CardContent className="pt-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium">{comp.component_name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Type: {comp.component_type} | Format: {comp.export_format}
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadComponent(
+                              `${comp.component_name}-sitecore.json`,
+                              JSON.stringify(comp.sitecore_manifest, null, 2)
+                            )}
+                            disabled={!comp.sitecore_manifest || Object.keys(comp.sitecore_manifest).length === 0}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {page.published_url && (
+                <div className="mt-6 p-4 border rounded-lg bg-muted/50">
+                  <p className="text-sm font-medium mb-2">Deployed URL:</p>
+                  <a 
+                    href={page.published_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline flex items-center gap-2 text-sm"
+                  >
+                    {page.published_url}
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
