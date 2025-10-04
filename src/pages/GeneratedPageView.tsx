@@ -39,6 +39,7 @@ export default function GeneratedPageView() {
   const [saving, setSaving] = useState(false);
   const [generatingSitecore, setGeneratingSitecore] = useState(false);
   const [fetchingFiles, setFetchingFiles] = useState(false);
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   useEffect(() => {
     fetchPage();
@@ -65,6 +66,19 @@ export default function GeneratedPageView() {
       supabase.removeChannel(channel);
     };
   }, [id]);
+
+  // Auto-fetch v0 files if components are empty and chatId exists
+  useEffect(() => {
+    const autoFetchV0Files = async () => {
+      if (page && componentExports.length === 0 && page.content?.chatId && !fetchingFiles && !hasAttemptedFetch) {
+        console.log('Auto-fetching v0 files...');
+        setHasAttemptedFetch(true);
+        await handleFetchFilesFromV0();
+      }
+    };
+
+    autoFetchV0Files();
+  }, [page?.id]);
 
   const fetchPage = async () => {
     try {
@@ -302,12 +316,19 @@ export default function GeneratedPageView() {
         </div>
         <div className="flex gap-2">
           {page.content.demoUrl && (
-            <Button variant="outline" asChild>
-              <a href={page.content.demoUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Open in v0
-              </a>
-            </Button>
+            <>
+              <Button variant="outline" asChild>
+                <a href={page.content.demoUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Preview in New Tab
+                </a>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <a href={page.content.demoUrl} target="_blank" rel="noopener noreferrer">
+                  Open in v0
+                </a>
+              </Button>
+            </>
           )}
           <Button onClick={handleDeploy} disabled={deploying}>
             <Rocket className="mr-2 h-4 w-4" />

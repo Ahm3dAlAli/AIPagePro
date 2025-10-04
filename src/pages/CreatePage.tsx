@@ -7,12 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Brain, Sparkles, Target, Users, MessageSquare, Zap, Copy, Database, ExternalLink, FileText } from 'lucide-react';
+import { Loader2, Brain, Sparkles, Target, Copy, Database } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import EnhancedDataImport from '@/components/EnhancedDataImport';
 import { ImportedData } from '@/hooks/useDataImport';
 interface DataImportRef {
@@ -85,9 +83,6 @@ const CreatePage = () => {
       description: "Ceramic store example has been filled into the form."
     });
   };
-  const [generatedPage, setGeneratedPage] = useState<any>(null);
-  const [showPagePreview, setShowPagePreview] = useState(false);
-  const [isDeploying, setIsDeploying] = useState(false);
   const [generationStep, setGenerationStep] = useState<'idle' | 'prd' | 'components' | 'complete'>('idle');
   const [prdDocument, setPrdDocument] = useState<any>(null);
   const dataImportRef = React.useRef<DataImportRef>(null);
@@ -185,30 +180,42 @@ const CreatePage = () => {
         throw new Error('Failed to generate v0 components');
       }
 
-      // Combine all data for preview
-      const completePageData = {
-        success: true,
-        page: {
-          id: crypto.randomUUID(),
-          title: formData.pageTitle || 'Generated Landing Page',
-          slug: `v0-page-${Date.now()}`,
+      // STEP 3: Save to database and navigate
+      const pageTitle = formData.pageTitle || `Landing Page - ${new Date().toISOString()}`;
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data: savedPage, error: saveError } = await supabase
+        .from('generated_pages')
+        .insert({
+          user_id: user?.id || '00000000-0000-0000-0000-000000000000',
+          title: pageTitle,
+          slug: `page-${Date.now()}`,
           content: {
-            v0Data: v0Data.v0Data,
+            chatId: v0Data.v0Data?.chatId,
+            demoUrl: v0Data.v0Data?.demoUrl,
             prdDocument: prdData.prdDocument,
             engineeringPrompt: prdData.engineeringPrompt,
-            campaignConfig
-          }
-        },
-        rationale: prdData.prdDocument,
-        v0Components: v0Data.v0Data
-      };
-      setGeneratedPage(completePageData);
+            campaignConfig,
+            status: 'completed'
+          },
+          status: 'draft',
+          ai_rationale: JSON.stringify(prdData.prdDocument)
+        })
+        .select()
+        .single();
+
+      if (saveError) throw saveError;
+
       setGenerationStep('complete');
-      setShowPagePreview(true);
       toast({
         title: "🎉 Page Generated Successfully!",
-        description: "Your production-ready landing page is ready with v0 components!"
+        description: "Redirecting to page view..."
       });
+
+      // Navigate to the generated page view
+      setTimeout(() => {
+        navigate(`/dashboard/page/${savedPage.id}`);
+      }, 1000);
     } catch (error: any) {
       console.error('Generation error:', error);
       toast({
@@ -221,37 +228,7 @@ const CreatePage = () => {
       setIsGenerating(false);
     }
   };
-  const handleDeploy = async () => {
-    if (!generatedPage?.page) return;
-    setIsDeploying(true);
-    try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('deploy-to-vercel', {
-        body: {
-          pageId: generatedPage.page.id
-        }
-      });
-      if (error) throw error;
-      if (data.success) {
-        toast({
-          title: "Deployment Successful!",
-          description: `Your page is now live at ${data.deploymentUrl}`
-        });
-      } else {
-        throw new Error(data.error || 'Deployment failed');
-      }
-    } catch (error: any) {
-      toast({
-        title: "Deployment Failed",
-        description: error.message || "Failed to deploy to Vercel",
-        variant: "destructive"
-      });
-    } finally {
-      setIsDeploying(false);
-    }
-  };
+
   const campaignTypes = [{
     value: 'lead-generation',
     label: 'Lead Generation'
@@ -442,122 +419,6 @@ const CreatePage = () => {
           </Button>
         </div>
       </form>
-
-      {/* Page Preview Dialog */}
-      <Dialog open={showPagePreview} onOpenChange={setShowPagePreview}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              🎉 Your v0-Generated Landing Page is Ready!
-            </DialogTitle>
-            <DialogDescription>
-              Review your production-ready components generated by v0 AI
-            </DialogDescription>
-          </DialogHeader>
-          
-          {generatedPage && <div className="space-y-6">
-              {/* v0 Demo Link */}
-              {generatedPage.v0Components?.demoUrl && <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4 rounded-lg text-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold text-lg mb-1">Live v0 Demo</h4>
-                      <p className="text-sm text-blue-100">View and interact with your generated components</p>
-                    </div>
-                    <Button asChild variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50">
-                      <a href={generatedPage.v0Components.demoUrl} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        Open v0 Demo
-                      </a>
-                    </Button>
-                  </div>
-                </div>}
-
-              {/* Quick Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 p-3 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {generatedPage.v0Components?.files?.length || 0}
-                  </div>
-                  <div className="text-sm text-blue-600">v0 Components</div>
-                </div>
-                <div className="bg-green-50 p-3 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-green-600">Shadcn</div>
-                  <div className="text-sm text-green-600">UI Library</div>
-                </div>
-                <div className="bg-purple-50 p-3 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {prdDocument?.historicDataSummary?.campaignCount || 0}
-                  </div>
-                  <div className="text-sm text-purple-600">Campaigns</div>
-                </div>
-                <div className="bg-orange-50 p-3 rounded-lg text-center">
-                  <div className="text-2xl font-bold text-orange-600">
-                    {prdDocument?.historicDataSummary?.experimentCount || 0}
-                  </div>
-                  <div className="text-sm text-orange-600">Experiments</div>
-                </div>
-              </div>
-
-              {/* PRD Preview */}
-              {prdDocument?.prdDocument && <div className="border rounded-lg p-6 bg-gradient-to-br from-blue-50 to-purple-50">
-                  <div className="flex items-center gap-2 mb-4">
-                    <FileText className="h-5 w-5 text-purple-600" />
-                    <h3 className="text-xl font-bold">Product Requirements Document</h3>
-                  </div>
-                  
-                  <div className="p-4 bg-white rounded-lg border">
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-6">
-                      {prdDocument.prdDocument.content?.substring(0, 500)}...
-                    </p>
-                    <Button variant="link" className="mt-2 p-0">
-                      View Full PRD
-                    </Button>
-                  </div>
-                </div>}
-
-              {/* Component Files */}
-              {generatedPage.v0Components?.components && <div className="border rounded-lg p-6 bg-white">
-                  <h3 className="text-xl font-bold mb-4">Generated Components</h3>
-                  <div className="space-y-2">
-                    {generatedPage.v0Components.components.allFiles?.slice(0, 5).map((file: any, idx: number) => <div key={idx} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">{file.type || 'tsx'}</Badge>
-                          <span className="text-sm font-mono">{file.name}</span>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>)}
-                  </div>
-                </div>}
-
-              <Separator />
-
-              <div className="flex gap-4 justify-center">
-                <Button onClick={() => navigate('/dashboard/my-pages')} variant="outline">
-                  <FileText className="mr-2 h-4 w-4" />
-                  View in Dashboard
-                </Button>
-                
-                <Button onClick={handleDeploy} disabled={isDeploying}>
-                  {isDeploying ? <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Deploying...
-                    </> : <>
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Deploy Live
-                    </>}
-                </Button>
-              </div>
-            </div>}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPagePreview(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>;
 };
 export default CreatePage;
