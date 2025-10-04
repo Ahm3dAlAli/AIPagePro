@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient as createSupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { createClient } from 'https://esm.sh/v0-sdk@0.14.0';
+import { v0 } from 'https://esm.sh/v0-sdk@0.14.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -58,18 +58,27 @@ serve(async (req) => {
     
     console.log('Fetching files from v0 chat:', chatId);
     
-    // Initialize v0 SDK client
-    const v0 = createClient({ apiKey: V0_API_KEY });
+    // Initialize v0 SDK (uses V0_API_KEY env var automatically)
+    const v0Client = v0;
 
     // Get chat details which includes all messages and files
-    const chat = await v0.chats.get(chatId);
+    const chat = await v0Client.chats.get(chatId);
     
     console.log('Chat retrieved:', chat.id);
     console.log('Messages count:', chat.messages?.length || 0);
 
-    // Extract all files from the latest assistant message
+    // Extract all files from chat messages
+    // v0 SDK returns files in the chat.files array or in message.files
     let allFiles: any[] = [];
-    if (chat.messages && chat.messages.length > 0) {
+    
+    // First check if chat has direct files array
+    if (chat.files && Array.isArray(chat.files)) {
+      allFiles = chat.files;
+      console.log('Found files in chat.files:', allFiles.length);
+    }
+    
+    // Also check messages for files (fallback)
+    if (allFiles.length === 0 && chat.messages && chat.messages.length > 0) {
       // Get the last assistant message which should have the generated files
       const lastAssistantMessage = [...chat.messages]
         .reverse()
@@ -127,7 +136,8 @@ serve(async (req) => {
               fileType: file.type,
               language: file.language || 'typescript',
               generatedBy: 'v0-api',
-              chatId: chatId
+              chatId: chatId,
+              fetchedAt: new Date().toISOString()
             },
             sitecore_manifest: {}
           });
@@ -136,7 +146,7 @@ serve(async (req) => {
           console.error('Error saving component:', error);
         } else {
           savedCount++;
-          console.log(`Saved: ${componentName}`);
+          console.log(`Saved: ${componentName} (${exportFormat})`);
         }
       } catch (error) {
         console.error('Error processing file:', file.name, error);
@@ -151,6 +161,7 @@ serve(async (req) => {
           chatId: chatId,
           demoUrl: chat.demo,
           filesCount: allFiles.length,
+          savedCount: savedCount,
           status: 'completed',
           lastFetched: new Date().toISOString()
         },

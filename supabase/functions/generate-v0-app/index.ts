@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient as createSupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { createClient } from 'https://esm.sh/v0-sdk@0.14.0';
+import { v0 } from 'https://esm.sh/v0-sdk@0.14.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,8 +26,9 @@ serve(async (req) => {
       throw new Error('V0_API_KEY is not configured');
     }
 
-    // Initialize v0 SDK client
-    const v0 = createClient({ apiKey: V0_API_KEY });
+    // Initialize v0 SDK (automatically uses V0_API_KEY env var)
+    // But we set it explicitly for clarity
+    const v0Client = v0;
 
     const supabaseClient = createSupabaseClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -88,7 +89,7 @@ serve(async (req) => {
       : prdDocument?.content || JSON.stringify(prdDocument, null, 2);
     const campaignContent = JSON.stringify(campaignConfig, null, 2);
     
-    const chat = await v0.chats.init({
+    const chat = await v0Client.chats.init({
       type: 'files',
       files: [
         {
@@ -137,14 +138,22 @@ serve(async (req) => {
 
     try {
       const messageResponse = await Promise.race([
-        v0.chats.sendMessage({
+        v0Client.chats.sendMessage({
           chatId: chat.id,
           message: engineeringPrompt,
         }),
         timeoutPromise
       ]) as any;
 
-      console.log('v0 generation complete! Files:', messageResponse.files?.length || 0);
+      console.log('v0 generation complete!');
+      console.log('Files generated:', messageResponse.files?.length || 0);
+      
+      // Log file details for debugging
+      if (messageResponse.files) {
+        messageResponse.files.forEach((file: any, idx: number) => {
+          console.log(`File ${idx + 1}: ${file.name} (${file.language || 'unknown'})`);
+        });
+      }
 
       const components = extractComponents(messageResponse);
       
