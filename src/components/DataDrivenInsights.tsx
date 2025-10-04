@@ -4,22 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  TrendingUp, 
-  Target, 
-  Smartphone, 
-  Monitor, 
-  Tablet,
-  DollarSign,
-  MousePointer,
-  FormInput,
-  BarChart3,
-  Lightbulb,
-  CheckCircle,
-  AlertTriangle
-} from 'lucide-react';
+import { TrendingUp, Target, Smartphone, Monitor, Tablet, DollarSign, MousePointer, FormInput, BarChart3, Lightbulb, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
 interface DataInsights {
   topPerformingChannels: Array<{
     channel: string;
@@ -44,43 +30,40 @@ interface DataInsights {
     insight: string;
   }>;
 }
-
 const DataDrivenInsights: React.FC = () => {
   const [insights, setInsights] = useState<DataInsights | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     loadInsights();
   }, []);
-
   const loadInsights = async () => {
     try {
       setLoading(true);
-      
-      // Fetch historic campaign data
-      const { data: historicData, error: historicError } = await supabase
-        .from('historic_campaigns')
-        .select('*')
-        .order('campaign_date', { ascending: false })
-        .limit(50);
 
+      // Fetch historic campaign data
+      const {
+        data: historicData,
+        error: historicError
+      } = await supabase.from('historic_campaigns').select('*').order('campaign_date', {
+        ascending: false
+      }).limit(50);
       if (historicError) throw historicError;
 
       // Fetch experiment results
-      const { data: experimentData, error: experimentError } = await supabase
-        .from('experiment_results')
-        .select('*')
-        .eq('statistical_significance', true)
-        .order('end_date', { ascending: false })
-        .limit(10);
-
+      const {
+        data: experimentData,
+        error: experimentError
+      } = await supabase.from('experiment_results').select('*').eq('statistical_significance', true).order('end_date', {
+        ascending: false
+      }).limit(10);
       if (experimentError) throw experimentError;
 
       // Analyze the data
       const analyzedInsights = analyzeData(historicData || [], experimentData || []);
       setInsights(analyzedInsights);
-
     } catch (error: any) {
       console.error('Error loading insights:', error);
       toast({
@@ -92,46 +75,45 @@ const DataDrivenInsights: React.FC = () => {
       setLoading(false);
     }
   };
-
   const analyzeData = (historicData: any[], experimentData: any[]): DataInsights => {
     // Analyze top performing channels
     const channelPerformance = historicData.reduce((acc: any, campaign: any) => {
       const channel = campaign.utm_source || 'direct';
       if (!acc[channel]) {
-        acc[channel] = { sessions: 0, conversions: 0, spend: 0 };
+        acc[channel] = {
+          sessions: 0,
+          conversions: 0,
+          spend: 0
+        };
       }
       acc[channel].sessions += campaign.sessions || 0;
       acc[channel].conversions += campaign.primary_conversions || 0;
       acc[channel].spend += campaign.total_spend || 0;
       return acc;
     }, {});
-
-    const topPerformingChannels = Object.entries(channelPerformance)
-      .map(([channel, data]: [string, any]) => ({
-        channel,
-        conversionRate: data.sessions > 0 ? (data.conversions / data.sessions) : 0,
-        ...data
-      }))
-      .sort((a: any, b: any) => b.conversionRate - a.conversionRate)
-      .slice(0, 5);
+    const topPerformingChannels = Object.entries(channelPerformance).map(([channel, data]: [string, any]) => ({
+      channel,
+      conversionRate: data.sessions > 0 ? data.conversions / data.sessions : 0,
+      ...data
+    })).sort((a: any, b: any) => b.conversionRate - a.conversionRate).slice(0, 5);
 
     // Analyze device performance
     const devicePerformance = historicData.reduce((acc: any, campaign: any) => {
       const device = campaign.device_type || 'desktop';
       if (!acc[device]) {
-        acc[device] = { sessions: 0, conversions: 0 };
+        acc[device] = {
+          sessions: 0,
+          conversions: 0
+        };
       }
       acc[device].sessions += campaign.sessions || 0;
       acc[device].conversions += campaign.primary_conversions || 0;
       return acc;
     }, {});
-
-    const highPerformingDevices = Object.entries(devicePerformance)
-      .map(([device, data]: [string, any]) => ({
-        device,
-        conversionRate: data.sessions > 0 ? (data.conversions / data.sessions) : 0
-      }))
-      .sort((a: any, b: any) => b.conversionRate - a.conversionRate);
+    const highPerformingDevices = Object.entries(devicePerformance).map(([device, data]: [string, any]) => ({
+      device,
+      conversionRate: data.sessions > 0 ? data.conversions / data.sessions : 0
+    })).sort((a: any, b: any) => b.conversionRate - a.conversionRate);
 
     // Calculate totals
     const totalSessions = historicData.reduce((sum, c) => sum + (c.sessions || 0), 0);
@@ -149,21 +131,11 @@ const DataDrivenInsights: React.FC = () => {
     // Determine best practices from experiments
     let bestConvertingFormPosition = 'middle';
     let optimalCTAText = 'Get Started';
-
-    const formExperiment = experimentData.find((exp: any) => 
-      exp.experiment_name?.toLowerCase().includes('form') || 
-      exp.primary_metric?.toLowerCase().includes('form')
-    );
-    
+    const formExperiment = experimentData.find((exp: any) => exp.experiment_name?.toLowerCase().includes('form') || exp.primary_metric?.toLowerCase().includes('form'));
     if (formExperiment && formExperiment.winning_variant) {
       bestConvertingFormPosition = formExperiment.winning_variant.includes('hero') ? 'hero' : 'middle';
     }
-
-    const ctaExperiment = experimentData.find((exp: any) => 
-      exp.experiment_name?.toLowerCase().includes('cta') ||
-      exp.experiment_name?.toLowerCase().includes('button')
-    );
-    
+    const ctaExperiment = experimentData.find((exp: any) => exp.experiment_name?.toLowerCase().includes('cta') || exp.experiment_name?.toLowerCase().includes('button'));
     if (ctaExperiment && ctaExperiment.variant_description) {
       // Try to extract CTA text from experiment description
       const ctaMatch = ctaExperiment.variant_description.match(/"([^"]*(?:button|cta)[^"]*)"/i);
@@ -171,7 +143,6 @@ const DataDrivenInsights: React.FC = () => {
         optimalCTAText = ctaMatch[1];
       }
     }
-
     return {
       topPerformingChannels,
       bestConvertingFormPosition,
@@ -184,31 +155,27 @@ const DataDrivenInsights: React.FC = () => {
       experimentInsights
     };
   };
-
   const getDeviceIcon = (device: string) => {
     switch (device.toLowerCase()) {
-      case 'mobile': return <Smartphone className="h-4 w-4" />;
-      case 'tablet': return <Tablet className="h-4 w-4" />;
-      default: return <Monitor className="h-4 w-4" />;
+      case 'mobile':
+        return <Smartphone className="h-4 w-4" />;
+      case 'tablet':
+        return <Tablet className="h-4 w-4" />;
+      default:
+        return <Monitor className="h-4 w-4" />;
     }
   };
-
   const getChannelColor = (index: number) => {
     const colors = ['bg-blue-100 text-blue-800', 'bg-green-100 text-green-800', 'bg-purple-100 text-purple-800', 'bg-orange-100 text-orange-800', 'bg-pink-100 text-pink-800'];
     return colors[index % colors.length];
   };
-
   if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center h-64">
+    return <div className="p-6 flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+      </div>;
   }
-
   if (!insights || insights.totalCampaigns === 0) {
-    return (
-      <Card>
+    return <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lightbulb className="h-5 w-5" />
@@ -231,12 +198,9 @@ const DataDrivenInsights: React.FC = () => {
             </Button>
           </div>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -289,59 +253,7 @@ const DataDrivenInsights: React.FC = () => {
       </div>
 
       {/* AI Optimizations */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lightbulb className="h-5 w-5" />
-            AI Landing Page Optimizations
-          </CardTitle>
-          <CardDescription>
-            How AI will optimize your landing pages based on your data
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-start gap-3 p-4 border rounded-lg">
-              <FormInput className="h-5 w-5 text-blue-600 mt-1" />
-              <div>
-                <h4 className="font-medium">Form Position</h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  AI will place forms in the {insights.bestConvertingFormPosition} section based on your experiment data
-                </p>
-                <Badge variant="outline" className="text-xs">
-                  {insights.bestConvertingFormPosition === 'hero' ? '+35.7% conversion' : 'Standard placement'}
-                </Badge>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-4 border rounded-lg">
-              <MousePointer className="h-5 w-5 text-green-600 mt-1" />
-              <div>
-                <h4 className="font-medium">CTA Optimization</h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  AI will use "{insights.optimalCTAText}" based on your best-performing tests
-                </p>
-                <Badge variant="outline" className="text-xs">
-                  Data-optimized
-                </Badge>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-4 border rounded-lg">
-              <TrendingUp className="h-5 w-5 text-purple-600 mt-1" />
-              <div>
-                <h4 className="font-medium">Channel Insights</h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  AI will emphasize proven value props for your top channel: {insights.topPerformingChannels[0]?.channel || 'N/A'}
-                </p>
-                <Badge variant="outline" className="text-xs">
-                  {(insights.topPerformingChannels[0]?.conversionRate * 100).toFixed(1)}% conv. rate
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      
 
       {/* Top Performing Channels */}
       <Card>
@@ -353,8 +265,7 @@ const DataDrivenInsights: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {insights.topPerformingChannels.slice(0, 5).map((channel, index) => (
-              <div key={channel.channel} className="flex items-center justify-between p-3 border rounded-lg">
+            {insights.topPerformingChannels.slice(0, 5).map((channel, index) => <div key={channel.channel} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <Badge className={getChannelColor(index)}>
                     #{index + 1}
@@ -372,8 +283,7 @@ const DataDrivenInsights: React.FC = () => {
                     ${(channel.spend || 0).toLocaleString()} spent
                   </p>
                 </div>
-              </div>
-            ))}
+              </div>)}
           </div>
         </CardContent>
       </Card>
@@ -388,28 +298,22 @@ const DataDrivenInsights: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {insights.highPerformingDevices.map((device) => (
-              <div key={device.device} className="flex items-center gap-3 p-4 border rounded-lg">
+            {insights.highPerformingDevices.map(device => <div key={device.device} className="flex items-center gap-3 p-4 border rounded-lg">
                 {getDeviceIcon(device.device)}
                 <div className="flex-1">
                   <p className="font-medium capitalize">{device.device}</p>
                   <p className="text-sm text-muted-foreground">
                     {(device.conversionRate * 100).toFixed(2)}% conversion rate
                   </p>
-                  <Progress 
-                    value={device.conversionRate * 1000} 
-                    className="mt-2 h-2" 
-                  />
+                  <Progress value={device.conversionRate * 1000} className="mt-2 h-2" />
                 </div>
-              </div>
-            ))}
+              </div>)}
           </div>
         </CardContent>
       </Card>
 
       {/* Experiment Insights */}
-      {insights.experimentInsights.length > 0 && (
-        <Card>
+      {insights.experimentInsights.length > 0 && <Card>
           <CardHeader>
             <CardTitle>Experiment Learnings</CardTitle>
             <CardDescription>
@@ -418,13 +322,8 @@ const DataDrivenInsights: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {insights.experimentInsights.map((exp, index) => (
-                <div key={index} className="flex items-start gap-3 p-4 border rounded-lg">
-                  {exp.uplift > 0 ? (
-                    <CheckCircle className="h-5 w-5 text-green-600 mt-1" />
-                  ) : (
-                    <AlertTriangle className="h-5 w-5 text-orange-600 mt-1" />
-                  )}
+              {insights.experimentInsights.map((exp, index) => <div key={index} className="flex items-start gap-3 p-4 border rounded-lg">
+                  {exp.uplift > 0 ? <CheckCircle className="h-5 w-5 text-green-600 mt-1" /> : <AlertTriangle className="h-5 w-5 text-orange-600 mt-1" />}
                   <div className="flex-1">
                     <h4 className="font-medium">{exp.experiment}</h4>
                     <p className="text-sm text-muted-foreground mb-2">{exp.insight}</p>
@@ -432,14 +331,10 @@ const DataDrivenInsights: React.FC = () => {
                       {exp.uplift > 0 ? `+${exp.uplift.toFixed(1)}% uplift` : 'No significant change'}
                     </Badge>
                   </div>
-                </div>
-              ))}
+                </div>)}
             </div>
           </CardContent>
-        </Card>
-      )}
-    </div>
-  );
+        </Card>}
+    </div>;
 };
-
 export default DataDrivenInsights;
