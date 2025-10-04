@@ -226,14 +226,78 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
         .update({ usage_count: template.usage_count + 1 })
         .eq('id', template.id);
 
-      if (onSelectTemplate) {
-        onSelectTemplate(template);
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to use templates",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Creating Page from Template",
+        description: "Setting up your page with template files..."
+      });
+
+      // Create a new generated page from this template
+      const { data: newPage, error: pageError } = await supabase
+        .from('generated_pages')
+        .insert({
+          user_id: user.id,
+          title: `${template.name} - ${new Date().toLocaleDateString()}`,
+          slug: `${template.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+          template_id: template.id,
+          content: {
+            templateId: template.id,
+            templateName: template.name,
+            config: template.config,
+            status: 'draft'
+          },
+          status: 'draft'
+        })
+        .select()
+        .single();
+
+      if (pageError) throw pageError;
+
+      // Copy template files to the new page
+      const { data: copyResult, error: copyError } = await supabase.functions.invoke(
+        'copy-template-files',
+        {
+          body: {
+            templateId: template.id,
+            newPageId: newPage.id
+          }
+        }
+      );
+
+      if (copyError) {
+        console.error('Error copying template files:', copyError);
+        toast({
+          title: "Warning",
+          description: "Page created but some template files may be missing",
+          variant: "destructive"
+        });
       }
 
       toast({
         title: "Template Applied",
-        description: `${template.name} template is ready to use`
+        description: `Created page with ${copyResult?.copiedCount || 0} template files`
       });
+
+      // Navigate to the page editor
+      if (onSelectTemplate) {
+        onSelectTemplate(template);
+      }
+
+      // Use setTimeout to allow toast to show before navigation
+      setTimeout(() => {
+        window.location.href = `/dashboard/page/${newPage.id}`;
+      }, 1000);
+
     } catch (error) {
       console.error('Error using template:', error);
       toast({
@@ -247,37 +311,70 @@ export const TemplateLibrary: React.FC<TemplateLibraryProps> = ({
   const duplicateTemplate = async (template: Template) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to copy templates",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      const { data, error } = await supabase
-        .from('templates')
+      toast({
+        title: "Copying Template",
+        description: "Creating your copy with all template files..."
+      });
+
+      // Create a new generated page from this template (copy)
+      const { data: newPage, error: pageError } = await supabase
+        .from('generated_pages')
         .insert({
-          name: `${template.name} (Copy)`,
-          description: template.description,
-          category: template.category,
-          industry_category: template.industry_category,
-          config: template.config,
           user_id: user.id,
-          template_type: 'custom',
-          usage_count: 0,
-          complexity_score: template.complexity_score,
-          is_public: false
+          title: `${template.name} (Copy) - ${new Date().toLocaleDateString()}`,
+          slug: `${template.name.toLowerCase().replace(/\s+/g, '-')}-copy-${Date.now()}`,
+          template_id: template.id,
+          content: {
+            templateId: template.id,
+            templateName: `${template.name} (Copy)`,
+            config: template.config,
+            status: 'draft'
+          },
+          status: 'draft'
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (pageError) throw pageError;
+
+      // Copy template files to the new page
+      const { data: copyResult, error: copyError } = await supabase.functions.invoke(
+        'copy-template-files',
+        {
+          body: {
+            templateId: template.id,
+            newPageId: newPage.id
+          }
+        }
+      );
+
+      if (copyError) {
+        console.error('Error copying template files:', copyError);
+      }
 
       toast({
-        title: "Template Duplicated",
-        description: "Template copy has been added to your library"
+        title: "Template Copied",
+        description: `Created page with ${copyResult?.copiedCount || 0} files from template`
       });
 
-      await loadTemplates();
+      // Navigate to the new page
+      setTimeout(() => {
+        window.location.href = `/dashboard/page/${newPage.id}`;
+      }, 1000);
+
     } catch (error: any) {
       toast({
-        title: "Duplication Failed",
-        description: error.message || "Failed to duplicate template",
+        title: "Copy Failed",
+        description: error.message || "Failed to copy template",
         variant: "destructive"
       });
     }

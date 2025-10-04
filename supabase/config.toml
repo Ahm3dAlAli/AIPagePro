@@ -67,6 +67,9 @@ verify_jwt = true
 [functions.fetch-v0-files]
 verify_jwt = true
 
+[functions.copy-template-files]
+verify_jwt = true
+
 [functions.render-page]
 verify_jwt = false
 
