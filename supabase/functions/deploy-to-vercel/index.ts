@@ -21,6 +21,149 @@ interface VercelDeploymentConfig {
   };
 }
 
+function generateDeploymentTrackingScript(pageId: string, supabaseUrl: string, supabaseAnonKey: string): string {
+  return `
+    // Analytics & A/B Testing Tracking
+    const SUPABASE_URL = '${supabaseUrl}';
+    const SUPABASE_ANON_KEY = '${supabaseAnonKey}';
+    const PAGE_ID = '${pageId}';
+    
+    const getOrCreateId = (key, expiry) => {
+      if (typeof window === 'undefined') return null;
+      let id = localStorage.getItem(key);
+      if (!id) {
+        id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+        localStorage.setItem(key, id);
+        if (expiry) localStorage.setItem(key + '_exp', String(Date.now() + expiry));
+      }
+      return id;
+    };
+    
+    const visitorId = getOrCreateId('visitor_id', 365 * 24 * 60 * 60 * 1000);
+    const sessionId = getOrCreateId('session_id', 30 * 60 * 1000);
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmSource = urlParams.get('utm_source');
+    const utmMedium = urlParams.get('utm_medium');
+    const utmCampaign = urlParams.get('utm_campaign');
+    const variant = urlParams.get('variant') || 'control';
+    
+    const trackEvent = async (eventType, eventData = {}) => {
+      try {
+        await fetch(\`\${SUPABASE_URL}/functions/v1/analytics-tracker\`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({
+            pageId: PAGE_ID,
+            eventType,
+            eventData,
+            visitorId,
+            sessionId,
+            metadata: {
+              utm_source: utmSource,
+              utm_medium: utmMedium,
+              utm_campaign: utmCampaign,
+              variant,
+              userAgent: navigator.userAgent,
+              referrer: document.referrer,
+              url: window.location.href
+            }
+          })
+        });
+      } catch (error) {
+        console.error('Analytics error:', error);
+      }
+    };
+    
+    // Track page view
+    const pageLoadTime = Date.now();
+    trackEvent('page_view', { url: window.location.href });
+    
+    // Track time on page
+    let activeTime = 0;
+    let isActive = true;
+    const interval = setInterval(() => {
+      if (isActive) activeTime += 1;
+    }, 1000);
+    
+    document.addEventListener('visibilitychange', () => {
+      isActive = !document.hidden;
+    });
+    
+    window.addEventListener('beforeunload', () => {
+      clearInterval(interval);
+      trackEvent('page_view', { 
+        timeOnPage: activeTime,
+        scrollDepth: Math.max(window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100, 0)
+      });
+    });
+    
+    // Track CTA clicks
+    document.addEventListener('click', (e) => {
+      const target = e.target;
+      if (target.tagName === 'BUTTON' || target.tagName === 'A') {
+        const text = target.textContent?.trim() || '';
+        const isCTA = text.toLowerCase().includes('get started') || 
+                      text.toLowerCase().includes('sign up') ||
+                      text.toLowerCase().includes('try') ||
+                      text.toLowerCase().includes('buy') ||
+                      text.toLowerCase().includes('subscribe');
+        
+        if (isCTA) {
+          trackEvent('cta_click', { ctaText: text });
+        }
+      }
+    });
+    
+    // Track forms
+    setTimeout(() => {
+      const forms = document.querySelectorAll('form');
+      forms.forEach(form => {
+        let formViewed = false;
+        let formStarted = false;
+        
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && !formViewed) {
+              formViewed = true;
+              trackEvent('form_view', { formId: form.id || 'unnamed' });
+            }
+          });
+        });
+        observer.observe(form);
+        
+        form.addEventListener('input', () => {
+          if (!formStarted) {
+            formStarted = true;
+            trackEvent('form_start', { formId: form.id || 'unnamed' });
+          }
+        }, { once: true });
+        
+        form.addEventListener('submit', () => {
+          trackEvent('form_complete', { 
+            formId: form.id || 'unnamed',
+            timeToComplete: Date.now() - pageLoadTime
+          });
+        });
+      });
+    }, 1000);
+    
+    // Track bounce
+    setTimeout(() => {
+      if (activeTime < 5) {
+        trackEvent('bounce');
+      }
+    }, 5000);
+  `;
+}
+
 function generateNextJSFiles(pageData: any, pageHtml: string, prdDocument?: any): VercelDeploymentConfig {
   const pageName = pageData.slug || 'landing-page';
   
@@ -62,10 +205,20 @@ const nextConfig = {
 
 module.exports = nextConfig`;
 
-  // Generate main page component
+  // Generate tracking script
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  const trackingScript = generateDeploymentTrackingScript(pageData.id, supabaseUrl, supabaseAnonKey);
+  
+  // Generate main page component with analytics
   const indexPage = `import Head from 'next/head';
+import { useEffect } from 'react';
 
 export default function LandingPage() {
+  useEffect(() => {
+    ${trackingScript}
+  }, []);
+
   return (
     <>
       <Head>
@@ -73,22 +226,6 @@ export default function LandingPage() {
         <meta name="description" content="${pageData.content?.metaDescription || 'AI-generated landing page'}" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
-        
-        {/* Analytics */}
-        <script
-          async
-          src={\`https://www.googletagmanager.com/gtag/js?id=\${process.env.NEXT_PUBLIC_GA_ID}\`}
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: \`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '\${process.env.NEXT_PUBLIC_GA_ID}');
-            \`,
-          }}
-        />
       </Head>
       
       <div dangerouslySetInnerHTML={{ __html: \`${pageHtml.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\` }} />
