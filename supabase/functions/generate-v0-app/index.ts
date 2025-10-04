@@ -127,65 +127,89 @@ serve(async (req) => {
         .eq('id', pageId);
     }
 
-    // Background task: Send message and process results
-    const backgroundTask = async () => {
-      try {
-        console.log('Background: Sending engineering prompt...');
-        const messageResponse = await v0.chats.sendMessage({
+    // Send message to v0 and wait for response (with 10 minute timeout)
+    console.log('Sending engineering prompt to v0...');
+    
+    const timeoutMs = 10 * 60 * 1000; // 10 minutes
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('v0 generation timeout after 10 minutes')), timeoutMs);
+    });
+
+    try {
+      const messageResponse = await Promise.race([
+        v0.chats.sendMessage({
           chatId: chat.id,
           message: engineeringPrompt,
+        }),
+        timeoutPromise
+      ]) as any;
+
+      console.log('v0 generation complete! Files:', messageResponse.files?.length || 0);
+
+      const components = extractComponents(messageResponse);
+      
+      if (pageId) {
+        await saveV0Components(supabaseClient, userId, pageId, {
+          chatId: chat.id,
+          demoUrl: chat.demo,
+          components,
+          files: messageResponse.files,
+          prdDocument,
+          campaignConfig
         });
-
-        console.log('Background: Message sent, files:', messageResponse.files?.length || 0);
-
-        const components = extractComponents(messageResponse);
-        
-        if (pageId) {
-          await saveV0Components(supabaseClient, userId, pageId, {
-            chatId: chat.id,
-            demoUrl: chat.demo,
-            components,
-            files: messageResponse.files,
-            prdDocument,
-            campaignConfig
-          });
-          console.log('Background: Components saved successfully');
-        }
-      } catch (error) {
-        console.error('Background task error:', error);
-        if (pageId) {
-          await supabaseClient
-            .from('generated_pages')
-            .update({
-              content: {
-                chatId: chat.id,
-                demoUrl: chat.demo,
-                error: error instanceof Error ? error.message : 'Generation failed',
-                status: 'error',
-                timestamp: new Date().toISOString()
-              }
-            })
-            .eq('id', pageId);
-        }
+        console.log('Components saved successfully');
       }
-    };
 
-    // Start background task
-    EdgeRuntime.waitUntil(backgroundTask());
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          chatId: chat.id,
+          demoUrl: chat.demo,
+          status: 'completed',
+          componentsCount: messageResponse.files?.length || 0,
+          message: 'Generation completed successfully'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
 
-    // Return immediately with chat info
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        chatId: chat.id,
-        demoUrl: chat.demo,
-        status: 'generating',
-        message: 'Generation started in background'
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    } catch (error) {
+      console.error('v0 generation error:', error);
+      
+      // Save error state
+      if (pageId) {
+        await supabaseClient
+          .from('generated_pages')
+          .update({
+            content: {
+              chatId: chat.id,
+              demoUrl: chat.demo,
+              prdDocument,
+              campaignConfig,
+              error: error instanceof Error ? error.message : 'Generation failed',
+              status: 'error',
+              timestamp: new Date().toISOString()
+            }
+          })
+          .eq('id', pageId);
       }
-    );
+
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          chatId: chat.id,
+          demoUrl: chat.demo,
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Generation failed',
+          message: 'Generation failed - check logs for details'
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
   } catch (error) {
     console.error('Error generating v0 app:', error);
@@ -269,6 +293,7 @@ async function saveV0Components(
         content: {
           ...v0Result,
           generatedWith: 'v0-api',
+          status: 'completed',
           timestamp: new Date().toISOString()
         },
         updated_at: new Date().toISOString()
