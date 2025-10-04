@@ -275,13 +275,16 @@ const MyPages = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
-                        <Link to={`/dashboard/pages/${page.id}`}>
+                        <Link to={`/dashboard/page/${page.id}`}>
                           <Eye className="mr-2 h-4 w-4" />
-                          Preview
+                          View Details
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        
+                        <Link to={`/dashboard/pages/${page.id}`}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDuplicate(page)}>
                         <Copy className="mr-2 h-4 w-4" />
@@ -318,9 +321,9 @@ const MyPages = () => {
                   
                   <div className="flex gap-2 pt-2">
                     <Button variant="outline" size="sm" asChild className="flex-1">
-                      <Link to={`/dashboard/pages/${page.id}`}>
+                      <Link to={`/dashboard/page/${page.id}`}>
                         <Eye className="mr-2 h-3 w-3" />
-                        Preview
+                        View
                       </Link>
                     </Button>
                     <Button variant="outline" size="sm" asChild>

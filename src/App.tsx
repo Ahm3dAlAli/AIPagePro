@@ -17,6 +17,7 @@ import Templates from "./pages/Templates";
 import Experiments from "./pages/Experiments";
 import Campaigns from "./pages/Campaigns";
 import Preview from "./pages/Preview";
+import GeneratedPageView from "./pages/GeneratedPageView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="create" element={<CreatePage />} />
               <Route path="pages" element={<MyPages />} />
               <Route path="pages/:pageId" element={<PageEditor />} />
+              <Route path="page/:id" element={<GeneratedPageView />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="templates" element={<Templates />} />
               <Route path="experiments" element={<Experiments />} />
