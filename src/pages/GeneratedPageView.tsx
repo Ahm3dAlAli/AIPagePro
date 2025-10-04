@@ -24,6 +24,27 @@ export default function GeneratedPageView() {
 
   useEffect(() => {
     fetchPage();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('page-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'generated_pages',
+          filter: `id=eq.${id}`
+        },
+        (payload) => {
+          setPage(payload.new as GeneratedPage);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id]);
 
   const fetchPage = async () => {
@@ -92,6 +113,44 @@ export default function GeneratedPageView() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">Page not found</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show generating state while v0 is working
+  const isGenerating = page.content.status === "generating";
+  
+  if (isGenerating) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/my-pages")}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">{page.title}</h1>
+              <p className="text-sm text-muted-foreground">
+                Generated on {new Date(page.created_at).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="pt-12 pb-12">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <div className="h-3 w-3 rounded-full bg-yellow-500 animate-pulse" />
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-semibold">Generating Your Page</h3>
+                <p className="text-muted-foreground max-w-md">
+                  v0 is creating your landing page with AI. This usually takes 1-2 minutes.
+                  The page will automatically update when complete.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
