@@ -4,24 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { 
-  BarChart3, 
-  Plus, 
-  FileText, 
-  TrendingUp, 
-  Users, 
-  Globe,
-  Zap,
-  Target,
-  Award,
-  ArrowRight,
-  Activity,
-  Clock
-} from 'lucide-react';
+import { BarChart3, Plus, FileText, TrendingUp, Users, Globe, Zap, Target, Award, ArrowRight, Activity, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
 interface DashboardStats {
   totalPages: number;
   thisWeekPages: number;
@@ -30,7 +16,6 @@ interface DashboardStats {
   avgConversionRate: number;
   activeExperiments: number;
 }
-
 interface RecentPage {
   id: string;
   title: string;
@@ -40,10 +25,13 @@ interface RecentPage {
   status: string;
   created_at: string;
 }
-
 const Dashboard = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
     totalPages: 0,
@@ -54,95 +42,81 @@ const Dashboard = () => {
     activeExperiments: 0
   });
   const [recentPages, setRecentPages] = useState<RecentPage[]>([]);
-
   useEffect(() => {
     loadDashboardData();
   }, []);
-
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Get date ranges
       const now = new Date();
       const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
       // Fetch pages count
-      const { data: pagesData, error: pagesError } = await supabase
-        .from('generated_pages')
-        .select('id, created_at')
-        .order('created_at', { ascending: false });
-
+      const {
+        data: pagesData,
+        error: pagesError
+      } = await supabase.from('generated_pages').select('id, created_at').order('created_at', {
+        ascending: false
+      });
       if (pagesError) throw pagesError;
-
       const totalPages = pagesData?.length || 0;
-      const thisWeekPages = pagesData?.filter(page => 
-        new Date(page.created_at) >= oneWeekAgo
-      ).length || 0;
+      const thisWeekPages = pagesData?.filter(page => new Date(page.created_at) >= oneWeekAgo).length || 0;
 
       // Fetch recent pages with analytics
-      const { data: recentPagesData, error: recentError } = await supabase
-        .from('generated_pages')
-        .select(`
+      const {
+        data: recentPagesData,
+        error: recentError
+      } = await supabase.from('generated_pages').select(`
           id,
           title,
           status,
           created_at
-        `)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
+        `).order('created_at', {
+        ascending: false
+      }).limit(5);
       if (recentError) throw recentError;
 
       // Fetch analytics data
-      const { data: analyticsData, error: analyticsError } = await supabase
-        .from('analytics_data')
-        .select('*')
-        .gte('date', oneMonthAgo.toISOString().split('T')[0]);
-
+      const {
+        data: analyticsData,
+        error: analyticsError
+      } = await supabase.from('analytics_data').select('*').gte('date', oneMonthAgo.toISOString().split('T')[0]);
       if (analyticsError) throw analyticsError;
 
       // Calculate metrics
       const totalConversions = analyticsData?.reduce((sum, row) => sum + (row.conversions || 0), 0) || 0;
       const totalSessions = analyticsData?.reduce((sum, row) => sum + (row.sessions || 0), 0) || 0;
-      const avgConversionRate = totalSessions > 0 ? (totalConversions / totalSessions) : 0;
+      const avgConversionRate = totalSessions > 0 ? totalConversions / totalSessions : 0;
 
       // Fetch experiments count
-      const { data: experimentsData, error: experimentsError } = await supabase
-        .from('experiments')
-        .select('id, status')
-        .in('status', ['running', 'active']);
-
+      const {
+        data: experimentsData,
+        error: experimentsError
+      } = await supabase.from('experiments').select('id, status').in('status', ['running', 'active']);
       if (experimentsError) throw experimentsError;
-
       const activeExperiments = experimentsData?.length || 0;
 
       // Process recent pages with their analytics
-      const processedRecentPages = await Promise.all(
-        (recentPagesData || []).map(async (page) => {
-          const { data: pageAnalytics } = await supabase
-            .from('analytics_data')
-            .select('conversions, sessions')
-            .eq('page_id', page.id)
-            .gte('date', oneMonthAgo.toISOString().split('T')[0]);
-
-          const pageConversions = pageAnalytics?.reduce((sum, row) => sum + (row.conversions || 0), 0) || 0;
-          const pageSessions = pageAnalytics?.reduce((sum, row) => sum + (row.sessions || 0), 0) || 0;
-          const pageConversionRate = pageSessions > 0 ? (pageConversions / pageSessions) : 0;
-
-          return {
-            id: page.id,
-            title: page.title,
-            conversions: pageConversions,
-            sessions: pageSessions,
-            conversion_rate: pageConversionRate,
-            status: page.status,
-            created_at: page.created_at
-          };
-        })
-      );
-
+      const processedRecentPages = await Promise.all((recentPagesData || []).map(async page => {
+        const {
+          data: pageAnalytics
+        } = await supabase.from('analytics_data').select('conversions, sessions').eq('page_id', page.id).gte('date', oneMonthAgo.toISOString().split('T')[0]);
+        const pageConversions = pageAnalytics?.reduce((sum, row) => sum + (row.conversions || 0), 0) || 0;
+        const pageSessions = pageAnalytics?.reduce((sum, row) => sum + (row.sessions || 0), 0) || 0;
+        const pageConversionRate = pageSessions > 0 ? pageConversions / pageSessions : 0;
+        return {
+          id: page.id,
+          title: page.title,
+          conversions: pageConversions,
+          sessions: pageSessions,
+          conversion_rate: pageConversionRate,
+          status: page.status,
+          created_at: page.created_at
+        };
+      }));
       setStats({
         totalPages,
         thisWeekPages,
@@ -151,7 +125,6 @@ const Dashboard = () => {
         avgConversionRate,
         activeExperiments
       });
-
       setRecentPages(processedRecentPages);
     } catch (error: any) {
       console.error('Error loading dashboard data:', error);
@@ -164,48 +137,37 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
-
-  const statsCards = [
-    {
-      title: "Pages Generated",
-      value: stats.totalPages.toString(),
-      change: `+${stats.thisWeekPages} this week`,
-      icon: Globe,
-      color: "text-blue-600"
-    },
-    {
-      title: "Total Conversions",
-      value: stats.totalConversions.toLocaleString(),
-      change: `${stats.totalSessions.toLocaleString()} total sessions`,
-      icon: Target,
-      color: "text-green-600"
-    },
-    {
-      title: "Avg. Conversion Rate",
-      value: `${(stats.avgConversionRate * 100).toFixed(1)}%`,
-      change: `Across all pages`,
-      icon: TrendingUp,
-      color: "text-purple-600"
-    },
-    {
-      title: "Active Experiments",
-      value: stats.activeExperiments.toString(),
-      change: "Currently running",
-      icon: BarChart3,
-      color: "text-orange-600"
-    }
-  ];
-
+  const statsCards = [{
+    title: "Pages Generated",
+    value: stats.totalPages.toString(),
+    change: `+${stats.thisWeekPages} this week`,
+    icon: Globe,
+    color: "text-blue-600"
+  }, {
+    title: "Total Conversions",
+    value: stats.totalConversions.toLocaleString(),
+    change: `${stats.totalSessions.toLocaleString()} total sessions`,
+    icon: Target,
+    color: "text-green-600"
+  }, {
+    title: "Avg. Conversion Rate",
+    value: `${(stats.avgConversionRate * 100).toFixed(1)}%`,
+    change: `Across all pages`,
+    icon: TrendingUp,
+    color: "text-purple-600"
+  }, {
+    title: "Active Experiments",
+    value: stats.activeExperiments.toString(),
+    change: "Currently running",
+    icon: BarChart3,
+    color: "text-orange-600"
+  }];
   if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center h-64">
+    return <div className="p-6 flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="p-6 space-y-8">
+  return <div className="p-6 space-y-8">
       {/* Welcome Section */}
       <div>
         <h1 className="text-3xl font-bold">Welcome back, {user?.user_metadata?.full_name || user?.email}!</h1>
@@ -224,9 +186,7 @@ const Dashboard = () => {
               </div>
             </div>
             <h3 className="font-semibold mb-2">Create New Page</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Generate a high-converting landing page with AI
-            </p>
+            
             <Button asChild className="w-full">
               <Link to="/dashboard/create">
                 Start Creating
@@ -244,9 +204,7 @@ const Dashboard = () => {
               </div>
             </div>
             <h3 className="font-semibold mb-2">Browse Templates</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Explore pre-built templates and schemas
-            </p>
+            
             <Button variant="outline" asChild className="w-full">
               <Link to="/dashboard/templates">Browse Library</Link>
             </Button>
@@ -261,9 +219,7 @@ const Dashboard = () => {
               </div>
             </div>
             <h3 className="font-semibold mb-2">View Analytics</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Track performance and conversion metrics
-            </p>
+            
             <Button variant="outline" asChild className="w-full">
               <Link to="/dashboard/analytics">View Reports</Link>
             </Button>
@@ -273,8 +229,7 @@ const Dashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsCards.map((stat, index) => (
-          <Card key={index}>
+        {statsCards.map((stat, index) => <Card key={index}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -287,8 +242,7 @@ const Dashboard = () => {
                 </div>
               </div>
             </CardContent>
-          </Card>
-        ))}
+          </Card>)}
       </div>
 
       {/* Recent Activity */}
@@ -301,9 +255,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentPages.length > 0 ? (
-                recentPages.map((page) => (
-                  <div key={page.id} className="flex items-center justify-between p-3 rounded-lg border">
+              {recentPages.length > 0 ? recentPages.map(page => <div key={page.id} className="flex items-center justify-between p-3 rounded-lg border">
                     <div>
                       <h4 className="font-medium">{page.title}</h4>
                       <p className="text-sm text-muted-foreground">
@@ -321,24 +273,17 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <Badge 
-                        variant={page.status === 'published' ? 'default' : 'secondary'}
-                        className="capitalize"
-                      >
+                      <Badge variant={page.status === 'published' ? 'default' : 'secondary'} className="capitalize">
                         {page.status}
                       </Badge>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
+                  </div>) : <div className="text-center py-8 text-muted-foreground">
                   <Globe className="h-8 w-8 mx-auto mb-2" />
                   <p>No pages created yet</p>
                   <Button asChild className="mt-2" size="sm">
                     <Link to="/dashboard/create">Create Your First Page</Link>
                   </Button>
-                </div>
-              )}
+                </div>}
             </div>
             <div className="mt-4">
               <Button variant="outline" asChild className="w-full">
@@ -358,9 +303,9 @@ const Dashboard = () => {
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span>Conversion Rate Goal (5%)</span>
-                <span>{Math.min(100, (stats.avgConversionRate * 100 * 20)).toFixed(0)}%</span>
+                <span>{Math.min(100, stats.avgConversionRate * 100 * 20).toFixed(0)}%</span>
               </div>
-              <Progress value={Math.min(100, (stats.avgConversionRate * 100 * 20))} className="h-2" />
+              <Progress value={Math.min(100, stats.avgConversionRate * 100 * 20)} className="h-2" />
             </div>
             <div>
               <div className="flex justify-between text-sm mb-2">
@@ -368,9 +313,7 @@ const Dashboard = () => {
                 <span>{stats.activeExperiments} running</span>
               </div>
               <Progress value={Math.min(100, stats.activeExperiments * 20)} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">
-                Keep 3-5 experiments running for optimal testing
-              </p>
+              
             </div>
             <div>
               <div className="flex justify-between text-sm mb-2">
@@ -378,36 +321,26 @@ const Dashboard = () => {
                 <span>{Math.min(100, stats.totalPages * 5).toFixed(0)}%</span>
               </div>
               <Progress value={Math.min(100, stats.totalPages * 5)} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">
-                Goal: 20 pages per month
-              </p>
+              
             </div>
             
             <div className="pt-4 border-t">
               <div className="flex items-center gap-2 text-sm">
                 <Award className="h-4 w-4 text-primary" />
                 <span className="font-medium">
-                  {stats.totalPages >= 10 
-                    ? `🎉 Achievement: Generated ${stats.totalPages} pages!` 
-                    : `Keep going! ${10 - stats.totalPages} more pages to unlock achievement`
-                  }
+                  {stats.totalPages >= 10 ? `🎉 Achievement: Generated ${stats.totalPages} pages!` : `Keep going! ${10 - stats.totalPages} more pages to unlock achievement`}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
                 <Activity className="h-4 w-4" />
                 <span>
-                  {stats.totalConversions > 0 
-                    ? `Total impact: ${stats.totalConversions} conversions generated` 
-                    : "Start generating conversions with your first page"
-                  }
+                  {stats.totalConversions > 0 ? `Total impact: ${stats.totalConversions} conversions generated` : "Start generating conversions with your first page"}
                 </span>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Dashboard;
