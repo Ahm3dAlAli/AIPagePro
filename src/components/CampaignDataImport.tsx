@@ -7,24 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Upload, 
-  FileSpreadsheet, 
-  CheckCircle, 
-  AlertCircle, 
-  Database,
-  TrendingUp,
-  Target,
-  Zap,
-  BarChart3
-} from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Database, TrendingUp, Target, Zap, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
 interface CampaignDataImportProps {
-  onDataImported?: (data: { campaigns: any[]; experiments: any[] }) => void;
+  onDataImported?: (data: {
+    campaigns: any[];
+    experiments: any[];
+  }) => void;
 }
-
 interface ImportInsights {
   avgConversionRate?: string;
   totalSpend?: string;
@@ -37,18 +28,22 @@ interface ImportInsights {
   winRate?: string;
   recommendation?: string;
 }
-
-export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({ onDataImported }) => {
-  const { toast } = useToast();
+export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({
+  onDataImported
+}) => {
+  const {
+    toast
+  } = useToast();
   const [activeTab, setActiveTab] = useState('campaigns');
-  const [uploadedFiles, setUploadedFiles] = useState<{campaigns?: File, experiments?: File}>({});
+  const [uploadedFiles, setUploadedFiles] = useState<{
+    campaigns?: File;
+    experiments?: File;
+  }>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [insights, setInsights] = useState<ImportInsights | null>(null);
-  
   const campaignFileInputRef = useRef<HTMLInputElement>(null);
   const experimentFileInputRef = useRef<HTMLInputElement>(null);
-
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>, type: 'campaigns' | 'experiments') => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -56,7 +51,6 @@ export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({ onDataIm
     // Validate file type
     const validExtensions = ['.csv', '.xlsx', '.xls'];
     const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-    
     if (!validExtensions.includes(fileExtension)) {
       toast({
         title: "Invalid File Type",
@@ -65,32 +59,33 @@ export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({ onDataIm
       });
       return;
     }
-
-    setUploadedFiles(prev => ({ ...prev, [type]: file }));
-    
+    setUploadedFiles(prev => ({
+      ...prev,
+      [type]: file
+    }));
     toast({
       title: "File Selected",
-      description: `${file.name} ready for processing`,
+      description: `${file.name} ready for processing`
     });
 
     // Clear the input
     event.target.value = '';
   };
-
   const processFile = async (file: File, dataType: 'campaigns' | 'experiments') => {
     const fileReader = new FileReader();
-    
-    return new Promise<{ success: boolean; insights?: ImportInsights; stored?: number }>((resolve, reject) => {
+    return new Promise<{
+      success: boolean;
+      insights?: ImportInsights;
+      stored?: number;
+    }>((resolve, reject) => {
       fileReader.onload = async () => {
         try {
           const base64Content = (fileReader.result as string).split(',')[1];
           const fileExtension = file.name.split('.').pop()?.toLowerCase();
-          
           let fileType = 'csv';
           if (fileExtension === 'xlsx' || fileExtension === 'xls') {
             fileType = 'excel';
           }
-
           const response = await supabase.functions.invoke('process-campaign-data', {
             body: {
               fileContent: base64Content,
@@ -99,15 +94,12 @@ export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({ onDataIm
               dataType
             }
           });
-
           if (response.error) {
             throw new Error(response.error.message);
           }
-
           if (!response.data?.success) {
             throw new Error(response.data?.error || 'Processing failed');
           }
-
           resolve({
             success: true,
             insights: response.data.insights,
@@ -117,12 +109,10 @@ export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({ onDataIm
           reject(error);
         }
       };
-      
       fileReader.onerror = () => reject(new Error('Failed to read file'));
       fileReader.readAsDataURL(file);
     });
   };
-
   const handleProcessFiles = async () => {
     if (!uploadedFiles.campaigns && !uploadedFiles.experiments) {
       toast({
@@ -132,49 +122,52 @@ export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({ onDataIm
       });
       return;
     }
-
     setIsProcessing(true);
     setProcessingProgress(0);
-    
     try {
       const filesToProcess = [];
-      if (uploadedFiles.campaigns) filesToProcess.push({ file: uploadedFiles.campaigns, type: 'campaigns' as const });
-      if (uploadedFiles.experiments) filesToProcess.push({ file: uploadedFiles.experiments, type: 'experiments' as const });
-      
+      if (uploadedFiles.campaigns) filesToProcess.push({
+        file: uploadedFiles.campaigns,
+        type: 'campaigns' as const
+      });
+      if (uploadedFiles.experiments) filesToProcess.push({
+        file: uploadedFiles.experiments,
+        type: 'experiments' as const
+      });
       let totalStored = 0;
       let combinedInsights: ImportInsights = {};
-      
       for (let i = 0; i < filesToProcess.length; i++) {
-        const { file, type } = filesToProcess[i];
-        
+        const {
+          file,
+          type
+        } = filesToProcess[i];
         toast({
           title: "Processing",
-          description: `Processing ${type} data from ${file.name}...`,
+          description: `Processing ${type} data from ${file.name}...`
         });
-        
-        setProcessingProgress(((i + 0.5) / filesToProcess.length) * 100);
-        
+        setProcessingProgress((i + 0.5) / filesToProcess.length * 100);
         const result = await processFile(file, type);
-        
         if (result.success) {
           totalStored += result.stored || 0;
-          combinedInsights = { ...combinedInsights, ...result.insights };
+          combinedInsights = {
+            ...combinedInsights,
+            ...result.insights
+          };
         }
-        
-        setProcessingProgress(((i + 1) / filesToProcess.length) * 100);
+        setProcessingProgress((i + 1) / filesToProcess.length * 100);
       }
-      
       setInsights(combinedInsights);
       setUploadedFiles({});
-      
       toast({
         title: "Processing Complete!",
-        description: `Successfully processed and stored ${totalStored} records. View insights below.`,
+        description: `Successfully processed and stored ${totalStored} records. View insights below.`
       });
-      
+
       // Notify parent component
-      onDataImported?.({ campaigns: [], experiments: [] });
-      
+      onDataImported?.({
+        campaigns: [],
+        experiments: []
+      });
     } catch (error: any) {
       console.error('Processing error:', error);
       toast({
@@ -187,46 +180,32 @@ export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({ onDataIm
       setProcessingProgress(0);
     }
   };
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Insights Display */}
-      {insights && (
-        <Alert className="border-green-200 bg-green-50">
+      {insights && <Alert className="border-green-200 bg-green-50">
           <CheckCircle className="h-5 w-5 text-green-600" />
           <AlertDescription className="text-green-800">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-              {insights.totalCampaigns && (
-                <div>
+              {insights.totalCampaigns && <div>
                   <p className="text-xs font-medium">Campaigns</p>
                   <p className="text-lg font-bold">{insights.totalCampaigns}</p>
-                </div>
-              )}
-              {insights.avgConversionRate && (
-                <div>
+                </div>}
+              {insights.avgConversionRate && <div>
                   <p className="text-xs font-medium">Avg CVR</p>
                   <p className="text-lg font-bold">{insights.avgConversionRate}</p>
-                </div>
-              )}
-              {insights.totalExperiments && (
-                <div>
+                </div>}
+              {insights.totalExperiments && <div>
                   <p className="text-xs font-medium">A/B Tests</p>
                   <p className="text-lg font-bold">{insights.totalExperiments}</p>
-                </div>
-              )}
-              {insights.avgUplift && (
-                <div>
+                </div>}
+              {insights.avgUplift && <div>
                   <p className="text-xs font-medium">Avg Uplift</p>
                   <p className="text-lg font-bold">{insights.avgUplift}</p>
-                </div>
-              )}
+                </div>}
             </div>
-            {insights.recommendation && (
-              <p className="mt-3 text-sm font-medium">💡 {insights.recommendation}</p>
-            )}
+            {insights.recommendation && <p className="mt-3 text-sm font-medium">💡 {insights.recommendation}</p>}
           </AlertDescription>
-        </Alert>
-      )}
+        </Alert>}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
@@ -236,40 +215,19 @@ export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({ onDataIm
         
         <TabsContent value="campaigns" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-blue-600" />
-                Upload Campaign Performance Data
-              </CardTitle>
-              <CardDescription>
-                Import your historical campaign data in CSV or Excel format for AI-powered insights
-              </CardDescription>
-            </CardHeader>
+            
             <CardContent className="space-y-4">
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
                 <FileSpreadsheet className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                <Input
-                  ref={campaignFileInputRef}
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={(e) => handleFileSelect(e, 'campaigns')}
-                  className="hidden"
-                  disabled={isProcessing}
-                />
-                <Button
-                  onClick={() => campaignFileInputRef.current?.click()}
-                  variant="outline"
-                  disabled={isProcessing}
-                >
+                <Input ref={campaignFileInputRef} type="file" accept=".csv,.xlsx,.xls" onChange={e => handleFileSelect(e, 'campaigns')} className="hidden" disabled={isProcessing} />
+                <Button onClick={() => campaignFileInputRef.current?.click()} variant="outline" disabled={isProcessing}>
                   <Upload className="h-4 w-4 mr-2" />
                   Select Campaign File
                 </Button>
-                {uploadedFiles.campaigns && (
-                  <div className="mt-3 flex items-center justify-center gap-2 text-sm text-green-600">
+                {uploadedFiles.campaigns && <div className="mt-3 flex items-center justify-center gap-2 text-sm text-green-600">
                     <CheckCircle className="h-4 w-4" />
                     {uploadedFiles.campaigns.name}
-                  </div>
-                )}
+                  </div>}
               </div>
               
               <div className="text-sm text-muted-foreground">
@@ -288,40 +246,19 @@ export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({ onDataIm
         
         <TabsContent value="experiments" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-purple-600" />
-                Upload A/B Test Results
-              </CardTitle>
-              <CardDescription>
-                Import experiment results to understand what optimizations work best
-              </CardDescription>
-            </CardHeader>
+            
             <CardContent className="space-y-4">
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors">
                 <BarChart3 className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                <Input
-                  ref={experimentFileInputRef}
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={(e) => handleFileSelect(e, 'experiments')}
-                  className="hidden"
-                  disabled={isProcessing}
-                />
-                <Button
-                  onClick={() => experimentFileInputRef.current?.click()}
-                  variant="outline"
-                  disabled={isProcessing}
-                >
+                <Input ref={experimentFileInputRef} type="file" accept=".csv,.xlsx,.xls" onChange={e => handleFileSelect(e, 'experiments')} className="hidden" disabled={isProcessing} />
+                <Button onClick={() => experimentFileInputRef.current?.click()} variant="outline" disabled={isProcessing}>
                   <Upload className="h-4 w-4 mr-2" />
                   Select Experiment File
                 </Button>
-                {uploadedFiles.experiments && (
-                  <div className="mt-3 flex items-center justify-center gap-2 text-sm text-green-600">
+                {uploadedFiles.experiments && <div className="mt-3 flex items-center justify-center gap-2 text-sm text-green-600">
                     <CheckCircle className="h-4 w-4" />
                     {uploadedFiles.experiments.name}
-                  </div>
-                )}
+                  </div>}
               </div>
               
               <div className="text-sm text-muted-foreground">
@@ -340,8 +277,7 @@ export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({ onDataIm
       </Tabs>
 
       {/* Processing Status */}
-      {isProcessing && (
-        <Card>
+      {isProcessing && <Card>
           <CardContent className="p-6">
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
@@ -351,24 +287,15 @@ export const CampaignDataImport: React.FC<CampaignDataImportProps> = ({ onDataIm
               <Progress value={processingProgress} />
             </div>
           </CardContent>
-        </Card>
-      )}
+        </Card>}
 
       {/* Process Button */}
-      {(uploadedFiles.campaigns || uploadedFiles.experiments) && !isProcessing && (
-        <div className="flex justify-end">
-          <Button 
-            onClick={handleProcessFiles}
-            size="lg"
-            className="bg-blue-600 hover:bg-blue-700"
-          >
+      {(uploadedFiles.campaigns || uploadedFiles.experiments) && !isProcessing && <div className="flex justify-end">
+          <Button onClick={handleProcessFiles} size="lg" className="bg-blue-600 hover:bg-blue-700">
             <Zap className="h-4 w-4 mr-2" />
             Process & Generate Insights
           </Button>
-        </div>
-      )}
-    </div>
-  );
+        </div>}
+    </div>;
 };
-
 export default CampaignDataImport;

@@ -7,35 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import CampaignDataImport from '@/components/CampaignDataImport';
 import DataDrivenInsights from '@/components/DataDrivenInsights';
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import { 
-  Rocket,
-  Play,
-  Pause,
-  Eye,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  Users,
-  Target,
-  DollarSign,
-  Plus,
-  Search,
-  Filter,
-  BarChart3,
-  Activity,
-  Database
-} from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Rocket, Play, Pause, Eye, TrendingUp, TrendingDown, Calendar, Users, Target, DollarSign, Plus, Search, Filter, BarChart3, Activity, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
 interface Campaign {
   id: string;
   name: string;
@@ -47,7 +22,6 @@ interface Campaign {
   created_at: string;
   updated_at: string;
 }
-
 interface HistoricCampaign {
   id: string;
   campaign_name: string;
@@ -64,27 +38,29 @@ interface HistoricCampaign {
   created_at: string;
   [key: string]: any; // Allow additional properties from database
 }
-
 const Campaigns = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const [loading, setLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [historicCampaigns, setHistoricCampaigns] = useState<HistoricCampaign[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-
   useEffect(() => {
     loadCampaigns();
     loadHistoricCampaigns();
   }, []);
-
   const loadCampaigns = async () => {
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('campaigns').select('*').order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
       setCampaigns(data || []);
     } catch (error: any) {
@@ -96,16 +72,15 @@ const Campaigns = () => {
       });
     }
   };
-
   const loadHistoricCampaigns = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('historic_campaigns')
-        .select('*')
-        .order('campaign_date', { ascending: false })
-        .limit(50);
-
+      const {
+        data,
+        error
+      } = await supabase.from('historic_campaigns').select('*').order('campaign_date', {
+        ascending: false
+      }).limit(50);
       if (error) throw error;
       setHistoricCampaigns(data || []);
     } catch (error: any) {
@@ -119,53 +94,44 @@ const Campaigns = () => {
       setLoading(false);
     }
   };
-
-  const handleDataImported = (data: { campaigns: any[]; experiments: any[] }) => {
+  const handleDataImported = (data: {
+    campaigns: any[];
+    experiments: any[];
+  }) => {
     toast({
       title: "Data Imported",
-      description: "Your campaign data has been processed successfully.",
+      description: "Your campaign data has been processed successfully."
     });
-    
+
     // Reload campaigns to show newly imported data
     loadHistoricCampaigns();
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'paused': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800';
+      case 'paused':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
-
-  const filteredCampaigns = campaigns.filter(campaign =>
-    campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    campaign.objective.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredHistoricCampaigns = historicCampaigns.filter(campaign =>
-    campaign.campaign_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCampaigns = campaigns.filter(campaign => campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) || campaign.objective.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredHistoricCampaigns = historicCampaigns.filter(campaign => campaign.campaign_name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   // Calculate summary stats
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
   const totalSpend = historicCampaigns.reduce((sum, c) => sum + (c.total_spend || 0), 0);
   const totalConversions = historicCampaigns.reduce((sum, c) => sum + (c.primary_conversions || c.conversions || 0), 0);
-  const avgConversionRate = historicCampaigns.length > 0 
-    ? historicCampaigns.reduce((sum, c) => sum + (c.primary_conversion_rate || 0), 0) / historicCampaigns.length 
-    : 0;
-
+  const avgConversionRate = historicCampaigns.length > 0 ? historicCampaigns.reduce((sum, c) => sum + (c.primary_conversion_rate || 0), 0) / historicCampaigns.length : 0;
   if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center h-64">
+    return <div className="p-6 flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="p-6 space-y-6">
+  return <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -228,11 +194,7 @@ const Campaigns = () => {
                 <p className="text-sm font-medium text-muted-foreground">Avg. Conv. Rate</p>
                 <p className="text-2xl font-bold">{(avgConversionRate * 100).toFixed(1)}%</p>
                 <div className="flex items-center mt-1">
-                  {avgConversionRate > 0.02 ? (
-                    <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
-                  )}
+                  {avgConversionRate > 0.02 ? <TrendingUp className="h-3 w-3 text-green-600 mr-1" /> : <TrendingDown className="h-3 w-3 text-red-600 mr-1" />}
                   <p className="text-xs text-muted-foreground">Performance</p>
                 </div>
               </div>
@@ -246,12 +208,7 @@ const Campaigns = () => {
       <div className="flex gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search campaigns..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+          <Input placeholder="Search campaigns..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
         </div>
         <Button variant="outline">
           <Filter className="h-4 w-4 mr-2" />
@@ -277,8 +234,7 @@ const Campaigns = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {filteredCampaigns.length > 0 ? (
-                <Table>
+              {filteredCampaigns.length > 0 ? <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Campaign</TableHead>
@@ -290,8 +246,7 @@ const Campaigns = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredCampaigns.map((campaign) => (
-                      <TableRow key={campaign.id}>
+                    {filteredCampaigns.map(campaign => <TableRow key={campaign.id}>
                         <TableCell>
                           <div>
                             <p className="font-medium">{campaign.name}</p>
@@ -324,33 +279,23 @@ const Campaigns = () => {
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button variant="outline" size="sm">
-                              {campaign.status === 'active' ? (
-                                <Pause className="h-4 w-4" />
-                              ) : (
-                                <Play className="h-4 w-4" />
-                              )}
+                              {campaign.status === 'active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                             </Button>
                           </div>
                         </TableCell>
-                      </TableRow>
-                    ))}
+                      </TableRow>)}
                   </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8">
+                </Table> : <div className="text-center py-8">
                   <Rocket className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No campaigns found</h3>
                   <p className="text-muted-foreground mb-4">
                     {searchQuery ? 'Try adjusting your search terms' : 'Create your first campaign to get started'}
                   </p>
-                  {!searchQuery && (
-                    <Button>
+                  {!searchQuery && <Button>
                       <Plus className="h-4 w-4 mr-2" />
                       Create Campaign
-                    </Button>
-                  )}
-                </div>
-              )}
+                    </Button>}
+                </div>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -364,8 +309,7 @@ const Campaigns = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {filteredHistoricCampaigns.length > 0 ? (
-                <Table>
+              {filteredHistoricCampaigns.length > 0 ? <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Campaign</TableHead>
@@ -379,8 +323,7 @@ const Campaigns = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredHistoricCampaigns.map((campaign) => (
-                      <TableRow key={campaign.id}>
+                    {filteredHistoricCampaigns.map(campaign => <TableRow key={campaign.id}>
                         <TableCell>
                           <p className="font-medium">{campaign.campaign_name}</p>
                         </TableCell>
@@ -401,11 +344,7 @@ const Campaigns = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">
-                            {(campaign.primary_conversion_rate || 0) > 0.02 ? (
-                              <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
-                            ) : (
-                              <TrendingDown className="h-4 w-4 text-red-600 mr-1" />
-                            )}
+                            {(campaign.primary_conversion_rate || 0) > 0.02 ? <TrendingUp className="h-4 w-4 text-green-600 mr-1" /> : <TrendingDown className="h-4 w-4 text-red-600 mr-1" />}
                             <span className={(campaign.primary_conversion_rate || 0) > 0.02 ? 'text-green-600' : 'text-red-600'}>
                               {((campaign.primary_conversion_rate || 0) * 100).toFixed(1)}%
                             </span>
@@ -425,44 +364,31 @@ const Campaigns = () => {
                             <Badge variant="outline" className="text-xs">
                               {campaign.utm_source || 'Direct'}
                             </Badge>
-                            {campaign.utm_medium && (
-                              <span className="text-xs text-muted-foreground mt-1">
+                            {campaign.utm_medium && <span className="text-xs text-muted-foreground mt-1">
                                 {campaign.utm_medium}
-                              </span>
-                            )}
+                              </span>}
                           </div>
                         </TableCell>
-                      </TableRow>
-                    ))}
+                      </TableRow>)}
                   </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8">
+                </Table> : <div className="text-center py-8">
                   <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No performance data</h3>
                   <p className="text-muted-foreground mb-4">
                     {searchQuery ? 'No campaigns match your search' : 'Import historic campaign data to see performance metrics'}
                   </p>
-                  {!searchQuery && (
-                    <Button variant="outline">
+                  {!searchQuery && <Button variant="outline">
                       <Activity className="h-4 w-4 mr-2" />
                       Import Data
-                    </Button>
-                  )}
-                </div>
-              )}
+                    </Button>}
+                </div>}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="import" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Import Campaign & Experiment Data</CardTitle>
-              <CardDescription>
-                Upload XLSX or CSV files with your campaign performance and A/B test data
-              </CardDescription>
-            </CardHeader>
+            
             <CardContent>
               <CampaignDataImport onDataImported={handleDataImported} />
             </CardContent>
@@ -480,8 +406,7 @@ const Campaigns = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {campaigns.filter(c => c.status === 'completed').length > 0 ? (
-                <Table>
+              {campaigns.filter(c => c.status === 'completed').length > 0 ? <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Campaign</TableHead>
@@ -493,8 +418,7 @@ const Campaigns = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {campaigns.filter(c => c.status === 'completed').map((campaign) => (
-                      <TableRow key={campaign.id}>
+                    {campaigns.filter(c => c.status === 'completed').map(campaign => <TableRow key={campaign.id}>
                         <TableCell>
                           <div>
                             <p className="font-medium">{campaign.name}</p>
@@ -526,25 +450,19 @@ const Campaigns = () => {
                             View Report
                           </Button>
                         </TableCell>
-                      </TableRow>
-                    ))}
+                      </TableRow>)}
                   </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8">
+                </Table> : <div className="text-center py-8">
                   <Rocket className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No archived campaigns</h3>
                   <p className="text-muted-foreground">
                     Completed campaigns will appear here
                   </p>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
-  );
+    </div>;
 };
-
 export default Campaigns;
