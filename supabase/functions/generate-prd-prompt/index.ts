@@ -390,6 +390,15 @@ ${historicData.experimentInsights.map((exp: any, i: number) =>
   `${i + 1}. ${exp.hypothesis} (${exp.uplift}% uplift) - Apply winning variant`
 ).join('\n')}
 
+## Image Generation Requirements
+IMPORTANT: Generate contextual, high-quality images that align with the campaign:
+- **Hero Image**: Create a compelling, photorealistic hero image representing ${config.productServiceName} for ${config.targetAudience}. Style: ${config.toneOfVoice}, using colors: ${config.brandColorPalette.join(', ')}
+- **Feature Visuals**: Generate relevant images/illustrations for each feature showing it in action
+- **Benefit Graphics**: Create supporting visuals that illustrate each key benefit
+- **Background Elements**: Design subtle background patterns/graphics using brand colors
+- **CTA Supporting Visuals**: Generate imagery that draws attention to calls-to-action
+- All generated images must maintain consistent style, color scheme (${config.brandColorPalette.join(', ')}), and tone (${config.toneOfVoice})
+
 ## Page Structure & Components
 
 ### 1. Hero Section
@@ -397,16 +406,18 @@ Use: \`<Card>\`, \`<Button>\`, \`<Badge>\`
 - Compelling headline: "${config.uniqueValueProp}"
 - Subheadline targeting ${config.targetAudience}
 - Primary CTA: "${config.primaryCtaText}"
-- Hero image/illustration
+- **GENERATE HERO IMAGE**: High-impact visual showing ${config.productServiceName} in action for ${config.targetAudience}
 - Trust badges: ${config.trustIndicators.join(', ')}
 
 ### 2. Benefits Section
 Use: \`<Card>\`, Lucide icons
-${config.topBenefits.map((benefit, i) => `${i + 1}. ${benefit}`).join('\n')}
+**GENERATE supporting visuals for each benefit:**
+${config.topBenefits.map((benefit, i) => `${i + 1}. ${benefit} (generate relevant illustration)`).join('\n')}
 
 ### 3. Features Section
 Use: \`<Accordion>\` or \`<Tabs>\`
-${config.featureList.map((feature, i) => `${i + 1}. ${feature}`).join('\n')}
+**GENERATE feature visuals showing each in action:**
+${config.featureList.map((feature, i) => `${i + 1}. ${feature} (generate supporting visual)`).join('\n')}
 
 ### 4. Social Proof Section
 Use: \`<Card>\`, \`<Avatar>\`
