@@ -409,10 +409,7 @@ const CreatePage = () => {
         {/* SEO & Technical */}
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-orange-600" />
-              <CardTitle>SEO & Technical Settings</CardTitle>
-            </div>
+            
             <CardDescription>
               Optimize your page for search engines and user experience
             </CardDescription>
