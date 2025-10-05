@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient as createSupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { V0 } from 'https://esm.sh/v0-sdk@0.14.0';
+import v0 from 'https://esm.sh/v0-sdk@0.14.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,7 +29,7 @@ serve(async (req) => {
     }
 
     // Initialize v0 client with API key
-    const v0Client = new V0({ apiKey: V0_API_KEY });
+    const v0Client = v0.configure({ apiKey: V0_API_KEY });
 
     const supabaseClient = createSupabaseClient(
       Deno.env.get('SUPABASE_URL') ?? '',
