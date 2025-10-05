@@ -159,28 +159,8 @@ const CreatePage = () => {
         description: `Based on ${prdData.historicDataSummary.campaignCount} campaigns and ${prdData.historicDataSummary.experimentCount} experiments.`
       });
 
-      // STEP 2: Generate v0 Components
+      // STEP 2: Save to database first to get page ID
       setGenerationStep('components');
-      toast({
-        title: "Step 2/2: Generating Components",
-        description: "Using v0 API to create production-ready React components with Shadcn UI..."
-      });
-      const {
-        data: v0Data,
-        error: v0Error
-      } = await supabase.functions.invoke('generate-v0-app', {
-        body: {
-          engineeringPrompt: prdData.engineeringPrompt,
-          prdDocument: prdData.prdDocument,
-          campaignConfig
-        }
-      });
-      if (v0Error) throw v0Error;
-      if (!v0Data.success) {
-        throw new Error('Failed to generate v0 components');
-      }
-
-      // STEP 3: Save to database and navigate
       const pageTitle = formData.pageTitle || `Landing Page - ${new Date().toISOString()}`;
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -191,12 +171,10 @@ const CreatePage = () => {
           title: pageTitle,
           slug: `page-${Date.now()}`,
           content: {
-            chatId: v0Data.v0Data?.chatId,
-            demoUrl: v0Data.v0Data?.demoUrl,
             prdDocument: prdData.prdDocument,
             engineeringPrompt: prdData.engineeringPrompt,
             campaignConfig,
-            status: 'completed'
+            status: 'generating'
           },
           status: 'draft',
           ai_rationale: JSON.stringify(prdData.prdDocument)
@@ -205,6 +183,28 @@ const CreatePage = () => {
         .single();
 
       if (saveError) throw saveError;
+
+      // STEP 3: Generate v0 Components with page ID
+      toast({
+        title: "Step 2/2: Generating Components",
+        description: "Using v0 API to create production-ready React components with Shadcn UI..."
+      });
+      
+      const {
+        data: v0Data,
+        error: v0Error
+      } = await supabase.functions.invoke('generate-v0-app', {
+        body: {
+          engineeringPrompt: prdData.engineeringPrompt,
+          prdDocument: prdData.prdDocument,
+          campaignConfig,
+          pageId: savedPage.id
+        }
+      });
+      if (v0Error) throw v0Error;
+      if (!v0Data.success) {
+        throw new Error('Failed to generate v0 components');
+      }
 
       setGenerationStep('complete');
       toast({

@@ -9,8 +9,10 @@ const corsHeaders = {
 };
 
 interface GenerateRequest {
+  engineeringPrompt: string;
+  prdDocument: any;
   campaignConfig: any;
-  pageId: string;
+  pageId?: string;
 }
 
 serve(async (req) => {
@@ -58,28 +60,14 @@ serve(async (req) => {
       userId = '00000000-0000-0000-0000-000000000000';
     }
 
-    const { campaignConfig, pageId } = await req.json() as GenerateRequest;
+    const { engineeringPrompt, prdDocument, campaignConfig, pageId } = await req.json() as GenerateRequest;
     
-    console.log('Step 1: Calling PRD generation function...');
-    
-    // Call the generate-prd-prompt function to get PRD and engineering prompt
-    const prdResponse = await supabaseClient.functions.invoke('generate-prd-prompt', {
-      body: { campaignConfig }
-    });
-
-    if (prdResponse.error) {
-      console.error('PRD generation error:', prdResponse.error);
-      throw new Error(`Failed to generate PRD: ${prdResponse.error.message}`);
+    if (!engineeringPrompt) {
+      throw new Error('Engineering prompt is required');
     }
 
-    const { prdDocument, engineeringPrompt } = prdResponse.data;
-    
-    if (!prdDocument || !engineeringPrompt) {
-      throw new Error('PRD or engineering prompt not generated');
-    }
-
-    console.log('PRD generated successfully');
-    console.log('Engineering prompt length:', engineeringPrompt?.length || 0);
+    console.log('Received engineering prompt, length:', engineeringPrompt?.length || 0);
+    console.log('Page ID:', pageId || 'none');
     
     console.log('Step 2: Initializing v0 chat with context files...');
     
