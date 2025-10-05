@@ -235,6 +235,48 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     );
   }
 
+  if (analytics.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold">Analytics Dashboard</h2>
+          <p className="text-muted-foreground">
+            Deploy your pages to Vercel to start tracking user behavior
+          </p>
+        </div>
+        <Card className="p-12">
+          <div className="text-center space-y-4">
+            <BarChart3 className="h-16 w-16 mx-auto text-muted-foreground" />
+            <div>
+              <h3 className="text-xl font-semibold mb-2">No Analytics Data Yet</h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Once you deploy a page to Vercel, we'll automatically track:
+              </p>
+              <ul className="text-sm text-muted-foreground mt-4 space-y-2 max-w-md mx-auto text-left">
+                <li className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  Page views and unique visitors
+                </li>
+                <li className="flex items-center gap-2">
+                  <MousePointer className="h-4 w-4" />
+                  CTA clicks and button interactions
+                </li>
+                <li className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Form submissions and conversions
+                </li>
+                <li className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Time on page and engagement metrics
+                </li>
+              </ul>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -242,7 +284,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         <div>
           <h2 className="text-2xl font-bold">Analytics Dashboard</h2>
           <p className="text-muted-foreground">
-            Performance insights and AI-powered recommendations
+            {analytics.length === 0 
+              ? 'Deploy your pages to Vercel to start tracking user behavior and conversions'
+              : 'Real-time performance insights and AI-powered recommendations'}
           </p>
         </div>
         <div className="flex gap-2">
