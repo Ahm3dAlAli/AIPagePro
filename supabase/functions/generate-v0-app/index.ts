@@ -28,10 +28,6 @@ serve(async (req) => {
       throw new Error('V0_API_KEY is not configured');
     }
 
-    // Initialize v0 SDK (automatically uses V0_API_KEY env var)
-    // But we set it explicitly for clarity
-    const v0Client = v0;
-
     const supabaseClient = createSupabaseClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -77,7 +73,7 @@ serve(async (req) => {
       : prdDocument?.content || JSON.stringify(prdDocument, null, 2);
     const campaignContent = JSON.stringify(campaignConfig, null, 2);
     
-    const chat = await v0Client.chats.init({
+    const chat = await v0.chats.init({
       type: 'files',
       files: [
         {
@@ -123,7 +119,7 @@ serve(async (req) => {
       try {
         console.log('Sending engineering prompt to v0...');
         
-        const messageResponse = await v0Client.chats.sendMessage({
+        const messageResponse = await v0.chats.sendMessage({
           chatId: chat.id,
           message: engineeringPrompt,
         });

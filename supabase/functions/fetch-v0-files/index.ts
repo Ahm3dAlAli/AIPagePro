@@ -58,11 +58,8 @@ serve(async (req) => {
     
     console.log('Fetching files from v0 chat:', chatId);
     
-    // Initialize v0 SDK (uses V0_API_KEY env var automatically)
-    const v0Client = v0;
-
     // Get chat details which includes all messages and files
-    const chat = await v0Client.chats.get(chatId);
+    const chat = await v0.chats.get(chatId);
     
     console.log('Chat retrieved:', chat.id);
     console.log('Messages count:', chat.messages?.length || 0);
