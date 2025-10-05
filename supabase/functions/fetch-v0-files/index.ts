@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient as createSupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import v0 from 'https://esm.sh/v0-sdk@0.14.0';
+import { v0 } from 'https://esm.sh/v0-sdk@0.14.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,12 +57,10 @@ serve(async (req) => {
     const { pageId, chatId } = await req.json() as FetchRequest;
     
     console.log('Fetching files from v0 chat:', chatId);
-    
-    // Initialize v0 client with API key
-    const v0Client = v0.configure({ apiKey: V0_API_KEY });
+    console.log('Using v0 API key:', V0_API_KEY ? 'configured' : 'missing');
     
     // Get chat details which includes all messages and files
-    const chat = await v0Client.chats.get(chatId);
+    const chat = await v0.chats.get(chatId);
     
     console.log('Chat retrieved:', chat.id);
     console.log('Messages count:', chat.messages?.length || 0);

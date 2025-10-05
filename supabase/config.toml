@@ -78,3 +78,6 @@ verify_jwt = true
 
 [functions.process-campaign-data]
 verify_jwt = true
+
+[functions.track-v0-generation]
+verify_jwt = true
