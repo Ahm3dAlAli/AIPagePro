@@ -116,122 +116,104 @@ serve(async (req) => {
         .eq('id', pageId);
     }
 
-    // Send message to v0 and wait for response (with 10 minute timeout)
-    console.log('Sending engineering prompt to v0...');
+    // Start v0 generation in background - return immediately to avoid timeout
+    console.log('Starting v0 generation in background...');
     
-    const timeoutMs = 10 * 60 * 1000; // 10 minutes
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('v0 generation timeout after 10 minutes')), timeoutMs);
-    });
-
-    try {
-      const messageResponse = await Promise.race([
-        v0Client.chats.sendMessage({
+    const backgroundGeneration = async () => {
+      try {
+        console.log('Sending engineering prompt to v0...');
+        
+        const messageResponse = await v0Client.chats.sendMessage({
           chatId: chat.id,
           message: engineeringPrompt,
-        }),
-        timeoutPromise
-      ]) as any;
-
-      console.log('v0 generation complete!');
-      console.log('Files generated:', messageResponse.files?.length || 0);
-      
-      // Log file details for debugging
-      if (messageResponse.files) {
-        messageResponse.files.forEach((file: any, idx: number) => {
-          console.log(`File ${idx + 1}: ${file.name} (${file.language || 'unknown'})`);
         });
-      }
 
-      // Inject analytics and A/B test tracking into generated files
-      const trackingScript = generateTrackingScript(pageId);
-      const enhancedFiles = injectTracking(messageResponse.files || [], trackingScript, pageId);
-      messageResponse.files = enhancedFiles;
-
-      const components = extractComponents(messageResponse);
-      
-      if (pageId) {
-        await saveV0Components(supabaseClient, userId, pageId, {
-          chatId: chat.id,
-          demoUrl: chat.demo,
-          components,
-          files: messageResponse.files,
-          prdDocument,
-          campaignConfig
-        });
-        console.log('Components saved successfully');
-
-        // Now fetch all files from v0 and store them properly
-        console.log('Fetching all files from v0 chat...');
-        try {
-          const fetchResult = await supabaseClient.functions.invoke('fetch-v0-files', {
-            body: { 
-              pageId: pageId,
-              chatId: chat.id 
-            }
+        console.log('v0 generation complete!');
+        console.log('Files generated:', messageResponse.files?.length || 0);
+        
+        // Log file details for debugging
+        if (messageResponse.files) {
+          messageResponse.files.forEach((file: any, idx: number) => {
+            console.log(`File ${idx + 1}: ${file.name} (${file.language || 'unknown'})`);
           });
-
-          if (fetchResult.error) {
-            console.error('Error fetching v0 files:', fetchResult.error);
-          } else {
-            console.log('Successfully fetched and stored files:', fetchResult.data);
-          }
-        } catch (fetchError) {
-          console.error('Failed to invoke fetch-v0-files:', fetchError);
-          // Don't fail the whole request if file fetching fails
         }
-      }
 
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          chatId: chat.id,
-          demoUrl: chat.demo,
-          status: 'completed',
-          componentsCount: messageResponse.files?.length || 0,
-          message: 'Generation completed successfully'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+        // Inject analytics and A/B test tracking into generated files
+        const trackingScript = generateTrackingScript(pageId);
+        const enhancedFiles = injectTracking(messageResponse.files || [], trackingScript, pageId);
+        messageResponse.files = enhancedFiles;
 
-    } catch (error) {
-      console.error('v0 generation error:', error);
-      
-      // Save error state
-      if (pageId) {
-        await supabaseClient
-          .from('generated_pages')
-          .update({
-            content: {
-              chatId: chat.id,
-              demoUrl: chat.demo,
-              prdDocument,
-              campaignConfig,
-              error: error instanceof Error ? error.message : 'Generation failed',
-              status: 'error',
-              timestamp: new Date().toISOString()
+        const components = extractComponents(messageResponse);
+        
+        if (pageId) {
+          await saveV0Components(supabaseClient, userId, pageId, {
+            chatId: chat.id,
+            demoUrl: chat.demo,
+            components,
+            files: messageResponse.files,
+            prdDocument,
+            campaignConfig
+          });
+          console.log('Components saved successfully');
+
+          // Now fetch all files from v0 and store them properly
+          console.log('Fetching all files from v0 chat...');
+          try {
+            const fetchResult = await supabaseClient.functions.invoke('fetch-v0-files', {
+              body: { 
+                pageId: pageId,
+                chatId: chat.id 
+              }
+            });
+
+            if (fetchResult.error) {
+              console.error('Error fetching v0 files:', fetchResult.error);
+            } else {
+              console.log('Successfully fetched and stored files:', fetchResult.data);
             }
-          })
-          .eq('id', pageId);
-      }
-
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          chatId: chat.id,
-          demoUrl: chat.demo,
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Generation failed',
-          message: 'Generation failed - check logs for details'
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          } catch (fetchError) {
+            console.error('Failed to invoke fetch-v0-files:', fetchError);
+          }
         }
-      );
-    }
+      } catch (error) {
+        console.error('Background v0 generation error:', error);
+        
+        // Save error state
+        if (pageId) {
+          await supabaseClient
+            .from('generated_pages')
+            .update({
+              content: {
+                chatId: chat.id,
+                demoUrl: chat.demo,
+                prdDocument,
+                campaignConfig,
+                error: error instanceof Error ? error.message : 'Generation failed',
+                status: 'error',
+                timestamp: new Date().toISOString()
+              }
+            })
+            .eq('id', pageId);
+        }
+      }
+    };
+
+    // Start background task
+    EdgeRuntime.waitUntil(backgroundGeneration());
+
+    // Return immediately with chat info
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        chatId: chat.id,
+        demoUrl: chat.demo,
+        status: 'generating',
+        message: 'Generation started - will complete in background'
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
 
   } catch (error) {
     console.error('Error generating v0 app:', error);

@@ -57,7 +57,16 @@ export default function GeneratedPageView() {
           filter: `id=eq.${id}`
         },
         (payload) => {
-          setPage(payload.new as GeneratedPage);
+          const newPage = payload.new as GeneratedPage;
+          setPage(newPage);
+          
+          // If status changed from generating to completed, show success message and refetch components
+          if (newPage.content?.status === 'completed') {
+            toast.success("Generation Complete! Your landing page components are ready.");
+            fetchComponentExports();
+          } else if (newPage.content?.status === 'error') {
+            toast.error("Generation failed. Please try again.");
+          }
         }
       )
       .subscribe();

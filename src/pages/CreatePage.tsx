@@ -202,20 +202,15 @@ const CreatePage = () => {
         }
       });
       if (v0Error) throw v0Error;
-      if (!v0Data.success) {
-        throw new Error('Failed to generate v0 components');
-      }
 
       setGenerationStep('complete');
       toast({
-        title: "🎉 Page Generated Successfully!",
-        description: "Redirecting to page view..."
+        title: "Generation Started!",
+        description: "Your landing page is being generated in the background. You'll be able to view it shortly."
       });
 
-      // Navigate to the generated page view
-      setTimeout(() => {
-        navigate(`/dashboard/page/${savedPage.id}`);
-      }, 1000);
+      // Navigate to the generated page view immediately
+      navigate(`/dashboard/generated-page/${savedPage.id}`);
     } catch (error: any) {
       console.error('Generation error:', error);
       toast({
