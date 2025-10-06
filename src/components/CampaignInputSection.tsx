@@ -4,47 +4,30 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Sparkles, 
-  Target, 
-  Users, 
-  MessageSquare, 
-  Palette,
-  BarChart3,
-  FileText,
-  Rocket
-} from "lucide-react";
-
-const inputCategories = [
-  {
-    icon: Target,
-    title: "Campaign Objectives",
-    fields: ["Primary Conversion KPI", "Target Audience", "Product/Service Name"],
-    color: "text-primary"
-  },
-  {
-    icon: MessageSquare,
-    title: "Content & Messaging",
-    fields: ["Unique Value Proposition", "Top Benefits", "Emotional Triggers"],
-    color: "text-success"
-  },
-  {
-    icon: Users,
-    title: "Audience Insights",
-    fields: ["Buyer Personas", "Pain Points", "Objections to Overcome"],
-    color: "text-warning"
-  },
-  {
-    icon: Palette,
-    title: "Brand Assets",
-    fields: ["Brand Colors", "Logo Upload", "Font Guidelines"],
-    color: "text-primary"
-  }
-];
-
+import { Sparkles, Target, Users, MessageSquare, Palette, BarChart3, FileText, Rocket } from "lucide-react";
+const inputCategories = [{
+  icon: Target,
+  title: "Campaign Objectives",
+  fields: ["Primary Conversion KPI", "Target Audience", "Product/Service Name"],
+  color: "text-primary"
+}, {
+  icon: MessageSquare,
+  title: "Content & Messaging",
+  fields: ["Unique Value Proposition", "Top Benefits", "Emotional Triggers"],
+  color: "text-success"
+}, {
+  icon: Users,
+  title: "Audience Insights",
+  fields: ["Buyer Personas", "Pain Points", "Objections to Overcome"],
+  color: "text-warning"
+}, {
+  icon: Palette,
+  title: "Brand Assets",
+  fields: ["Brand Colors", "Logo Upload", "Font Guidelines"],
+  color: "text-primary"
+}];
 export const CampaignInputSection = () => {
-  return (
-    <section className="py-24 bg-background">
+  return <section className="py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left Column - Input Form Preview */}
@@ -74,33 +57,21 @@ export const CampaignInputSection = () => {
                   <Label htmlFor="campaign-objective" className="text-sm font-medium mb-2 block">
                     Campaign Objective *
                   </Label>
-                  <Input 
-                    id="campaign-objective"
-                    placeholder="e.g., Generate qualified leads for enterprise software demo"
-                    className="bg-background-secondary border-border/50"
-                  />
+                  <Input id="campaign-objective" placeholder="e.g., Generate qualified leads for enterprise software demo" className="bg-background-secondary border-border/50" />
                 </div>
                 
                 <div>
                   <Label htmlFor="target-audience" className="text-sm font-medium mb-2 block">
                     Target Audience Description *
                   </Label>
-                  <Textarea 
-                    id="target-audience"
-                    placeholder="e.g., CTOs and IT Directors at mid-market companies (100-1000 employees) looking to modernize their tech stack..."
-                    className="bg-background-secondary border-border/50 min-h-[100px]"
-                  />
+                  <Textarea id="target-audience" placeholder="e.g., CTOs and IT Directors at mid-market companies (100-1000 employees) looking to modernize their tech stack..." className="bg-background-secondary border-border/50 min-h-[100px]" />
                 </div>
                 
                 <div>
                   <Label htmlFor="value-prop" className="text-sm font-medium mb-2 block">
                     Unique Value Proposition *
                   </Label>
-                  <Input 
-                    id="value-prop"
-                    placeholder="e.g., Reduce deployment time by 80% with zero-config cloud infrastructure"
-                    className="bg-background-secondary border-border/50"
-                  />
+                  <Input id="value-prop" placeholder="e.g., Reduce deployment time by 80% with zero-config cloud infrastructure" className="bg-background-secondary border-border/50" />
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2">
@@ -124,8 +95,7 @@ export const CampaignInputSection = () => {
 
           {/* Right Column - Input Categories */}
           <div className="space-y-6">
-            {inputCategories.map((category, index) => (
-              <Card key={index} className="p-6 border-border/50 hover:border-primary/30 transition-all duration-300 group">
+            {inputCategories.map((category, index) => <Card key={index} className="p-6 border-border/50 hover:border-primary/30 transition-all duration-300 group">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-gradient-secondary rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                     <category.icon className={`w-5 h-5 ${category.color}`} />
@@ -133,30 +103,17 @@ export const CampaignInputSection = () => {
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold mb-2">{category.title}</h3>
                     <div className="space-y-1">
-                      {category.fields.map((field, fieldIndex) => (
-                        <div key={fieldIndex} className="text-sm text-muted-foreground">
+                      {category.fields.map((field, fieldIndex) => <div key={fieldIndex} className="text-sm text-muted-foreground">
                           • {field}
-                        </div>
-                      ))}
+                        </div>)}
                     </div>
                   </div>
                 </div>
-              </Card>
-            ))}
+              </Card>)}
 
-            <Card className="p-6 bg-gradient-secondary border-primary/20">
-              <div className="flex items-center gap-3 mb-3">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <h4 className="font-semibold">AI Enhancement</h4>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Our AI analyzes your inputs against 10M+ successful campaigns, suggests optimizations, 
-                and pre-fills fields based on industry best practices.
-              </p>
-            </Card>
+            
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
