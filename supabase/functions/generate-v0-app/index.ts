@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient as createSupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { v0 } from 'https://esm.sh/v0-sdk@0.14.0';
+import { createClient } from 'npm:v0-sdk@0.14.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,6 +68,9 @@ serve(async (req) => {
     console.log('Page ID:', pageId || 'none');
     
     console.log('Step 2: Initializing v0 chat with context files...');
+    
+    // Create v0 client
+    const v0 = createClient({ apiKey: V0_API_KEY });
     
     // Initialize chat with PRD and campaign config as context files (fast, no AI processing)
     const prdContent = typeof prdDocument === 'string' 
