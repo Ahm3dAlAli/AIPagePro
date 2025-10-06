@@ -126,16 +126,21 @@ export default function GeneratedPageView() {
     
     setDeploying(true);
     try {
-      const { data, error } = await supabase.functions.invoke("deploy-to-vercel", {
+      const { data, error } = await supabase.functions.invoke("deploy-v0-app", {
         body: { pageId: page.id },
       });
 
       if (error) throw error;
 
-      toast.success("Deployment started successfully!");
-      if (data?.url) {
-        window.open(data.url, "_blank");
+      toast.success("Deployment successful!");
+      
+      // Open deployment URL in new tab
+      if (data?.deploymentUrl) {
+        window.open(data.deploymentUrl, "_blank");
       }
+      
+      // Refresh page data to show updated published_url
+      fetchPage();
     } catch (error) {
       console.error("Deployment error:", error);
       toast.error("Failed to deploy page");

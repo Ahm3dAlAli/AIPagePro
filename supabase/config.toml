@@ -46,6 +46,9 @@ verify_jwt = true
 [functions.deploy-to-vercel]
 verify_jwt = true
 
+[functions.deploy-v0-app]
+verify_jwt = true
+
 [functions.generate-landing-page]
 verify_jwt = true
 
