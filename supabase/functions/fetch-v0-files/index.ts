@@ -63,32 +63,30 @@ serve(async (req) => {
     const v0 = createClient({ apiKey: V0_API_KEY });
     
     // Get chat details which includes all messages and files
-    const chat = await v0.chats.get(chatId);
+    const chat = await v0.chats.getById({ chatId });
     
     console.log('Chat retrieved:', chat.id);
     console.log('Messages count:', chat.messages?.length || 0);
+    console.log('Latest version:', chat.latestVersion?.id);
 
-    // Extract all files from chat messages
-    // v0 SDK returns files in the chat.files array or in message.files
+    // Extract files from the latest version
     let allFiles: any[] = [];
     
-    // First check if chat has direct files array
-    if (chat.files && Array.isArray(chat.files)) {
-      allFiles = chat.files;
-      console.log('Found files in chat.files:', allFiles.length);
+    // Files are in the latestVersion object
+    if (chat.latestVersion?.files && Array.isArray(chat.latestVersion.files)) {
+      allFiles = chat.latestVersion.files;
+      console.log('Found files in latestVersion:', allFiles.length);
     }
     
-    // Also check messages for files (fallback)
+    // Fallback: check if files are in the messages
     if (allFiles.length === 0 && chat.messages && chat.messages.length > 0) {
-      // Get the last assistant message which should have the generated files
-      const lastAssistantMessage = [...chat.messages]
-        .reverse()
-        .find((msg: any) => msg.role === 'assistant');
-      
-      if (lastAssistantMessage && lastAssistantMessage.files) {
-        allFiles = lastAssistantMessage.files;
-        console.log('Found files in last assistant message:', allFiles.length);
+      console.log('No files in latestVersion, checking messages...');
+      for (const message of chat.messages) {
+        if (message.files && Array.isArray(message.files)) {
+          allFiles.push(...message.files);
+        }
       }
+      console.log('Found files in messages:', allFiles.length);
     }
 
     if (allFiles.length === 0) {
@@ -120,7 +118,7 @@ serve(async (req) => {
     for (const file of allFiles) {
       try {
         const componentName = file.name?.replace(/\.(tsx|jsx|ts|js)$/, '') || 'component';
-        const componentType = determineComponentType(file.name, file.type);
+        const componentType = determineComponentType(file.name, file.lang);
         const exportFormat = determineExportFormat(file.name);
 
         const { error } = await supabaseClient
@@ -130,12 +128,12 @@ serve(async (req) => {
             page_id: pageId,
             component_name: componentName,
             component_type: componentType,
-            react_code: file.content || '',
+            react_code: file.source || file.content || '',
             export_format: exportFormat,
             json_schema: {
               fileName: file.name,
-              fileType: file.type,
-              language: file.language || 'typescript',
+              language: file.lang || 'typescript',
+              meta: file.meta || {},
               generatedBy: 'v0-api',
               chatId: chatId,
               fetchedAt: new Date().toISOString()
@@ -160,7 +158,7 @@ serve(async (req) => {
       .update({
         content: {
           chatId: chatId,
-          demoUrl: chat.demo,
+          demoUrl: chat.latestVersion?.demoUrl || chat.webUrl,
           filesCount: allFiles.length,
           savedCount: savedCount,
           status: 'completed',
@@ -200,7 +198,7 @@ serve(async (req) => {
   }
 });
 
-function determineComponentType(fileName: string, fileType?: string): string {
+function determineComponentType(fileName: string, language?: string): string {
   if (!fileName) return 'component';
   
   const lowerName = fileName.toLowerCase();

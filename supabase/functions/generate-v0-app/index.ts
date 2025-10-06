@@ -127,6 +127,9 @@ serve(async (req) => {
         const messageResponse = await v0.chats.sendMessage({
           chatId: chat.id,
           message: engineeringPrompt,
+          modelConfiguration: {
+            modelId: 'v0-1.5-lg',
+          },
         });
 
         console.log('v0 generation complete!');
