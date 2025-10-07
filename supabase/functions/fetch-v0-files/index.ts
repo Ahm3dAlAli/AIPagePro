@@ -72,10 +72,18 @@ serve(async (req) => {
     // Extract files from the latest version
     let allFiles: any[] = [];
     
+    console.log('Chat structure:', JSON.stringify({
+      hasLatestVersion: !!chat.latestVersion,
+      latestVersionId: chat.latestVersion?.id,
+      filesInVersion: chat.latestVersion?.files?.length || 0,
+      messagesCount: chat.messages?.length || 0
+    }));
+    
     // Files are in the latestVersion object
     if (chat.latestVersion?.files && Array.isArray(chat.latestVersion.files)) {
       allFiles = chat.latestVersion.files;
       console.log('Found files in latestVersion:', allFiles.length);
+      console.log('Sample file structure:', allFiles.length > 0 ? JSON.stringify(allFiles[0]) : 'none');
     }
     
     // Fallback: check if files are in the messages
@@ -117,9 +125,20 @@ serve(async (req) => {
     
     for (const file of allFiles) {
       try {
-        const componentName = file.name?.replace(/\.(tsx|jsx|ts|js)$/, '') || 'component';
-        const componentType = determineComponentType(file.name, file.lang);
-        const exportFormat = determineExportFormat(file.name);
+        // v0 files have properties: name, lang, source, meta
+        const fileName = file.name || file.fileName || 'unnamed-file';
+        const fileContent = file.source || file.content || file.code || '';
+        
+        console.log(`Processing file: ${fileName}, has content: ${!!fileContent}, length: ${fileContent.length}`);
+        
+        if (!fileContent) {
+          console.warn(`Skipping file ${fileName} - no content found`);
+          continue;
+        }
+        
+        const componentName = fileName.replace(/\.(tsx|jsx|ts|js|css|json)$/, '') || 'component';
+        const componentType = determineComponentType(fileName, file.lang);
+        const exportFormat = determineExportFormat(fileName);
 
         const { error } = await supabaseClient
           .from('component_exports')
@@ -128,10 +147,10 @@ serve(async (req) => {
             page_id: pageId,
             component_name: componentName,
             component_type: componentType,
-            react_code: file.source || file.content || '',
+            react_code: fileContent,
             export_format: exportFormat,
             json_schema: {
-              fileName: file.name,
+              fileName: fileName,
               language: file.lang || 'typescript',
               meta: file.meta || {},
               generatedBy: 'v0-api',
@@ -142,13 +161,13 @@ serve(async (req) => {
           });
 
         if (error) {
-          console.error('Error saving component:', error);
+          console.error('Error saving component:', componentName, error);
         } else {
           savedCount++;
-          console.log(`Saved: ${componentName} (${exportFormat})`);
+          console.log(`✓ Saved: ${componentName} (${exportFormat})`);
         }
       } catch (error) {
-        console.error('Error processing file:', file.name, error);
+        console.error('Error processing file:', file.name || 'unknown', error);
       }
     }
 

@@ -404,13 +404,30 @@ export default function GeneratedPageView() {
         <TabsContent value="components" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileCode className="h-5 w-5" />
-                React Components ({componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).length})
-              </CardTitle>
-              <CardDescription>
-                React components and layouts
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileCode className="h-5 w-5" />
+                    React Components ({componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).length})
+                  </CardTitle>
+                  <CardDescription>
+                    React components and layouts
+                  </CardDescription>
+                </div>
+                <Button 
+                  onClick={handleFetchFilesFromV0}
+                  disabled={fetchingFiles || !page.content?.chatId}
+                  variant="outline"
+                  size="sm"
+                >
+                  {fetchingFiles ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {fetchingFiles ? 'Fetching...' : 'Refresh Files'}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).length > 0 ? (
@@ -449,21 +466,12 @@ export default function GeneratedPageView() {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">
-                    No components available
+                  <p className="text-muted-foreground mb-2">
+                    No React components found
                   </p>
-                  <Button 
-                    onClick={handleFetchFilesFromV0}
-                    disabled={fetchingFiles || !page.content?.chatId}
-                    variant="outline"
-                  >
-                    {fetchingFiles ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-2" />
-                    )}
-                    Fetch Files from v0
-                  </Button>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {page.content?.chatId ? 'Click refresh to fetch files from v0' : 'No v0 chat ID available'}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -476,8 +484,26 @@ export default function GeneratedPageView() {
             {/* File List */}
             <Card className="lg:col-span-1">
               <CardHeader>
-                <CardTitle>All Files ({componentExports.length})</CardTitle>
-                <CardDescription>All project files including utilities, configs, and styles</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>All Files ({componentExports.length})</CardTitle>
+                    <CardDescription>All project files including utilities, configs, and styles</CardDescription>
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleFetchFilesFromV0}
+                  disabled={fetchingFiles || !page.content?.chatId}
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2"
+                >
+                  {fetchingFiles ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {fetchingFiles ? 'Fetching Files...' : 'Refresh Files from v0'}
+                </Button>
               </CardHeader>
               <CardContent>
                 {componentExports.length > 0 ? (
