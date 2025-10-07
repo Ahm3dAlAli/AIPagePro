@@ -390,34 +390,72 @@ ${historicData.experimentInsights.map((exp: any, i: number) =>
   `${i + 1}. ${exp.hypothesis} (${exp.uplift}% uplift) - Apply winning variant`
 ).join('\n')}
 
-## Image Generation Requirements
-IMPORTANT: Generate contextual, high-quality images that align with the campaign:
-- **Hero Image**: Create a compelling, photorealistic hero image representing ${config.productServiceName} for ${config.targetAudience}. Style: ${config.toneOfVoice}, using colors: ${config.brandColorPalette.join(', ')}
-- **Feature Visuals**: Generate relevant images/illustrations for each feature showing it in action
-- **Benefit Graphics**: Create supporting visuals that illustrate each key benefit
-- **Background Elements**: Design subtle background patterns/graphics using brand colors
-- **CTA Supporting Visuals**: Generate imagery that draws attention to calls-to-action
-- All generated images must maintain consistent style, color scheme (${config.brandColorPalette.join(', ')}), and tone (${config.toneOfVoice})
+## CRITICAL: Image Generation Requirements
+⚠️ MUST GENERATE AND PLACE IMAGES IN THE LANDING PAGE - This is a core requirement!
+
+Generate high-quality, contextual images for the following sections and INCLUDE them in the page layout:
+
+### Hero Section (REQUIRED)
+- Generate a compelling, photorealistic hero image showing ${config.productServiceName} in use by ${config.targetAudience}
+- Style: ${config.toneOfVoice} tone
+- Colors: Use brand palette (${config.brandColorPalette.join(', ')})
+- Aspect ratio: 16:9 for desktop, optimize for mobile
+- PLACE this image prominently in the hero section
+
+### Benefits Section (REQUIRED)
+Generate individual supporting visuals for EACH benefit:
+${config.topBenefits.map((benefit, i) => `${i + 1}. "${benefit}" - Generate relevant illustration/icon showing this benefit in action`).join('\n')}
+- Use icons or custom illustrations
+- Maintain consistent visual style across all benefit graphics
+- PLACE these images alongside or above each benefit description
+
+### Features Section (REQUIRED)
+Generate feature showcase visuals for EACH feature:
+${config.featureList.map((feature, i) => `${i + 1}. "${feature}" - Generate screenshot, mockup, or illustration demonstrating this feature`).join('\n')}
+- Show features in realistic usage scenarios
+- Use product screenshots, UI mockups, or detailed illustrations
+- PLACE these images in cards or grid layout within the features section
+
+### Social Proof Section (OPTIONAL but recommended)
+- Generate professional avatar/headshot placeholders for testimonials
+- Consider brand logos or certification badges if applicable
+
+### Design Consistency Rules
+- All images MUST use the brand color palette: ${config.brandColorPalette.join(', ')}
+- Maintain ${config.toneOfVoice} tone across all visuals
+- Consistent illustration style (flat, 3D, isometric, or photorealistic - pick one)
+- High quality, production-ready images (minimum 1200px width for hero)
+
+### Implementation Notes
+- Use image generation tools/AI to create these visuals
+- DO NOT use placeholder images or stock photos - generate custom, branded images
+- Include proper alt text for all images for SEO and accessibility
+- Optimize images for web (WebP format preferred)
 
 ## Page Structure & Components
 
-### 1. Hero Section
+### 1. Hero Section (WITH GENERATED IMAGE)
 Use: \`<Card>\`, \`<Button>\`, \`<Badge>\`
 - Compelling headline: "${config.uniqueValueProp}"
 - Subheadline targeting ${config.targetAudience}
 - Primary CTA: "${config.primaryCtaText}"
-- **GENERATE HERO IMAGE**: High-impact visual showing ${config.productServiceName} in action for ${config.targetAudience}
+- **⚠️ MUST INCLUDE: Generate and place a high-impact hero image** showing ${config.productServiceName} being used by ${config.targetAudience}
+- Position hero image prominently (full-width background or side-by-side with text)
 - Trust badges: ${config.trustIndicators.join(', ')}
 
-### 2. Benefits Section
-Use: \`<Card>\`, Lucide icons
-**GENERATE supporting visuals for each benefit:**
-${config.topBenefits.map((benefit, i) => `${i + 1}. ${benefit} (generate relevant illustration)`).join('\n')}
+### 2. Benefits Section (WITH GENERATED VISUALS)
+Use: \`<Card>\`, Lucide icons, custom illustrations
+**⚠️ MUST GENERATE AND INCLUDE visuals for each benefit:**
+${config.topBenefits.map((benefit, i) => `${i + 1}. "${benefit}" - Generate and place relevant illustration/icon showing this benefit visually`).join('\n')}
+- Display in grid layout with image + text for each benefit
+- Use consistent visual style across all benefit cards
 
-### 3. Features Section
-Use: \`<Accordion>\` or \`<Tabs>\`
-**GENERATE feature visuals showing each in action:**
-${config.featureList.map((feature, i) => `${i + 1}. ${feature} (generate supporting visual)`).join('\n')}
+### 3. Features Section (WITH GENERATED VISUALS)
+Use: \`<Accordion>\` or \`<Tabs>\`, \`<Card>\`
+**⚠️ MUST GENERATE AND INCLUDE feature visuals:**
+${config.featureList.map((feature, i) => `${i + 1}. "${feature}" - Generate and place supporting visual (mockup, screenshot, or illustration showing feature in use)`).join('\n')}
+- Each feature should have accompanying visual representation
+- Use cards or tabs with image + description layout
 
 ### 4. Social Proof Section
 Use: \`<Card>\`, \`<Avatar>\`
