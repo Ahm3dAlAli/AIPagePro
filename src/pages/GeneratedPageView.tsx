@@ -406,16 +406,16 @@ export default function GeneratedPageView() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileCode className="h-5 w-5" />
-                Generated Components ({componentExports.length})
+                React Components ({componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).length})
               </CardTitle>
               <CardDescription>
-                React components stored per user per landing page
+                React components and layouts
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {componentExports.length > 0 ? (
+              {componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).length > 0 ? (
                 <div className="space-y-3">
-                  {componentExports.map((component) => (
+                  {componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).map((component) => (
                     <Card key={component.id}>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <div>
@@ -476,8 +476,8 @@ export default function GeneratedPageView() {
             {/* File List */}
             <Card className="lg:col-span-1">
               <CardHeader>
-                <CardTitle>Files</CardTitle>
-                <CardDescription>Select a file to edit</CardDescription>
+                <CardTitle>All Files ({componentExports.length})</CardTitle>
+                <CardDescription>All project files including utilities, configs, and styles</CardDescription>
               </CardHeader>
               <CardContent>
                 {componentExports.length > 0 ? (
