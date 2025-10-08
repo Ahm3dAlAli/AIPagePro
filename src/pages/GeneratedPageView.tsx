@@ -40,6 +40,8 @@ export default function GeneratedPageView() {
   const [generatingSitecore, setGeneratingSitecore] = useState(false);
   const [fetchingFiles, setFetchingFiles] = useState(false);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
+  const [generatingRationale, setGeneratingRationale] = useState(false);
+  const [aiRationale, setAiRationale] = useState<string>("");
 
   useEffect(() => {
     fetchPage();
@@ -99,6 +101,7 @@ export default function GeneratedPageView() {
 
       if (error) throw error;
       setPage(data);
+      setAiRationale(data?.ai_rationale || "");
     } catch (error) {
       console.error("Error fetching page:", error);
       toast.error("Failed to load page");
@@ -237,6 +240,27 @@ export default function GeneratedPageView() {
       toast.error("Failed to fetch files from v0");
     } finally {
       setFetchingFiles(false);
+    }
+  };
+
+  const handleGenerateRationale = async () => {
+    setGeneratingRationale(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-ai-rationale", {
+        body: { pageId: id },
+      });
+
+      if (error) throw error;
+
+      if (data?.rationale) {
+        setAiRationale(data.rationale);
+        toast.success("AI rationale generated successfully!");
+      }
+    } catch (error) {
+      console.error("Error generating rationale:", error);
+      toast.error("Failed to generate AI rationale");
+    } finally {
+      setGeneratingRationale(false);
     }
   };
 
@@ -582,17 +606,45 @@ export default function GeneratedPageView() {
         <TabsContent value="rationale" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Product Requirements Document</CardTitle>
-              <CardDescription>
-                AI-generated PRD that guided the landing page creation based on your historic data
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    AI Design Rationale
+                  </CardTitle>
+                  <CardDescription>
+                    AI-generated insights on design decisions, UX strategy, and conversion optimization
+                  </CardDescription>
+                </div>
+                <Button 
+                  onClick={handleGenerateRationale}
+                  disabled={generatingRationale}
+                  variant="default"
+                >
+                  {generatingRationale ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Rocket className="h-4 w-4 mr-2" />
+                  )}
+                  {aiRationale ? 'Regenerate' : 'Generate'} Rationale
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm max-w-none">
-                <pre className="whitespace-pre-wrap bg-muted p-6 rounded-lg">
-                  {prdContent}
-                </pre>
-              </div>
+              {aiRationale ? (
+                <div className="prose prose-sm max-w-none">
+                  <div className="whitespace-pre-wrap bg-muted p-6 rounded-lg">
+                    {aiRationale}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Rocket className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Rationale Generated Yet</h3>
+                  <p className="text-muted-foreground mb-4 max-w-md">
+                    Click the "Generate Rationale" button to get AI-powered insights about your page's design decisions, UX strategy, and conversion optimization.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
