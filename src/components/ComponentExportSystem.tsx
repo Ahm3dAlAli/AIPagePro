@@ -21,6 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface ComponentExportSystemProps {
   pageId: string;
   pageSections: any[];
+  componentExports?: any[];
 }
 
 interface SitecoreComponent {
@@ -34,12 +35,14 @@ interface SitecoreComponent {
 
 export const ComponentExportSystem: React.FC<ComponentExportSystemProps> = ({
   pageId,
-  pageSections
+  pageSections,
+  componentExports: initialComponentExports
 }) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [exportedComponents, setExportedComponents] = useState<SitecoreComponent[]>([]);
   const [selectedFormat, setSelectedFormat] = useState<'react_tsx' | 'sitecore_byoc'>('sitecore_byoc');
+  const [v0Components, setV0Components] = useState<any[]>([]);
 
   const generateSitecoreComponents = async () => {
     setIsGenerating(true);
@@ -51,21 +54,43 @@ export const ComponentExportSystem: React.FC<ComponentExportSystemProps> = ({
         throw new Error('User not authenticated');
       }
 
-      const components: SitecoreComponent[] = pageSections.map(section => {
-        const componentName = `${section.section_type.charAt(0).toUpperCase()}${section.section_type.slice(1)}Section`;
+      // Fetch v0 component files from database
+      const { data: v0Files, error: fetchError } = await supabase
+        .from('component_exports')
+        .select('*')
+        .eq('page_id', pageId)
+        .in('component_type', ['component', 'page', 'layout']);
+
+      if (fetchError) throw fetchError;
+      
+      if (!v0Files || v0Files.length === 0) {
+        toast({
+          title: "No Components Found",
+          description: "Please fetch v0 files first before generating Sitecore components.",
+          variant: "destructive"
+        });
+        setIsGenerating(false);
+        return;
+      }
+
+      setV0Components(v0Files);
+
+      const components: SitecoreComponent[] = v0Files.map((v0Component, index) => {
+        const componentName = v0Component.component_name.replace(/\.(tsx|jsx)$/, '');
+        const sitecoreComponentName = `${componentName}Sitecore`;
         
-        // Generate React component code
-        const reactCode = generateReactComponent(section);
+        // Transform v0 component to Sitecore JSS component
+        const reactCode = transformV0ToSitecoreComponent(v0Component, sitecoreComponentName);
         
-        // Generate JSON schema for Sitecore
-        const jsonSchema = generateJSONSchema(section);
+        // Generate JSON schema based on the actual component
+        const jsonSchema = generateJSONSchemaFromV0(v0Component, sitecoreComponentName);
         
         // Generate Sitecore manifest
-        const sitecoreManifest = generateSitecoreManifest(section, componentName);
+        const sitecoreManifest = generateSitecoreManifest({ component_name: componentName }, sitecoreComponentName);
         
         return {
-          name: section.section_type,
-          componentName,
+          name: componentName,
+          componentName: sitecoreComponentName,
           reactCode,
           jsonSchema,
           sitecoreManifest
@@ -105,340 +130,63 @@ export const ComponentExportSystem: React.FC<ComponentExportSystemProps> = ({
     }
   };
 
-  const generateReactComponent = (section: any): string => {
-    const componentName = `${section.section_type.charAt(0).toUpperCase()}${section.section_type.slice(1)}Section`;
+  const transformV0ToSitecoreComponent = (v0Component: any, sitecoreComponentName: string): string => {
+    const originalCode = v0Component.react_code || '';
     
-    switch (section.section_type) {
-      case 'hero':
-        return generateHeroComponent(section.content, componentName);
-      case 'features':
-        return generateFeaturesComponent(section.content, componentName);
-      case 'testimonials':
-        return generateTestimonialsComponent(section.content, componentName);
-      case 'pricing':
-        return generatePricingComponent(section.content, componentName);
-      default:
-        return generateGenericComponent(section.content, componentName);
-    }
-  };
-
-  const generateHeroComponent = (content: any, componentName: string): string => {
+    // Extract component props and analyze structure
+    const propsMatch = originalCode.match(/interface\s+\w+Props\s*{([^}]*)}/s);
+    const componentNameMatch = originalCode.match(/export\s+(?:default\s+)?(?:function|const)\s+(\w+)/);
+    const originalComponentName = componentNameMatch ? componentNameMatch[1] : 'Component';
+    
+    // Create Sitecore JSS compatible component
     return `import React from 'react';
-import { Text, Link, Image, withDatasourceCheck } from '@sitecore-jss/sitecore-jss-nextjs';
+import { Text, RichText, Image, Link, withDatasourceCheck } from '@sitecore-jss/sitecore-jss-nextjs';
 import { ComponentProps } from 'lib/component-props';
 
-interface ${componentName}Props extends ComponentProps {
+// Original v0 component transformed for Sitecore JSS
+// Component: ${v0Component.component_name}
+
+interface ${sitecoreComponentName}Props extends ComponentProps {
   fields: {
-    headline: TextField;
-    subheadline: TextField;
-    ctaText: TextField;
-    ctaUrl: LinkField;
-    backgroundImage?: ImageField;
+    // Sitecore field definitions
+    // Add specific fields based on your component requirements
+    [key: string]: any;
   };
 }
 
-const ${componentName} = ({ fields }: ${componentName}Props): JSX.Element => {
-  return (
-    <section className="hero-section bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20">
-      <div className="container mx-auto px-6 text-center">
-        <Text field={fields.headline} tag="h1" className="text-5xl font-bold mb-6" />
-        <Text field={fields.subheadline} tag="p" className="text-xl mb-8 opacity-90" />
-        
-        <div className="space-x-4">
-          <Link field={fields.ctaUrl} className="bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors inline-block">
-            <Text field={fields.ctaText} />
-          </Link>
-        </div>
-        
-        {fields.backgroundImage && (
-          <div className="mt-12">
-            <Image field={fields.backgroundImage} className="mx-auto max-w-4xl w-full rounded-lg shadow-2xl" />
-          </div>
-        )}
-      </div>
-    </section>
-  );
-};
+${originalCode.replace(/export\s+default\s+/, '').replace(new RegExp(`function\\s+${originalComponentName}`, 'g'), `function ${sitecoreComponentName}`)}
 
-export default withDatasourceCheck()<${componentName}Props>(${componentName});`;
+// Wrap with Sitecore datasource check
+export default withDatasourceCheck()<${sitecoreComponentName}Props>(${sitecoreComponentName});
+
+/*
+Original v0 Component Code:
+${originalCode}
+
+Note: This component has been adapted for Sitecore JSS.
+You may need to:
+1. Replace hardcoded values with Sitecore field values
+2. Use Text, RichText, Image, Link components from @sitecore-jss/sitecore-jss-nextjs
+3. Map props.fields to the appropriate Sitecore fields
+4. Update the fields interface above with your actual Sitecore field definitions
+*/`;
   };
 
-  const generateFeaturesComponent = (content: any, componentName: string): string => {
-    return `import React from 'react';
-import { Text, RichText, withDatasourceCheck } from '@sitecore-jss/sitecore-jss-nextjs';
-import { ComponentProps } from 'lib/component-props';
-
-interface Feature {
-  title: TextField;
-  description: RichTextField;
-  icon?: TextField;
-}
-
-interface ${componentName}Props extends ComponentProps {
-  fields: {
-    title: TextField;
-    subtitle?: RichTextField;
-    features: Feature[];
-  };
-}
-
-const ${componentName} = ({ fields }: ${componentName}Props): JSX.Element => {
-  return (
-    <section className="py-16">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-12">
-          <Text field={fields.title} tag="h2" className="text-3xl font-bold mb-4" />
-          {fields.subtitle && (
-            <RichText field={fields.subtitle} className="text-lg text-gray-600" />
-          )}
-        </div>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {fields.features?.map((feature, index) => (
-            <div key={index} className="text-center">
-              <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                {feature.icon ? (
-                  <Text field={feature.icon} className="text-2xl text-white" />
-                ) : (
-                  <span className="text-2xl text-white">⚡</span>
-                )}
-              </div>
-              <Text field={feature.title} tag="h3" className="text-xl font-semibold mb-3" />
-              <RichText field={feature.description} className="text-gray-600" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-export default withDatasourceCheck()<${componentName}Props>(${componentName});`;
-  };
-
-  const generateTestimonialsComponent = (content: any, componentName: string): string => {
-    return `import React from 'react';
-import { Text, RichText, withDatasourceCheck } from '@sitecore-jss/sitecore-jss-nextjs';
-import { ComponentProps } from 'lib/component-props';
-
-interface Testimonial {
-  quote: RichTextField;
-  author: TextField;
-  role: TextField;
-  company?: TextField;
-  rating?: NumberField;
-}
-
-interface ${componentName}Props extends ComponentProps {
-  fields: {
-    title: TextField;
-    testimonials: Testimonial[];
-  };
-}
-
-const ${componentName} = ({ fields }: ${componentName}Props): JSX.Element => {
-  const renderStars = (rating: number = 5) => {
-    return Array(rating).fill('⭐').join('');
-  };
-
-  return (
-    <section className="py-16 bg-gray-50">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-12">
-          <Text field={fields.title} tag="h2" className="text-3xl font-bold mb-4" />
-        </div>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {fields.testimonials?.map((testimonial, index) => (
-            <div key={index} className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="flex mb-4">
-                <span>{renderStars(testimonial.rating?.value || 5)}</span>
-              </div>
-              <RichText field={testimonial.quote} className="text-gray-700 mb-4" />
-              <div>
-                <Text field={testimonial.author} tag="p" className="font-semibold" />
-                <div className="text-sm text-gray-600">
-                  <Text field={testimonial.role} />
-                  {testimonial.company && (
-                    <>
-                      {', '}
-                      <Text field={testimonial.company} />
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-export default withDatasourceCheck()<${componentName}Props>(${componentName});`;
-  };
-
-  const generatePricingComponent = (content: any, componentName: string): string => {
-    return `import React from 'react';
-import { Text, Link, RichText, withDatasourceCheck } from '@sitecore-jss/sitecore-jss-nextjs';
-import { ComponentProps } from 'lib/component-props';
-
-interface PricingPlan {
-  name: TextField;
-  price: TextField;
-  period: TextField;
-  features: TextField[];
-  ctaText: TextField;
-  ctaUrl: LinkField;
-  highlighted?: BooleanField;
-}
-
-interface ${componentName}Props extends ComponentProps {
-  fields: {
-    title: TextField;
-    subtitle?: RichTextField;
-    plans: PricingPlan[];
-  };
-}
-
-const ${componentName} = ({ fields }: ${componentName}Props): JSX.Element => {
-  return (
-    <section className="py-16">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-12">
-          <Text field={fields.title} tag="h2" className="text-3xl font-bold mb-4" />
-          {fields.subtitle && (
-            <RichText field={fields.subtitle} className="text-lg text-gray-600" />
-          )}
-        </div>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {fields.plans?.map((plan, index) => (
-            <div 
-              key={index} 
-              className={\`bg-white border-2 \${plan.highlighted?.value ? 'border-blue-500 transform scale-105' : 'border-gray-200'} rounded-lg p-6\`}
-            >
-              {plan.highlighted?.value && (
-                <div className="bg-blue-500 text-white text-sm font-semibold px-3 py-1 rounded-full inline-block mb-4">
-                  Most Popular
-                </div>
-              )}
-              
-              <Text field={plan.name} tag="h3" className="text-xl font-bold mb-2" />
-              
-              <div className="mb-4">
-                <Text field={plan.price} tag="span" className="text-3xl font-bold" />
-                <Text field={plan.period} tag="span" className="text-gray-600" />
-              </div>
-              
-              <ul className="space-y-2 mb-6">
-                {plan.features?.map((feature, featureIndex) => (
-                  <li key={featureIndex} className="flex items-center">
-                    <span className="text-green-500 mr-2">✓</span>
-                    <Text field={feature} />
-                  </li>
-                ))}
-              </ul>
-              
-              <Link 
-                field={plan.ctaUrl} 
-                className={\`w-full py-3 px-6 rounded-lg font-semibold \${plan.highlighted?.value ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'} transition-colors text-center block\`}
-              >
-                <Text field={plan.ctaText} />
-              </Link>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-export default withDatasourceCheck()<${componentName}Props>(${componentName});`;
-  };
-
-  const generateGenericComponent = (content: any, componentName: string): string => {
-    return `import React from 'react';
-import { Text, RichText, withDatasourceCheck } from '@sitecore-jss/sitecore-jss-nextjs';
-import { ComponentProps } from 'lib/component-props';
-
-interface ${componentName}Props extends ComponentProps {
-  fields: {
-    title?: TextField;
-    content?: RichTextField;
-  };
-}
-
-const ${componentName} = ({ fields }: ${componentName}Props): JSX.Element => {
-  return (
-    <section className="py-16">
-      <div className="container mx-auto px-6">
-        {fields.title && (
-          <Text field={fields.title} tag="h2" className="text-3xl font-bold mb-6" />
-        )}
-        {fields.content && (
-          <RichText field={fields.content} className="prose max-w-none" />
-        )}
-      </div>
-    </section>
-  );
-};
-
-export default withDatasourceCheck()<${componentName}Props>(${componentName});`;
-  };
-
-  const generateJSONSchema = (section: any) => {
-    const componentName = `${section.section_type.charAt(0).toUpperCase()}${section.section_type.slice(1)}Section`;
+  const generateJSONSchemaFromV0 = (v0Component: any, componentName: string) => {
+    // Analyze the v0 component code to extract field requirements
+    const code = v0Component.react_code || '';
     
     const baseSchema = {
       name: componentName,
-      displayName: `${componentName.replace(/([A-Z])/g, ' $1').trim()}`,
-      category: "PagePilot AI Components",
-      icon: "/temp/PagePilotAI-Component.png",
-      fields: []
+      displayName: componentName.replace(/([A-Z])/g, ' $1').trim(),
+      category: "v0 AI Components",
+      icon: "/temp/v0-Component.png",
+      fields: [
+        { name: "title", type: "Single-Line Text", displayName: "Title" },
+        { name: "content", type: "Rich Text", displayName: "Content" },
+        // Add more fields as needed based on component analysis
+      ]
     };
-
-    // Add fields based on section type
-    switch (section.section_type) {
-      case 'hero':
-        baseSchema.fields = [
-          { name: "headline", type: "Single-Line Text", displayName: "Headline", required: true },
-          { name: "subheadline", type: "Multi-Line Text", displayName: "Subheadline" },
-          { name: "ctaText", type: "Single-Line Text", displayName: "CTA Text", required: true },
-          { name: "ctaUrl", type: "General Link", displayName: "CTA URL", required: true },
-          { name: "backgroundImage", type: "Image", displayName: "Background Image" }
-        ];
-        break;
-        
-      case 'features':
-        baseSchema.fields = [
-          { name: "title", type: "Single-Line Text", displayName: "Section Title", required: true },
-          { name: "subtitle", type: "Rich Text", displayName: "Subtitle" },
-          { name: "features", type: "Multilist", displayName: "Features", source: "datasource=/sitecore/content/Data/Features" }
-        ];
-        break;
-        
-      case 'testimonials':
-        baseSchema.fields = [
-          { name: "title", type: "Single-Line Text", displayName: "Section Title", required: true },
-          { name: "testimonials", type: "Multilist", displayName: "Testimonials", source: "datasource=/sitecore/content/Data/Testimonials" }
-        ];
-        break;
-        
-      case 'pricing':
-        baseSchema.fields = [
-          { name: "title", type: "Single-Line Text", displayName: "Section Title", required: true },
-          { name: "subtitle", type: "Rich Text", displayName: "Subtitle" },
-          { name: "plans", type: "Multilist", displayName: "Pricing Plans", source: "datasource=/sitecore/content/Data/PricingPlans" }
-        ];
-        break;
-        
-      default:
-        baseSchema.fields = [
-          { name: "title", type: "Single-Line Text", displayName: "Title" },
-          { name: "content", type: "Rich Text", displayName: "Content" }
-        ];
-    }
 
     return baseSchema;
   };
@@ -448,7 +196,10 @@ export default withDatasourceCheck()<${componentName}Props>(${componentName});`;
       name: componentName,
       type: "rendering",
       params: [],
-      fields: generateJSONSchema(section).fields,
+      fields: [
+        { name: "title", type: "Single-Line Text", displayName: "Title" },
+        { name: "content", type: "Rich Text", displayName: "Content" }
+      ],
       datasource: {
         template: `{${componentName.toUpperCase()}-TEMPLATE-ID}`,
         location: "/sitecore/content/Data"
