@@ -42,41 +42,43 @@ serve(async (req) => {
 
     if (componentsError) throw componentsError;
 
-    // Prepare analysis data
-    const analysisData = {
-      title: page.title,
-      content: page.content,
-      sections: page.sections_config || {},
-      components: components?.map(c => ({
-        name: c.component_name,
-        type: c.component_type,
-        codeLength: c.react_code?.length || 0
-      })) || [],
-      seoConfig: page.seo_config || {}
-    };
+    // Prepare analysis data with actual component code
+    const componentsAnalysis = components?.map(c => ({
+      name: c.component_name,
+      type: c.component_type,
+      code: c.react_code || ''
+    })) || [];
 
     // Generate AI rationale using Lovable AI
-    const prompt = `As a UX/UI and marketing expert, analyze this landing page and provide detailed rationale for the design decisions:
+    const prompt = `As a UX/UI and marketing expert, analyze this landing page and provide detailed rationale for the design decisions based on the actual implementation:
 
-Page Title: ${analysisData.title}
+Page Title: ${page.title}
 
-Components Used:
-${analysisData.components.map(c => `- ${c.name} (${c.type})`).join('\n')}
+Components and Implementation:
+${componentsAnalysis.map(c => `
+## ${c.name} (${c.type})
+\`\`\`tsx
+${c.code}
+\`\`\`
+`).join('\n')}
 
 Page Content Structure:
-${JSON.stringify(analysisData.content, null, 2)}
+${JSON.stringify(page.content, null, 2)}
+
+Page Sections Configuration:
+${JSON.stringify(page.sections_config, null, 2)}
 
 Please provide a comprehensive analysis covering:
 
-1. **Design Strategy**: Why this layout and component structure was chosen
-2. **User Experience**: How the design facilitates user journey and conversion
-3. **Visual Hierarchy**: Analysis of information architecture and content flow
-4. **Component Choices**: Rationale for each major component and its placement
-5. **Conversion Optimization**: How design elements support the primary goals
-6. **Accessibility & Performance**: Considerations in the design approach
-7. **Brand Consistency**: Design decisions that maintain brand identity
+1. **Design Strategy**: Why this layout and component structure was chosen based on the code
+2. **User Experience**: How the implementation facilitates user journey and conversion
+3. **Visual Hierarchy**: Analysis of information architecture and content flow in the components
+4. **Component Choices**: Rationale for each component's implementation and its placement
+5. **Conversion Optimization**: How specific code elements and interactions support the primary goals
+6. **Accessibility & Performance**: Implementation considerations for accessibility and performance
+7. **Brand Consistency**: Design decisions in the code that maintain brand identity
 
-Format your response in clear sections with actionable insights.`;
+Format your response in clear sections with actionable insights based on the actual implementation.`;
 
     console.log('Calling Lovable AI for rationale generation...');
 
