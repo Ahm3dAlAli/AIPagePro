@@ -381,7 +381,7 @@ export default function GeneratedPageView() {
             <CardHeader>
               <CardTitle>Live Preview</CardTitle>
               <CardDescription>
-                Interactive preview ONLY
+                Interactive preview
               </CardDescription>
             </CardHeader>
             <CardContent>
