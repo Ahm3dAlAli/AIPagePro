@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ArrowLeft, Download, ExternalLink, Rocket, Edit, Save, FileCode, FileJson, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-
 interface GeneratedPage {
   id: string;
   title: string;
@@ -16,7 +15,6 @@ interface GeneratedPage {
   created_at: string;
   published_url?: string;
 }
-
 interface ComponentExport {
   id: string;
   component_name: string;
@@ -26,9 +24,10 @@ interface ComponentExport {
   json_schema: any;
   sitecore_manifest: any;
 }
-
 export default function GeneratedPageView() {
-  const { id } = useParams();
+  const {
+    id
+  } = useParams();
   const navigate = useNavigate();
   const [page, setPage] = useState<GeneratedPage | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,37 +41,28 @@ export default function GeneratedPageView() {
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [generatingRationale, setGeneratingRationale] = useState(false);
   const [aiRationale, setAiRationale] = useState<string>("");
-
   useEffect(() => {
     fetchPage();
     fetchComponentExports();
 
     // Subscribe to real-time updates
-    const channel = supabase
-      .channel('page-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'generated_pages',
-          filter: `id=eq.${id}`
-        },
-        (payload) => {
-          const newPage = payload.new as GeneratedPage;
-          setPage(newPage);
-          
-          // If status changed from generating to completed, show success message and refetch components
-          if (newPage.content?.status === 'completed') {
-            toast.success("Generation Complete! Your landing page components are ready.");
-            fetchComponentExports();
-          } else if (newPage.content?.status === 'error') {
-            toast.error("Generation failed. Please try again.");
-          }
-        }
-      )
-      .subscribe();
+    const channel = supabase.channel('page-updates').on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'generated_pages',
+      filter: `id=eq.${id}`
+    }, payload => {
+      const newPage = payload.new as GeneratedPage;
+      setPage(newPage);
 
+      // If status changed from generating to completed, show success message and refetch components
+      if (newPage.content?.status === 'completed') {
+        toast.success("Generation Complete! Your landing page components are ready.");
+        fetchComponentExports();
+      } else if (newPage.content?.status === 'error') {
+        toast.error("Generation failed. Please try again.");
+      }
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
@@ -87,18 +77,14 @@ export default function GeneratedPageView() {
         await handleFetchFilesFromV0();
       }
     };
-
     autoFetchV0Files();
   }, [page?.id]);
-
   const fetchPage = async () => {
     try {
-      const { data, error } = await supabase
-        .from("generated_pages")
-        .select("*")
-        .eq("id", id)
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from("generated_pages").select("*").eq("id", id).single();
       if (error) throw error;
       setPage(data);
       setAiRationale(data?.ai_rationale || "");
@@ -109,39 +95,38 @@ export default function GeneratedPageView() {
       setLoading(false);
     }
   };
-
   const fetchComponentExports = async () => {
     try {
-      const { data, error } = await supabase
-        .from("component_exports")
-        .select("*")
-        .eq("page_id", id);
-
+      const {
+        data,
+        error
+      } = await supabase.from("component_exports").select("*").eq("page_id", id);
       if (error) throw error;
       setComponentExports(data || []);
     } catch (error) {
       console.error("Error fetching components:", error);
     }
   };
-
   const handleDeploy = async () => {
     if (!page) return;
-    
     setDeploying(true);
     try {
-      const { data, error } = await supabase.functions.invoke("deploy-v0-app", {
-        body: { pageId: page.id },
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("deploy-v0-app", {
+        body: {
+          pageId: page.id
+        }
       });
-
       if (error) throw error;
-
       toast.success("Deployment successful!");
-      
+
       // Open deployment URL in new tab
       if (data?.deploymentUrl) {
         window.open(data.deploymentUrl, "_blank");
       }
-      
+
       // Refresh page data to show updated published_url
       fetchPage();
     } catch (error) {
@@ -151,27 +136,21 @@ export default function GeneratedPageView() {
       setDeploying(false);
     }
   };
-
   const handleEditFile = (component: ComponentExport) => {
     setEditingFile(component);
     setEditedContent(component.react_code);
   };
-
   const handleSaveFile = async () => {
     if (!editingFile) return;
-
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("component_exports")
-        .update({
-          react_code: editedContent,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", editingFile.id);
-
+      const {
+        error
+      } = await supabase.from("component_exports").update({
+        react_code: editedContent,
+        updated_at: new Date().toISOString()
+      }).eq("id", editingFile.id);
       if (error) throw error;
-
       toast.success("Component updated successfully");
       setEditingFile(null);
       fetchComponentExports();
@@ -182,30 +161,25 @@ export default function GeneratedPageView() {
       setSaving(false);
     }
   };
-
   const handleGenerateSitecore = async () => {
     setGeneratingSitecore(true);
     try {
       // This would call an edge function to generate Sitecore manifests
       toast.info("Sitecore component generation coming soon!");
-      
+
       // For now, just update the sitecore_manifest field with placeholder data
       for (const component of componentExports) {
-        await supabase
-          .from("component_exports")
-          .update({
-            sitecore_manifest: {
+        await supabase.from("component_exports").update({
+          sitecore_manifest: {
+            componentName: component.component_name,
+            fields: [],
+            rendering: {
               componentName: component.component_name,
-              fields: [],
-              rendering: {
-                componentName: component.component_name,
-                dataSource: ""
-              }
+              dataSource: ""
             }
-          })
-          .eq("id", component.id);
+          }
+        }).eq("id", component.id);
       }
-      
       fetchComponentExports();
     } catch (error) {
       console.error("Error generating Sitecore components:", error);
@@ -214,24 +188,23 @@ export default function GeneratedPageView() {
       setGeneratingSitecore(false);
     }
   };
-
   const handleFetchFilesFromV0 = async () => {
     if (!page?.content?.chatId) {
       toast.error("No v0 chat ID found");
       return;
     }
-
     setFetchingFiles(true);
     try {
-      const { data, error } = await supabase.functions.invoke("fetch-v0-files", {
-        body: { 
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("fetch-v0-files", {
+        body: {
           pageId: id,
-          chatId: page.content.chatId 
-        },
+          chatId: page.content.chatId
+        }
       });
-
       if (error) throw error;
-
       toast.success(`Successfully fetched ${data.savedCount} files from v0`);
       fetchComponentExports();
       fetchPage();
@@ -242,16 +215,18 @@ export default function GeneratedPageView() {
       setFetchingFiles(false);
     }
   };
-
   const handleGenerateRationale = async () => {
     setGeneratingRationale(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-ai-rationale", {
-        body: { pageId: id },
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("generate-ai-rationale", {
+        body: {
+          pageId: id
+        }
       });
-
       if (error) throw error;
-
       if (data?.rationale) {
         setAiRationale(data.rationale);
         toast.success("AI rationale generated successfully!");
@@ -263,9 +238,10 @@ export default function GeneratedPageView() {
       setGeneratingRationale(false);
     }
   };
-
   const downloadComponent = (fileName: string, content: string) => {
-    const blob = new Blob([content], { type: "text/plain" });
+    const blob = new Blob([content], {
+      type: "text/plain"
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -273,34 +249,26 @@ export default function GeneratedPageView() {
     a.click();
     URL.revokeObjectURL(url);
   };
-
   if (loading) {
-    return (
-      <div className="container mx-auto p-6 space-y-6">
+    return <div className="container mx-auto p-6 space-y-6">
         <Skeleton className="h-12 w-64" />
         <Skeleton className="h-96 w-full" />
-      </div>
-    );
+      </div>;
   }
-
   if (!page) {
-    return (
-      <div className="container mx-auto p-6">
+    return <div className="container mx-auto p-6">
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">Page not found</p>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
 
   // Show generating state while v0 is working
   const isGenerating = page.content.status === "generating";
-  
   if (isGenerating) {
-    return (
-      <div className="container mx-auto p-6 space-y-6">
+    return <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/my-pages")}>
@@ -329,16 +297,10 @@ export default function GeneratedPageView() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  const prdContent = typeof page.content.prdDocument === "string"
-    ? page.content.prdDocument
-    : page.content.prdDocument?.content || JSON.stringify(page.content.prdDocument, null, 2);
-
-  return (
-    <div className="container mx-auto p-6 space-y-6">
+  const prdContent = typeof page.content.prdDocument === "string" ? page.content.prdDocument : page.content.prdDocument?.content || JSON.stringify(page.content.prdDocument, null, 2);
+  return <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -353,8 +315,7 @@ export default function GeneratedPageView() {
           </div>
         </div>
         <div className="flex gap-2">
-          {page.content.demoUrl && (
-            <>
+          {page.content.demoUrl && <>
               <Button variant="outline" asChild>
                 <a href={page.content.demoUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" />
@@ -366,8 +327,7 @@ export default function GeneratedPageView() {
                   Open in v0
                 </a>
               </Button>
-            </>
-          )}
+            </>}
           <Button onClick={handleDeploy} disabled={deploying}>
             <Rocket className="mr-2 h-4 w-4" />
             {deploying ? "Deploying..." : "Deploy to Vercel"}
@@ -376,19 +336,14 @@ export default function GeneratedPageView() {
       </div>
 
       {/* Status Badge */}
-      {page.content.status && (
-        <Card>
+      {page.content.status && <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
-              <div className={`h-2 w-2 rounded-full ${
-                page.content.status === "generating" ? "bg-yellow-500 animate-pulse" :
-                page.content.status === "error" ? "bg-red-500" : "bg-green-500"
-              }`} />
+              <div className={`h-2 w-2 rounded-full ${page.content.status === "generating" ? "bg-yellow-500 animate-pulse" : page.content.status === "error" ? "bg-red-500" : "bg-green-500"}`} />
               <span className="text-sm font-medium capitalize">{page.content.status}</span>
             </div>
           </CardContent>
-        </Card>
-      )}
+        </Card>}
 
       <Tabs defaultValue="preview" className="w-full">
         <TabsList className="grid w-full grid-cols-5">
@@ -409,17 +364,9 @@ export default function GeneratedPageView() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {page.content.demoUrl ? (
-                <iframe
-                  src={page.content.demoUrl}
-                  className="w-full h-[800px] border rounded-lg"
-                  title="Page Preview"
-                />
-              ) : (
-                <p className="text-center text-muted-foreground py-12">
+              {page.content.demoUrl ? <iframe src={page.content.demoUrl} className="w-full h-[800px] border rounded-lg" title="Page Preview" /> : <p className="text-center text-muted-foreground py-12">
                   Preview not available
-                </p>
-              )}
+                </p>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -438,26 +385,15 @@ export default function GeneratedPageView() {
                     React components and layouts
                   </CardDescription>
                 </div>
-                <Button 
-                  onClick={handleFetchFilesFromV0}
-                  disabled={fetchingFiles || !page.content?.chatId}
-                  variant="outline"
-                  size="sm"
-                >
-                  {fetchingFiles ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-2" />
-                  )}
+                <Button onClick={handleFetchFilesFromV0} disabled={fetchingFiles || !page.content?.chatId} variant="outline" size="sm">
+                  {fetchingFiles ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                   {fetchingFiles ? 'Fetching...' : 'Refresh Files'}
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              {componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).length > 0 ? (
-                <div className="space-y-3">
-                  {componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).map((component) => (
-                    <Card key={component.id}>
+              {componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).length > 0 ? <div className="space-y-3">
+                  {componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).map(component => <Card key={component.id}>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <div>
                           <CardTitle className="text-sm font-medium">
@@ -468,36 +404,24 @@ export default function GeneratedPageView() {
                           </p>
                         </div>
                         <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditFile(component)}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => handleEditFile(component)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => downloadComponent(`${component.component_name}.tsx`, component.react_code)}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => downloadComponent(`${component.component_name}.tsx`, component.react_code)}>
                             <Download className="h-4 w-4" />
                           </Button>
                         </div>
                       </CardHeader>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
+                    </Card>)}
+                </div> : <div className="text-center py-8">
                   <p className="text-muted-foreground mb-2">
                     No React components found
                   </p>
                   <p className="text-sm text-muted-foreground mb-4">
                     {page.content?.chatId ? 'Click refresh to fetch files from v0' : 'No v0 chat ID available'}
                   </p>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -514,44 +438,20 @@ export default function GeneratedPageView() {
                     <CardDescription>All project files including utilities, configs, and styles</CardDescription>
                   </div>
                 </div>
-                <Button 
-                  onClick={handleFetchFilesFromV0}
-                  disabled={fetchingFiles || !page.content?.chatId}
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-2"
-                >
-                  {fetchingFiles ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-2" />
-                  )}
+                <Button onClick={handleFetchFilesFromV0} disabled={fetchingFiles || !page.content?.chatId} variant="outline" size="sm" className="w-full mt-2">
+                  {fetchingFiles ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
                   {fetchingFiles ? 'Fetching Files...' : 'Refresh Files from v0'}
                 </Button>
               </CardHeader>
               <CardContent>
-                {componentExports.length > 0 ? (
-                  <div className="space-y-2">
-                    {componentExports.map((component) => (
-                      <button
-                        key={component.id}
-                        onClick={() => handleEditFile(component)}
-                        className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                          editingFile?.id === component.id
-                            ? "bg-primary/10 border-primary"
-                            : "hover:bg-muted"
-                        }`}
-                      >
+                {componentExports.length > 0 ? <div className="space-y-2">
+                    {componentExports.map(component => <button key={component.id} onClick={() => handleEditFile(component)} className={`w-full text-left p-3 rounded-lg border transition-colors ${editingFile?.id === component.id ? "bg-primary/10 border-primary" : "hover:bg-muted"}`}>
                         <p className="font-medium text-sm">{component.component_name}</p>
                         <p className="text-xs text-muted-foreground">{component.component_type}</p>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">
+                      </button>)}
+                  </div> : <p className="text-sm text-muted-foreground text-center py-8">
                     No files available
-                  </p>
-                )}
+                  </p>}
               </CardContent>
             </Card>
 
@@ -564,39 +464,20 @@ export default function GeneratedPageView() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {editingFile ? (
-                  <div className="space-y-4">
-                    <Textarea
-                      value={editedContent}
-                      onChange={(e) => setEditedContent(e.target.value)}
-                      className="font-mono text-sm min-h-[600px] resize-none"
-                      placeholder="Component code..."
-                    />
+                {editingFile ? <div className="space-y-4">
+                    <Textarea value={editedContent} onChange={e => setEditedContent(e.target.value)} className="font-mono text-sm min-h-[600px] resize-none" placeholder="Component code..." />
                     <div className="flex gap-2">
-                      <Button 
-                        onClick={handleSaveFile}
-                        disabled={saving}
-                      >
-                        {saving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
+                      <Button onClick={handleSaveFile} disabled={saving}>
+                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                         Save Changes
                       </Button>
-                      <Button 
-                        variant="outline"
-                        onClick={() => setEditingFile(null)}
-                      >
+                      <Button variant="outline" onClick={() => setEditingFile(null)}>
                         Cancel
                       </Button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-[600px] border rounded-lg bg-muted/50">
+                  </div> : <div className="flex items-center justify-center h-[600px] border rounded-lg bg-muted/50">
                     <p className="text-muted-foreground">Select a file from the list to start editing</p>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </div>
@@ -615,36 +496,24 @@ export default function GeneratedPageView() {
                     AI-generated insights on design decisions, UX strategy, and conversion optimization
                   </CardDescription>
                 </div>
-                <Button 
-                  onClick={handleGenerateRationale}
-                  disabled={generatingRationale}
-                  variant="default"
-                >
-                  {generatingRationale ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Rocket className="h-4 w-4 mr-2" />
-                  )}
+                <Button onClick={handleGenerateRationale} disabled={generatingRationale} variant="default">
+                  {generatingRationale ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Rocket className="h-4 w-4 mr-2" />}
                   {aiRationale ? 'Regenerate' : 'Generate'} Rationale
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              {aiRationale ? (
-                <div className="prose prose-sm max-w-none">
+              {aiRationale ? <div className="prose prose-sm max-w-none">
                   <div className="whitespace-pre-wrap bg-muted p-6 rounded-lg">
                     {aiRationale}
                   </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
+                </div> : <div className="flex flex-col items-center justify-center py-12 text-center">
                   <Rocket className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Rationale Generated Yet</h3>
                   <p className="text-muted-foreground mb-4 max-w-md">
                     Click the "Generate Rationale" button to get AI-powered insights about your page's design decisions, UX strategy, and conversion optimization.
                   </p>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -662,23 +531,14 @@ export default function GeneratedPageView() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button 
-                onClick={handleGenerateSitecore}
-                disabled={generatingSitecore || componentExports.length === 0}
-              >
-                {generatingSitecore ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <FileJson className="h-4 w-4 mr-2" />
-                )}
+              <Button onClick={handleGenerateSitecore} disabled={generatingSitecore || componentExports.length === 0}>
+                {generatingSitecore ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileJson className="h-4 w-4 mr-2" />}
                 Generate Sitecore Components
               </Button>
 
-              {componentExports.length > 0 && (
-                <div className="space-y-2">
+              {componentExports.length > 0 && <div className="space-y-2">
                   <h4 className="font-medium">Available for Export:</h4>
-                  {componentExports.map((comp) => (
-                    <Card key={comp.id}>
+                  {componentExports.map(comp => <Card key={comp.id}>
                       <CardContent className="pt-4">
                         <div className="flex justify-between items-start">
                           <div>
@@ -687,43 +547,19 @@ export default function GeneratedPageView() {
                               Type: {comp.component_type} | Format: {comp.export_format}
                             </p>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => downloadComponent(
-                              `${comp.component_name}-sitecore.json`,
-                              JSON.stringify(comp.sitecore_manifest, null, 2)
-                            )}
-                            disabled={!comp.sitecore_manifest || Object.keys(comp.sitecore_manifest).length === 0}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => downloadComponent(`${comp.component_name}-sitecore.json`, JSON.stringify(comp.sitecore_manifest, null, 2))} disabled={!comp.sitecore_manifest || Object.keys(comp.sitecore_manifest).length === 0}>
                             <Download className="h-4 w-4 mr-2" />
                             Export
                           </Button>
                         </div>
                       </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                    </Card>)}
+                </div>}
 
-              {page.published_url && (
-                <div className="mt-6 p-4 border rounded-lg bg-muted/50">
-                  <p className="text-sm font-medium mb-2">Deployed URL:</p>
-                  <a 
-                    href={page.published_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline flex items-center gap-2 text-sm"
-                  >
-                    {page.published_url}
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </div>
-              )}
+              {page.published_url}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
-  );
+    </div>;
 }
