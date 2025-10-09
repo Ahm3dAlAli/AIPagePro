@@ -133,19 +133,22 @@ serve(async (req) => {
         });
 
         console.log('v0 generation complete!');
-        console.log('Files generated:', messageResponse.files?.length || 0);
+        const msgResponse = messageResponse as any;
+        console.log('Files generated:', msgResponse.files?.length || 0);
         
         // Log file details for debugging
-        if (messageResponse.files) {
-          messageResponse.files.forEach((file: any, idx: number) => {
+        if (msgResponse.files) {
+          msgResponse.files.forEach((file: any, idx: number) => {
             console.log(`File ${idx + 1}: ${file.name} (${file.language || 'unknown'})`);
           });
         }
 
         // Inject analytics and A/B test tracking into generated files
-        const trackingScript = generateTrackingScript(pageId);
-        const enhancedFiles = injectTracking(messageResponse.files || [], trackingScript, pageId);
-        messageResponse.files = enhancedFiles;
+        if (pageId) {
+          const trackingScript = generateTrackingScript(pageId);
+          const enhancedFiles = injectTracking(msgResponse.files || [], trackingScript, pageId);
+          msgResponse.files = enhancedFiles;
+        }
 
         const components = extractComponents(messageResponse);
         
@@ -154,7 +157,7 @@ serve(async (req) => {
             chatId: chat.id,
             demoUrl: chat.demo,
             components,
-            files: messageResponse.files,
+            files: msgResponse.files,
             prdDocument,
             campaignConfig
           });
@@ -202,8 +205,9 @@ serve(async (req) => {
       }
     };
 
-    // Start background task
-    EdgeRuntime.waitUntil(backgroundGeneration());
+    // Start background task (commented out - use response tracking instead)
+    // EdgeRuntime.waitUntil(backgroundGeneration());
+    backgroundGeneration(); // Fire and forget
 
     // Return immediately with chat info
     return new Response(
@@ -282,7 +286,7 @@ function extractComponents(v0Data: any) {
       components: [],
       styles: [],
       utilities: [],
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }

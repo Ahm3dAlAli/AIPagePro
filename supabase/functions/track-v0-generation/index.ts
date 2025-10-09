@@ -113,25 +113,23 @@ serve(async (req) => {
           }]
         };
         
-        // Trigger file fetching in background
-        EdgeRuntime.waitUntil(
-          (async () => {
-            console.log('Auto-fetching files after completion...');
-            try {
-              const fetchResult = await supabaseClient.functions.invoke('fetch-v0-files', {
-                body: { pageId, chatId }
-              });
-              
-              if (fetchResult.error) {
-                console.error('Error auto-fetching files:', fetchResult.error);
-              } else {
-                console.log('Successfully auto-fetched files:', fetchResult.data);
-              }
-            } catch (error) {
-              console.error('Failed to auto-fetch files:', error);
+        // Trigger file fetching in background (fire and forget)
+        (async () => {
+          console.log('Auto-fetching files after completion...');
+          try {
+            const fetchResult = await supabaseClient.functions.invoke('fetch-v0-files', {
+              body: { pageId, chatId }
+            });
+            
+            if (fetchResult.error) {
+              console.error('Error auto-fetching files:', fetchResult.error);
+            } else {
+              console.log('Successfully auto-fetched files:', fetchResult.data);
             }
-          })()
-        );
+          } catch (error) {
+            console.error('Failed to auto-fetch files:', error);
+          }
+        })();
         break;
         
       case 'error':

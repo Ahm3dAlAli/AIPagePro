@@ -90,8 +90,9 @@ serve(async (req) => {
     if (allFiles.length === 0 && chat.messages && chat.messages.length > 0) {
       console.log('No files in latestVersion, checking messages...');
       for (const message of chat.messages) {
-        if (message.files && Array.isArray(message.files)) {
-          allFiles.push(...message.files);
+        const msg = message as any;
+        if (msg.files && Array.isArray(msg.files)) {
+          allFiles.push(...msg.files);
         }
       }
       console.log('Found files in messages:', allFiles.length);

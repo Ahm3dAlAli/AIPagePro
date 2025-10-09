@@ -908,7 +908,7 @@ function extractV0Components(v0Data: any): any {
     };
   } catch (error) {
     console.error('Error extracting v0 components:', error);
-    return { error: error.message };
+    return { error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 

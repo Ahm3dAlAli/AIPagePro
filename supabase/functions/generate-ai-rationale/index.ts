@@ -144,7 +144,7 @@ Format your response in clear sections with actionable insights based on the act
     console.error('Error in generate-ai-rationale:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         success: false 
       }),
       { 
