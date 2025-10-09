@@ -315,19 +315,14 @@ export default function GeneratedPageView() {
           </div>
         </div>
         <div className="flex gap-2">
-          {page.content.demoUrl && <>
-              <Button variant="outline" asChild>
-                <a href={page.content.demoUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Preview in New Tab
-                </a>
-              </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <a href={page.content.demoUrl} target="_blank" rel="noopener noreferrer">
-                  Open in v0
-                </a>
-              </Button>
-            </>}
+          {page.content.demoUrl && (
+            <Button asChild>
+              <a href={page.content.demoUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Preview in New Tab
+              </a>
+            </Button>
+          )}
           <Button onClick={handleDeploy} disabled={deploying}>
             <Rocket className="mr-2 h-4 w-4" />
             {deploying ? "Deploying..." : "Deploy to Vercel"}
