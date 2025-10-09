@@ -202,55 +202,7 @@ const DataDrivenInsights: React.FC = () => {
   }
   return <div className="space-y-6">
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg. Conversion Rate</p>
-                <p className="text-2xl font-bold">{(insights.averageConversionRate * 100).toFixed(1)}%</p>
-              </div>
-              <Target className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Campaigns</p>
-                <p className="text-2xl font-bold">{insights.totalCampaigns}</p>
-              </div>
-              <BarChart3 className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Conversions</p>
-                <p className="text-2xl font-bold">{insights.totalConversions.toLocaleString()}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Spend</p>
-                <p className="text-2xl font-bold">${insights.totalSpend.toLocaleString()}</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      
 
       {/* AI Optimizations */}
       
@@ -289,28 +241,7 @@ const DataDrivenInsights: React.FC = () => {
       </Card>
 
       {/* Device Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Device Performance</CardTitle>
-          <CardDescription>
-            AI will optimize layouts for your best-performing devices
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {insights.highPerformingDevices.map(device => <div key={device.device} className="flex items-center gap-3 p-4 border rounded-lg">
-                {getDeviceIcon(device.device)}
-                <div className="flex-1">
-                  <p className="font-medium capitalize">{device.device}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {(device.conversionRate * 100).toFixed(2)}% conversion rate
-                  </p>
-                  <Progress value={device.conversionRate * 1000} className="mt-2 h-2" />
-                </div>
-              </div>)}
-          </div>
-        </CardContent>
-      </Card>
+      
 
       {/* Experiment Insights */}
       {insights.experimentInsights.length > 0 && <Card>
