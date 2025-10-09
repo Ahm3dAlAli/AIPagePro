@@ -93,3 +93,9 @@ verify_jwt = true
 
 [functions.integrate-sitecore-xm-cloud]
 verify_jwt = true
+
+[functions.generate-form-endpoint]
+verify_jwt = true
+
+[functions.handle-form-submission]
+verify_jwt = false
