@@ -233,26 +233,18 @@ export default function GeneratedPageView() {
         description: `Integrated ${data?.componentsIntegrated || 0} components to Sitecore XM Cloud`
       });
 
-      // Optionally download the integration package
-      if (data?.downloadUrl) {
-        const packageData = await supabase
-          .from("generated_pages")
-          .select("sitecore_integration_data")
-          .eq("id", id)
-          .single();
-
-        if (packageData.data?.sitecore_integration_data) {
-          const blob = new Blob(
-            [JSON.stringify(packageData.data.sitecore_integration_data, null, 2)],
-            { type: "application/json" }
-          );
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `sitecore-integration-${id}.json`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
+      // Download the integration package
+      if (data?.integrationPackage) {
+        const blob = new Blob(
+          [JSON.stringify(data.integrationPackage, null, 2)],
+          { type: "application/json" }
+        );
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `sitecore-integration-${id}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
       }
     } catch (error) {
       console.error("Error integrating Sitecore components:", error);

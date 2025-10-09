@@ -67,20 +67,6 @@ serve(async (req) => {
       }
     };
 
-    // Store integration package in database for retrieval
-    const { error: updateError } = await supabaseClient
-      .from('generated_pages')
-      .update({
-        sitecore_integration_data: integrationPackage,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', pageId);
-
-    if (updateError) {
-      console.error('Error storing integration package:', updateError);
-      throw new Error('Failed to store integration package');
-    }
-
     console.log('✓ Integration package prepared successfully');
 
     return new Response(
@@ -88,7 +74,7 @@ serve(async (req) => {
         success: true,
         componentsIntegrated: components.length,
         message: 'Sitecore XM Cloud integration package ready',
-        downloadUrl: `${Deno.env.get('SUPABASE_URL')}/rest/v1/generated_pages?id=eq.${pageId}&select=sitecore_integration_data`
+        integrationPackage
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

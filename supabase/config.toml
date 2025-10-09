@@ -90,3 +90,6 @@ verify_jwt = true
 
 [functions.generate-sitecore-components]
 verify_jwt = true
+
+[functions.integrate-sitecore-xm-cloud]
+verify_jwt = true
