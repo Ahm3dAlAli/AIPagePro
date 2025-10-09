@@ -266,61 +266,52 @@ export default withDatasourceCheck()<${componentName}Props>(${componentName});`;
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Package className="h-5 w-5 text-blue-600" />
-          <CardTitle>Sitecore BYOC Component Export</CardTitle>
-        </div>
-        <CardDescription>
-          Export your landing page sections as Sitecore Bring Your Own Component (BYOC) modules
-          ready for XM Cloud integration.
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Export Controls */}
-        <div className="flex items-center gap-4">
-          <Button 
-            onClick={generateSitecoreComponents}
-            disabled={isGenerating || pageSections.length === 0}
-            className="flex items-center gap-2"
-          >
-            {isGenerating ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Generating...
-              </>
-            ) : (
-              <>
-                <Boxes className="h-4 w-4" />
-                Generate Components
-              </>
-            )}
-          </Button>
-          
-          {exportedComponents.length > 0 && (
-            <Button variant="outline" onClick={downloadAllComponents}>
-              <Download className="h-4 w-4 mr-2" />
-              Download All ({exportedComponents.length * 3} files)
-            </Button>
+    <div className="w-full">
+      {/* Generate Button - Upper Right */}
+      <div className="flex justify-end mb-6">
+        <Button 
+          onClick={generateSitecoreComponents}
+          disabled={isGenerating || pageSections.length === 0}
+          className="flex items-center gap-2"
+        >
+          {isGenerating ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Generating...
+            </>
+          ) : (
+            <>
+              <Boxes className="h-4 w-4" />
+              Generate Sitecore Components
+            </>
           )}
-        </div>
+        </Button>
+      </div>
 
-        {/* Components List */}
-        {exportedComponents.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <h3 className="text-lg font-semibold">Generated Components</h3>
-              <Badge variant="secondary">{exportedComponents.length} components</Badge>
+      {/* Components List */}
+      {exportedComponents.length > 0 && (
+        <Card className="w-full">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <CardTitle>Sitecore BYOC Components</CardTitle>
+                <Badge variant="secondary">{exportedComponents.length} components</Badge>
+              </div>
+              <Button variant="outline" onClick={downloadAllComponents}>
+                <Download className="h-4 w-4 mr-2" />
+                Download All ({exportedComponents.length * 3} files)
+              </Button>
             </div>
+          </CardHeader>
+          
+          <CardContent className="space-y-4">
 
             <Tabs defaultValue="components" className="space-y-4">
               <TabsList>
-                <TabsTrigger value="components">Components</TabsTrigger>
+                <TabsTrigger value="components">React Components</TabsTrigger>
                 <TabsTrigger value="schemas">JSON Schemas</TabsTrigger>
-                <TabsTrigger value="manifests">Sitecore Manifests</TabsTrigger>
+                <TabsTrigger value="manifests">Manifests</TabsTrigger>
               </TabsList>
 
               <TabsContent value="components" className="space-y-4">
@@ -437,37 +428,17 @@ export default withDatasourceCheck()<${componentName}Props>(${componentName});`;
                 ))}
               </TabsContent>
             </Tabs>
+          </CardContent>
+        </Card>
+      )}
 
-            {/* Integration Instructions */}
-            <Card className="bg-blue-50 border-blue-200">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <ExternalLink className="h-4 w-4" />
-                  Sitecore XM Cloud Integration
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <p><strong>1. Component Setup:</strong> Copy the React components to your Next.js project's components folder</p>
-                  <p><strong>2. Schema Import:</strong> Import the JSON schemas into Sitecore Content Editor</p>
-                  <p><strong>3. Manifest Configuration:</strong> Configure rendering definitions using the manifest files</p>
-                  <p><strong>4. Data Templates:</strong> Create corresponding data templates for each component</p>
-                  <p><strong>5. Layout Integration:</strong> Add components to your layout definitions and placeholder settings</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {pageSections.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No page sections available for export.</p>
-            <p className="text-sm">Generate page content first to create exportable components.</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {pageSections.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <Package className="h-12 w-12 mx-auto mb-4 opacity-20" />
+          <p>No page sections available. Generate a landing page first.</p>
+        </div>
+      )}
+    </div>
   );
 };
 
