@@ -315,9 +315,9 @@ export default function GeneratedPageView() {
           </div>
         </div>
         <div className="flex gap-2">
-          {page.content.chatId && (
+          {page.published_url && (
             <Button asChild>
-              <a href={`https://v0.dev/chat/${page.content.chatId}`} target="_blank" rel="noopener noreferrer">
+              <a href={page.published_url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Preview in New Tab
               </a>
