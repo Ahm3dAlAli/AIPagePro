@@ -299,11 +299,6 @@ const MyPages = () => {
                     <Badge className={getStatusColor(page.status)}>
                       {page.status}
                     </Badge>
-                    {page.published_url && <Button variant="ghost" size="sm" asChild>
-                        <a href={page.published_url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </Button>}
                   </div>
                   
                   <div className="text-sm text-muted-foreground">
@@ -317,7 +312,7 @@ const MyPages = () => {
                     <Button variant="outline" size="sm" asChild className="flex-1">
                       <Link to={`/dashboard/page/${page.id}`}>
                         <Eye className="mr-2 h-3 w-3" />
-                        View
+                        More
                       </Link>
                     </Button>
                     <Button variant="outline" size="sm" asChild>
