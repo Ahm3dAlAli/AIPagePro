@@ -315,6 +315,10 @@ export default function GeneratedPageView() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button onClick={handleDeploy} disabled={deploying}>
+            <Rocket className="mr-2 h-4 w-4" />
+            {deploying ? "Deploying..." : "Deploy to Vercel"}
+          </Button>
           {page.published_url && (
             <Button asChild>
               <a href={page.published_url} target="_blank" rel="noopener noreferrer">
@@ -323,10 +327,6 @@ export default function GeneratedPageView() {
               </a>
             </Button>
           )}
-          <Button onClick={handleDeploy} disabled={deploying}>
-            <Rocket className="mr-2 h-4 w-4" />
-            {deploying ? "Deploying..." : "Deploy to Vercel"}
-          </Button>
         </div>
       </div>
 

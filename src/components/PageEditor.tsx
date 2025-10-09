@@ -73,8 +73,10 @@ export const PageEditor: React.FC<PageEditorProps> = ({
   const [aiRationaleReport, setAiRationaleReport] = useState<any>(null);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [componentExports, setComponentExports] = useState<any[]>([]);
   useEffect(() => {
     loadPageSections();
+    loadComponentExports();
   }, [pageId]);
   const loadPageSections = async () => {
     try {
@@ -99,6 +101,21 @@ export const PageEditor: React.FC<PageEditorProps> = ({
       });
     }
   };
+  
+  const loadComponentExports = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('component_exports')
+        .select('*')
+        .eq('page_id', pageId);
+      
+      if (error) throw error;
+      setComponentExports(data || []);
+    } catch (error) {
+      console.error('Error loading component exports:', error);
+    }
+  };
+  
   const createInitialSections = async () => {
     if (!initialContent?.sections) return;
     const {
@@ -630,7 +647,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({
         </TabsContent>
 
         <TabsContent value="export" className="space-y-6">
-          <ComponentExportSystem pageId={pageId || ''} pageSections={sections || []} />
+          <ComponentExportSystem pageId={pageId || ''} pageSections={sections || []} componentExports={componentExports} />
         </TabsContent>
       </Tabs>
     </div>;
