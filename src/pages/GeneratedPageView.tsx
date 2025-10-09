@@ -38,6 +38,7 @@ export default function GeneratedPageView() {
   const [editedContent, setEditedContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [generatingSitecore, setGeneratingSitecore] = useState(false);
+  const [integratingSitecore, setIntegratingSitecore] = useState(false);
   const [fetchingFiles, setFetchingFiles] = useState(false);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [generatingRationale, setGeneratingRationale] = useState(false);
@@ -215,6 +216,56 @@ export default function GeneratedPageView() {
       setGeneratingSitecore(false);
     }
   };
+
+  const handleIntegrateSitecore = async () => {
+    setIntegratingSitecore(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("integrate-sitecore-xm-cloud", {
+        body: {
+          pageId: id
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Integrated ${data?.componentsIntegrated || 0} components to Sitecore XM Cloud`
+      });
+
+      // Optionally download the integration package
+      if (data?.downloadUrl) {
+        const packageData = await supabase
+          .from("generated_pages")
+          .select("sitecore_integration_data")
+          .eq("id", id)
+          .single();
+
+        if (packageData.data?.sitecore_integration_data) {
+          const blob = new Blob(
+            [JSON.stringify(packageData.data.sitecore_integration_data, null, 2)],
+            { type: "application/json" }
+          );
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `sitecore-integration-${id}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      }
+    } catch (error) {
+      console.error("Error integrating Sitecore components:", error);
+      toast({
+        title: "Error",
+        description: "Failed to integrate Sitecore components",
+        variant: "destructive"
+      });
+    } finally {
+      setIntegratingSitecore(false);
+    }
+  };
+
   const handleFetchFilesFromV0 = async () => {
     if (!page?.content?.chatId) {
       toast({
@@ -596,14 +647,13 @@ export default function GeneratedPageView() {
                       Export All
                     </Button>
                     
-                    <Button variant="outline" onClick={() => {
-                      toast({
-                        title: "Integration Guide",
-                        description: "Copy components to your Sitecore XM Cloud Next.js project"
-                      });
-                    }}>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleIntegrateSitecore}
+                      disabled={integratingSitecore}
+                    >
                       <Package className="h-4 w-4 mr-2" />
-                      Integrate to Sitecore BYOC
+                      {integratingSitecore ? "Integrating..." : "Integrate to Sitecore XM Cloud"}
                     </Button>
                   </>
                 )}
