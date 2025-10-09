@@ -277,13 +277,7 @@ const MyPages = () => {
                       <DropdownMenuItem asChild>
                         <Link to={`/dashboard/page/${page.id}`}>
                           <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to={`/dashboard/pages/${page.id}`}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
+                          Preview
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDuplicate(page)}>
