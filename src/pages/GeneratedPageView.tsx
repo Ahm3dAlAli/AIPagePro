@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { ArrowLeft, Download, ExternalLink, Rocket, Edit, Save, FileCode, FileJson, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Download, ExternalLink, Rocket, Edit, Save, FileCode, FileJson, Loader2, Package } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 interface GeneratedPage {
   id: string;
@@ -29,6 +29,7 @@ export default function GeneratedPageView() {
     id
   } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [page, setPage] = useState<GeneratedPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [deploying, setDeploying] = useState(false);
@@ -57,10 +58,17 @@ export default function GeneratedPageView() {
 
       // If status changed from generating to completed, show success message and refetch components
       if (newPage.content?.status === 'completed') {
-        toast.success("Generation Complete! Your landing page components are ready.");
+        toast({
+          title: "Generation Complete!",
+          description: "Your landing page components are ready."
+        });
         fetchComponentExports();
       } else if (newPage.content?.status === 'error') {
-        toast.error("Generation failed. Please try again.");
+        toast({
+          title: "Generation Failed",
+          description: "Please try again.",
+          variant: "destructive"
+        });
       }
     }).subscribe();
     return () => {
@@ -90,7 +98,11 @@ export default function GeneratedPageView() {
       setAiRationale(data?.ai_rationale || "");
     } catch (error) {
       console.error("Error fetching page:", error);
-      toast.error("Failed to load page");
+      toast({
+        title: "Error",
+        description: "Failed to load page",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -120,7 +132,10 @@ export default function GeneratedPageView() {
         }
       });
       if (error) throw error;
-      toast.success("Deployment successful!");
+      toast({
+        title: "Deployment Successful!",
+        description: "Your page has been deployed."
+      });
 
       // Open deployment URL in new tab
       if (data?.deploymentUrl) {
@@ -131,7 +146,11 @@ export default function GeneratedPageView() {
       fetchPage();
     } catch (error) {
       console.error("Deployment error:", error);
-      toast.error("Failed to deploy page");
+      toast({
+        title: "Deployment Failed",
+        description: "Failed to deploy page",
+        variant: "destructive"
+      });
     } finally {
       setDeploying(false);
     }
@@ -151,12 +170,19 @@ export default function GeneratedPageView() {
         updated_at: new Date().toISOString()
       }).eq("id", editingFile.id);
       if (error) throw error;
-      toast.success("Component updated successfully");
+      toast({
+        title: "Success",
+        description: "Component updated successfully"
+      });
       setEditingFile(null);
       fetchComponentExports();
     } catch (error) {
       console.error("Error updating component:", error);
-      toast.error("Failed to update component");
+      toast({
+        title: "Error",
+        description: "Failed to update component",
+        variant: "destructive"
+      });
     } finally {
       setSaving(false);
     }
@@ -165,7 +191,10 @@ export default function GeneratedPageView() {
     setGeneratingSitecore(true);
     try {
       // This would call an edge function to generate Sitecore manifests
-      toast.info("Sitecore component generation coming soon!");
+      toast({
+        title: "Coming Soon",
+        description: "Sitecore component generation coming soon!"
+      });
 
       // For now, just update the sitecore_manifest field with placeholder data
       for (const component of componentExports) {
@@ -183,14 +212,22 @@ export default function GeneratedPageView() {
       fetchComponentExports();
     } catch (error) {
       console.error("Error generating Sitecore components:", error);
-      toast.error("Failed to generate Sitecore components");
+      toast({
+        title: "Error",
+        description: "Failed to generate Sitecore components",
+        variant: "destructive"
+      });
     } finally {
       setGeneratingSitecore(false);
     }
   };
   const handleFetchFilesFromV0 = async () => {
     if (!page?.content?.chatId) {
-      toast.error("No v0 chat ID found");
+      toast({
+        title: "Error",
+        description: "No v0 chat ID found",
+        variant: "destructive"
+      });
       return;
     }
     setFetchingFiles(true);
@@ -205,12 +242,19 @@ export default function GeneratedPageView() {
         }
       });
       if (error) throw error;
-      toast.success(`Successfully fetched ${data.savedCount} files from v0`);
+      toast({
+        title: "Success",
+        description: `Successfully fetched ${data.savedCount} files from v0`
+      });
       fetchComponentExports();
       fetchPage();
     } catch (error) {
       console.error("Error fetching files from v0:", error);
-      toast.error("Failed to fetch files from v0");
+      toast({
+        title: "Error",
+        description: "Failed to fetch files from v0",
+        variant: "destructive"
+      });
     } finally {
       setFetchingFiles(false);
     }
@@ -229,11 +273,18 @@ export default function GeneratedPageView() {
       if (error) throw error;
       if (data?.rationale) {
         setAiRationale(data.rationale);
-        toast.success("AI rationale generated successfully!");
+        toast({
+          title: "Success",
+          description: "AI rationale generated successfully!"
+        });
       }
     } catch (error) {
       console.error("Error generating rationale:", error);
-      toast.error("Failed to generate AI rationale");
+      toast({
+        title: "Error",
+        description: "Failed to generate AI rationale",
+        variant: "destructive"
+      });
     } finally {
       setGeneratingRationale(false);
     }
@@ -526,12 +577,46 @@ export default function GeneratedPageView() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button onClick={handleGenerateSitecore} disabled={generatingSitecore || componentExports.length === 0}>
-                {generatingSitecore ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileJson className="h-4 w-4 mr-2" />}
-                Generate Sitecore Components
-              </Button>
+              <div className="flex justify-end gap-3">
+                <Button onClick={handleGenerateSitecore} disabled={generatingSitecore || componentExports.length === 0}>
+                  {generatingSitecore ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileJson className="h-4 w-4 mr-2" />}
+                  Generate Sitecore BYOC Components
+                </Button>
+                
+                {componentExports.length > 0 && componentExports.some(comp => comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) && (
+                  <>
+                    <Button variant="outline" onClick={() => {
+                      componentExports.forEach(comp => {
+                        if (comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) {
+                          downloadComponent(`${comp.component_name}-react.tsx`, comp.react_code);
+                          downloadComponent(`${comp.component_name}-schema.json`, JSON.stringify(comp.json_schema, null, 2));
+                          downloadComponent(`${comp.component_name}-manifest.json`, JSON.stringify(comp.sitecore_manifest, null, 2));
+                        }
+                      });
+                      toast({
+                        title: "Export Complete",
+                        description: `Exported ${componentExports.length * 3} files`
+                      });
+                    }}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export All
+                    </Button>
+                    
+                    <Button variant="outline" onClick={() => {
+                      toast({
+                        title: "Integration Guide",
+                        description: "Copy components to your Sitecore XM Cloud Next.js project"
+                      });
+                    }}>
+                      <Package className="h-4 w-4 mr-2" />
+                      Integrate to Sitecore BYOC
+                    </Button>
+                  </>
+                )}
+              </div>
 
-              {componentExports.length > 0 && <div className="space-y-2">
+              {componentExports.length > 0 && componentExports.some(comp => comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) && (
+                <div className="space-y-2">
                   <h4 className="font-medium">Available for Export:</h4>
                   {componentExports.map(comp => <Card key={comp.id}>
                       <CardContent className="pt-4">
@@ -549,9 +634,8 @@ export default function GeneratedPageView() {
                         </div>
                       </CardContent>
                     </Card>)}
-                </div>}
-
-              {page.published_url}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
