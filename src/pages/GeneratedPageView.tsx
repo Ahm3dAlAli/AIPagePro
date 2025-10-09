@@ -190,25 +190,19 @@ export default function GeneratedPageView() {
   const handleGenerateSitecore = async () => {
     setGeneratingSitecore(true);
     try {
-      // This would call an edge function to generate Sitecore manifests
-      toast({
-        title: "Coming Soon",
-        description: "Sitecore component generation coming soon!"
+      const { data, error } = await supabase.functions.invoke("generate-sitecore-components", {
+        body: {
+          pageId: id
+        }
       });
 
-      // For now, just update the sitecore_manifest field with placeholder data
-      for (const component of componentExports) {
-        await supabase.from("component_exports").update({
-          sitecore_manifest: {
-            componentName: component.component_name,
-            fields: [],
-            rendering: {
-              componentName: component.component_name,
-              dataSource: ""
-            }
-          }
-        }).eq("id", component.id);
-      }
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Generated ${data?.componentsGenerated || 0} Sitecore BYOC components`
+      });
+
       fetchComponentExports();
     } catch (error) {
       console.error("Error generating Sitecore components:", error);
