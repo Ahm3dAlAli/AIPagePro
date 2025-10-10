@@ -88,7 +88,7 @@ const navigationItems = [
     title: "Deployment",
     url: "/dashboard/deployment",
     icon: CloudUpload,
-    group: "Marketing"
+    group: "Generate"
   },
   {
     title: "Settings",
