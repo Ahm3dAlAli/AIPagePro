@@ -55,6 +55,12 @@ const navigationItems = [
     group: "Build & Deploy"
   },
   {
+    title: "Deployment",
+    url: "/dashboard/deployment",
+    icon: CloudUpload,
+    group: "Build & Deploy"
+  },
+  {
     title: "Templates",
     url: "/dashboard/templates",
     icon: FileText,
@@ -83,12 +89,6 @@ const navigationItems = [
     url: "/dashboard/campaigns",
     icon: Rocket,
     group: "Marketing"
-  },
-  {
-    title: "Deployment",
-    url: "/dashboard/deployment",
-    icon: CloudUpload,
-    group: "Build & Deploy"
   },
   {
     title: "Settings",
