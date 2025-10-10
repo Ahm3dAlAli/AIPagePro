@@ -11,7 +11,9 @@ import {
   TestTube,
   Users,
   Globe,
-  FormInput
+  FormInput,
+  Sparkles,
+  CloudUpload
 } from "lucide-react";
 
 import {
@@ -71,9 +73,21 @@ const navigationItems = [
     group: "Insights"
   },
   {
+    title: "AI Rationale",
+    url: "/dashboard/ai-rationale",
+    icon: Sparkles,
+    group: "Insights"
+  },
+  {
     title: "Campaigns",
     url: "/dashboard/campaigns",
     icon: Rocket,
+    group: "Marketing"
+  },
+  {
+    title: "Deployment",
+    url: "/dashboard/deployment",
+    icon: CloudUpload,
     group: "Marketing"
   },
   {

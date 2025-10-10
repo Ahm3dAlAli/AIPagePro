@@ -19,6 +19,8 @@ import Campaigns from "./pages/Campaigns";
 import Preview from "./pages/Preview";
 import GeneratedPageView from "./pages/GeneratedPageView";
 import FormBuilder from "./pages/FormBuilder";
+import AIRationale from "./pages/AIRationale";
+import Deployment from "./pages/Deployment";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +53,8 @@ const App = () => (
               <Route path="templates" element={<Templates />} />
               <Route path="experiments" element={<Experiments />} />
               <Route path="campaigns" element={<Campaigns />} />
+              <Route path="ai-rationale" element={<AIRationale />} />
+              <Route path="deployment" element={<Deployment />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
