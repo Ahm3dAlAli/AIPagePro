@@ -43,16 +43,16 @@ const navigationItems = [
     group: "Generate"
   },
   {
-    title: "Form Builder",
-    url: "/dashboard/form-builder",
-    icon: FormInput,
-    group: "Generate"
-  },
-  {
     title: "My Pages",
     url: "/dashboard/pages",
     icon: Globe,
     group: "Generate"
+  },
+  {
+    title: "Form Builder",
+    url: "/dashboard/form-builder",
+    icon: FormInput,
+    group: "Build & Deploy"
   },
   {
     title: "Templates",
@@ -88,7 +88,7 @@ const navigationItems = [
     title: "Deployment",
     url: "/dashboard/deployment",
     icon: CloudUpload,
-    group: "Generate"
+    group: "Build & Deploy"
   },
   {
     title: "Settings",
