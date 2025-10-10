@@ -10,7 +10,8 @@ import {
   Plus,
   TestTube,
   Users,
-  Globe
+  Globe,
+  FormInput
 } from "lucide-react";
 
 import {
@@ -37,6 +38,12 @@ const navigationItems = [
     title: "Create Page",
     url: "/dashboard/create",
     icon: Plus,
+    group: "Generate"
+  },
+  {
+    title: "Form Builder",
+    url: "/dashboard/form-builder",
+    icon: FormInput,
     group: "Generate"
   },
   {

@@ -18,6 +18,7 @@ import Experiments from "./pages/Experiments";
 import Campaigns from "./pages/Campaigns";
 import Preview from "./pages/Preview";
 import GeneratedPageView from "./pages/GeneratedPageView";
+import FormBuilder from "./pages/FormBuilder";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             }>
               <Route index element={<Dashboard />} />
               <Route path="create" element={<CreatePage />} />
+              <Route path="form-builder" element={<FormBuilder />} />
               <Route path="my-pages" element={<MyPages />} />
               <Route path="pages" element={<MyPages />} />
               <Route path="pages/:pageId" element={<PageEditor />} />
