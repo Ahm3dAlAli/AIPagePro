@@ -37,11 +37,9 @@ export default function GeneratedPageView() {
   const [editingFile, setEditingFile] = useState<ComponentExport | null>(null);
   const [editedContent, setEditedContent] = useState("");
   const [saving, setSaving] = useState(false);
-  const [generatingSitecore, setGeneratingSitecore] = useState(false);
   const [integratingSitecore, setIntegratingSitecore] = useState(false);
   const [fetchingFiles, setFetchingFiles] = useState(false);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
-  const [generatingRationale, setGeneratingRationale] = useState(false);
   const [aiRationale, setAiRationale] = useState<string>("");
   useEffect(() => {
     fetchPage();
@@ -188,35 +186,6 @@ export default function GeneratedPageView() {
       setSaving(false);
     }
   };
-  const handleGenerateSitecore = async () => {
-    setGeneratingSitecore(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-sitecore-components", {
-        body: {
-          pageId: id
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: `Generated ${data?.componentsGenerated || 0} Sitecore BYOC components`
-      });
-
-      fetchComponentExports();
-    } catch (error) {
-      console.error("Error generating Sitecore components:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate Sitecore components",
-        variant: "destructive"
-      });
-    } finally {
-      setGeneratingSitecore(false);
-    }
-  };
-
   const handleIntegrateSitecore = async () => {
     setIntegratingSitecore(true);
     try {
@@ -296,36 +265,7 @@ export default function GeneratedPageView() {
       setFetchingFiles(false);
     }
   };
-  const handleGenerateRationale = async () => {
-    setGeneratingRationale(true);
-    try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke("generate-ai-rationale", {
-        body: {
-          pageId: id
-        }
-      });
-      if (error) throw error;
-      if (data?.rationale) {
-        setAiRationale(data.rationale);
-        toast({
-          title: "Success",
-          description: "AI rationale generated successfully!"
-        });
-      }
-    } catch (error) {
-      console.error("Error generating rationale:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate AI rationale",
-        variant: "destructive"
-      });
-    } finally {
-      setGeneratingRationale(false);
-    }
-  };
+  
   const downloadComponent = (fileName: string, content: string) => {
     const blob = new Blob([content], {
       type: "text/plain"
@@ -570,20 +510,12 @@ export default function GeneratedPageView() {
         <TabsContent value="rationale" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    AI Design Rationale
-                  </CardTitle>
-                  <CardDescription>
-                    AI-generated insights on design decisions, UX strategy, and conversion optimization
-                  </CardDescription>
-                </div>
-                <Button onClick={handleGenerateRationale} disabled={generatingRationale} variant="default">
-                  {generatingRationale ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Rocket className="h-4 w-4 mr-2" />}
-                  {aiRationale ? 'Regenerate' : 'Generate'} Rationale
-                </Button>
-              </div>
+              <CardTitle className="flex items-center gap-2">
+                AI Design Rationale
+              </CardTitle>
+              <CardDescription>
+                Automatically generated AI insights on design decisions, UX strategy, and conversion optimization
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {aiRationale ? <div className="prose prose-sm max-w-none">
@@ -591,10 +523,10 @@ export default function GeneratedPageView() {
                     {aiRationale}
                   </div>
                 </div> : <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Rocket className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Rationale Generated Yet</h3>
+                  <Loader2 className="h-12 w-12 text-muted-foreground mb-4 animate-spin" />
+                  <h3 className="text-lg font-semibold mb-2">Generating AI Rationale</h3>
                   <p className="text-muted-foreground mb-4 max-w-md">
-                    Click the "Generate Rationale" button to get AI-powered insights about your page's design decisions, UX strategy, and conversion optimization.
+                    AI rationale is automatically generated when your landing page is created. This should appear shortly.
                   </p>
                 </div>}
             </CardContent>
@@ -610,18 +542,13 @@ export default function GeneratedPageView() {
                 Sitecore Component Exports
               </CardTitle>
               <CardDescription>
-                Generate and export components for Sitecore integration
+                Automatically generated components for Sitecore BYOC integration
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-end gap-3">
-                <Button onClick={handleGenerateSitecore} disabled={generatingSitecore || componentExports.length === 0}>
-                  {generatingSitecore ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileJson className="h-4 w-4 mr-2" />}
-                  Generate Sitecore BYOC Components
-                </Button>
-                
-                {componentExports.length > 0 && componentExports.some(comp => comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) && (
-                  <>
+              {componentExports.length > 0 && componentExports.some(comp => comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) ? (
+                <>
+                  <div className="flex justify-end gap-3">
                     <Button variant="outline" onClick={() => {
                       componentExports.forEach(comp => {
                         if (comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) {
@@ -647,29 +574,35 @@ export default function GeneratedPageView() {
                       <Package className="h-4 w-4 mr-2" />
                       {integratingSitecore ? "Integrating..." : "Integrate to Sitecore XM Cloud"}
                     </Button>
-                  </>
-                )}
-              </div>
+                  </div>
 
-              {componentExports.length > 0 && componentExports.some(comp => comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) && (
-                <div className="space-y-2">
-                  <h4 className="font-medium">Available for Export:</h4>
-                  {componentExports.map(comp => <Card key={comp.id}>
-                      <CardContent className="pt-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">{comp.component_name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Type: {comp.component_type} | Format: {comp.export_format}
-                            </p>
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Available for Export:</h4>
+                    {componentExports.map(comp => <Card key={comp.id}>
+                        <CardContent className="pt-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">{comp.component_name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Type: {comp.component_type} | Format: {comp.export_format}
+                              </p>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={() => downloadComponent(`${comp.component_name}-sitecore.json`, JSON.stringify(comp.sitecore_manifest, null, 2))} disabled={!comp.sitecore_manifest || Object.keys(comp.sitecore_manifest).length === 0}>
+                              <Download className="h-4 w-4 mr-2" />
+                              Export
+                            </Button>
                           </div>
-                          <Button variant="outline" size="sm" onClick={() => downloadComponent(`${comp.component_name}-sitecore.json`, JSON.stringify(comp.sitecore_manifest, null, 2))} disabled={!comp.sitecore_manifest || Object.keys(comp.sitecore_manifest).length === 0}>
-                            <Download className="h-4 w-4 mr-2" />
-                            Export
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>)}
+                        </CardContent>
+                      </Card>)}
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Loader2 className="h-12 w-12 text-muted-foreground mb-4 animate-spin" />
+                  <h3 className="text-lg font-semibold mb-2">Generating Sitecore Components</h3>
+                  <p className="text-muted-foreground mb-4 max-w-md">
+                    Sitecore BYOC components are automatically generated when your landing page is created. This should appear shortly.
+                  </p>
                 </div>
               )}
             </CardContent>

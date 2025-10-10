@@ -113,21 +113,40 @@ serve(async (req) => {
           }]
         };
         
-        // Trigger file fetching in background (fire and forget)
+        // Trigger background tasks in parallel (fire and forget)
         (async () => {
-          console.log('Auto-fetching files after completion...');
-          try {
-            const fetchResult = await supabaseClient.functions.invoke('fetch-v0-files', {
+          console.log('Starting post-generation background tasks...');
+          
+          // Fetch files, generate AI rationale, and Sitecore components in parallel
+          const [fetchResult, rationaleResult, sitecoreResult] = await Promise.allSettled([
+            supabaseClient.functions.invoke('fetch-v0-files', {
               body: { pageId, chatId }
-            });
-            
-            if (fetchResult.error) {
-              console.error('Error auto-fetching files:', fetchResult.error);
-            } else {
-              console.log('Successfully auto-fetched files:', fetchResult.data);
-            }
-          } catch (error) {
-            console.error('Failed to auto-fetch files:', error);
+            }),
+            supabaseClient.functions.invoke('generate-ai-rationale', {
+              body: { pageId }
+            }),
+            supabaseClient.functions.invoke('generate-sitecore-components', {
+              body: { pageId }
+            })
+          ]);
+          
+          // Log results
+          if (fetchResult.status === 'fulfilled' && !fetchResult.value.error) {
+            console.log('✓ Files fetched successfully');
+          } else {
+            console.error('✗ Error fetching files:', fetchResult.status === 'fulfilled' ? fetchResult.value.error : fetchResult.reason);
+          }
+          
+          if (rationaleResult.status === 'fulfilled' && !rationaleResult.value.error) {
+            console.log('✓ AI rationale generated successfully');
+          } else {
+            console.error('✗ Error generating AI rationale:', rationaleResult.status === 'fulfilled' ? rationaleResult.value.error : rationaleResult.reason);
+          }
+          
+          if (sitecoreResult.status === 'fulfilled' && !sitecoreResult.value.error) {
+            console.log('✓ Sitecore components generated successfully');
+          } else {
+            console.error('✗ Error generating Sitecore components:', sitecoreResult.status === 'fulfilled' ? sitecoreResult.value.error : sitecoreResult.reason);
           }
         })();
         break;
