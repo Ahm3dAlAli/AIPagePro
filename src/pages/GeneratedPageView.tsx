@@ -601,8 +601,43 @@ export default function GeneratedPageView() {
                   <Loader2 className="h-12 w-12 text-muted-foreground mb-4 animate-spin" />
                   <h3 className="text-lg font-semibold mb-2">Generating Sitecore Components</h3>
                   <p className="text-muted-foreground mb-4 max-w-md">
-                    Sitecore BYOC components are automatically generated when your landing page is created. This should appear shortly.
+                    Sitecore BYOC components are automatically generated when your landing page is created.
                   </p>
+                  <Button 
+                    onClick={async () => {
+                      setIntegratingSitecore(true);
+                      try {
+                        const { error } = await supabase.functions.invoke('generate-sitecore-components', {
+                          body: { pageId: id }
+                        });
+                        
+                        if (error) throw error;
+                        
+                        toast({
+                          title: "Generation Started",
+                          description: "Sitecore components are being generated. This may take a moment."
+                        });
+                        
+                        // Refresh component exports after a delay
+                        setTimeout(() => {
+                          fetchComponentExports();
+                          setIntegratingSitecore(false);
+                        }, 3000);
+                      } catch (error) {
+                        console.error('Error generating Sitecore components:', error);
+                        toast({
+                          title: "Generation Failed",
+                          description: "Failed to generate Sitecore components. Please try again.",
+                          variant: "destructive"
+                        });
+                        setIntegratingSitecore(false);
+                      }
+                    }}
+                    disabled={integratingSitecore}
+                  >
+                    <Package className="h-4 w-4 mr-2" />
+                    {integratingSitecore ? "Generating..." : "Generate Now"}
+                  </Button>
                 </div>
               )}
             </CardContent>
