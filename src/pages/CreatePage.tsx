@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Loader2, Brain, Sparkles, Target, Copy, Database } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Brain, Sparkles, Target, Copy, Database, Palette, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import EnhancedDataImport from '@/components/EnhancedDataImport';
@@ -262,145 +262,225 @@ const CreatePage = () => {
     value: 'conversational',
     label: 'Conversational'
   }];
-  return <div className="max-w-4xl mx-auto p-6 space-y-8">
+  return <div className="max-w-6xl mx-auto p-6 space-y-8">
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
           <Brain className="h-4 w-4" />
-          AI Page Generator
+          Agentic AI Landing Page Creator
         </div>
         <h1 className="text-3xl font-bold">Create Your Landing Page</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Fill in the details below and let our AI generate a high-converting landing page tailored to your campaign goals and target audience.
+          Fill in the campaign details using the organized tabs below. Our AI will generate a high-converting, brand-compliant landing page.
         </p>
         <Button type="button" variant="outline" onClick={fillExampleData} className="mt-4">
           <Copy className="mr-2 h-4 w-4" />
-          Copy Example: Ceramic Store with Paint
+          Load Example Data
         </Button>
       </div>
 
       <form onSubmit={handleGenerate} className="space-y-8">
-        {/* Enhanced Data Import Section */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Database className="h-5 w-5 text-blue-600" />
-              <CardTitle>Historic Data for AI Optimization</CardTitle>
-            </div>
-            
-          </CardHeader>
-          <CardContent>
-            <EnhancedDataImport ref={dataImportRef} onDataImported={handleDataImported} />
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="campaign" className="w-full">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="campaign">
+              <Target className="h-4 w-4 mr-2" />
+              Campaign
+            </TabsTrigger>
+            <TabsTrigger value="audience">
+              <Target className="h-4 w-4 mr-2" />
+              Audience
+            </TabsTrigger>
+            <TabsTrigger value="content">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Content
+            </TabsTrigger>
+            <TabsTrigger value="design">
+              <Palette className="h-4 w-4 mr-2" />
+              Design
+            </TabsTrigger>
+            <TabsTrigger value="seo">
+              <Search className="h-4 w-4 mr-2" />
+              SEO
+            </TabsTrigger>
+            <TabsTrigger value="data">
+              <Database className="h-4 w-4 mr-2" />
+              Data
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Campaign Configuration */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-green-600" />
-              <CardTitle>Campaign Configuration</CardTitle>
-            </div>
-            
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="campaignObjective">Campaign Objective *</Label>
-                <Select value={formData.campaignObjective} onValueChange={value => handleInputChange('campaignObjective', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select campaign type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {campaignTypes.map(type => <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Campaign Configuration Tab */}
+          <TabsContent value="campaign" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Campaign Configuration</CardTitle>
+                <CardDescription>Define your campaign objectives and strategy</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="campaignObjective">Campaign Objective *</Label>
+                    <Select value={formData.campaignObjective} onValueChange={value => handleInputChange('campaignObjective', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select campaign type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {campaignTypes.map(type => <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="toneOfVoice">Tone of Voice</Label>
-                <Select value={formData.toneOfVoice} onValueChange={value => handleInputChange('toneOfVoice', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {toneOptions.map(tone => <SelectItem key={tone.value} value={tone.value}>
-                        {tone.label}
-                      </SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="toneOfVoice">Tone of Voice</Label>
+                    <Select value={formData.toneOfVoice} onValueChange={value => handleInputChange('toneOfVoice', value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {toneOptions.map(tone => <SelectItem key={tone.value} value={tone.value}>
+                            {tone.label}
+                          </SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="targetAudience">Target Audience Description *</Label>
-              <Textarea id="targetAudience" placeholder="Describe your ideal customer - demographics, interests, pain points, and motivations" value={formData.targetAudience} onChange={e => handleInputChange('targetAudience', e.target.value)} rows={4} />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="industryType">Industry/Business Type</Label>
+                  <Input id="industryType" placeholder="e.g., SaaS, E-commerce, Healthcare, Education" value={formData.industryType} onChange={e => handleInputChange('industryType', e.target.value)} />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-            <div className="space-y-2">
-              <Label htmlFor="industryType">Industry/Business Type</Label>
-              <Input id="industryType" placeholder="e.g., SaaS, E-commerce, Healthcare, Education" value={formData.industryType} onChange={e => handleInputChange('industryType', e.target.value)} />
-            </div>
-          </CardContent>
-        </Card>
+          {/* Target Audience Tab */}
+          <TabsContent value="audience" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Target Audience</CardTitle>
+                <CardDescription>Define your ideal customer profile</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="targetAudience">Target Audience Description *</Label>
+                  <Textarea id="targetAudience" placeholder="Describe your ideal customer - demographics, interests, pain points, and motivations" value={formData.targetAudience} onChange={e => handleInputChange('targetAudience', e.target.value)} rows={6} />
+                  <p className="text-sm text-muted-foreground">Include role, industry, pain points, and buyer persona keywords</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {/* Product/Service Details */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-purple-600" />
-              <CardTitle>Product/Service Details</CardTitle>
-            </div>
-            
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="uniqueValueProp">Unique Value Proposition *</Label>
-              <Textarea id="uniqueValueProp" placeholder="What makes your product/service unique? What's the main benefit you provide?" value={formData.uniqueValueProp} onChange={e => handleInputChange('uniqueValueProp', e.target.value)} rows={3} />
-            </div>
+          {/* Content & Messaging Tab */}
+          <TabsContent value="content" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Content & Messaging</CardTitle>
+                <CardDescription>Define your value proposition and key messages</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="uniqueValueProp">Unique Value Proposition *</Label>
+                  <Textarea id="uniqueValueProp" placeholder="What makes your product/service unique? What's the main benefit you provide?" value={formData.uniqueValueProp} onChange={e => handleInputChange('uniqueValueProp', e.target.value)} rows={3} />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="primaryBenefits">Primary Benefits</Label>
-              <Textarea id="primaryBenefits" placeholder="List the main benefits (one per line, start with • or -)" value={formData.primaryBenefits} onChange={e => handleInputChange('primaryBenefits', e.target.value)} rows={5} />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="primaryBenefits">Primary Benefits (Top 3-5)</Label>
+                  <Textarea id="primaryBenefits" placeholder="List the main benefits (one per line, start with • or -)" value={formData.primaryBenefits} onChange={e => handleInputChange('primaryBenefits', e.target.value)} rows={5} />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="features">Key Features</Label>
-              <Textarea id="features" placeholder="List the main features (one per line, start with • or -)" value={formData.features} onChange={e => handleInputChange('features', e.target.value)} rows={5} />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="features">Key Features</Label>
+                  <Textarea id="features" placeholder="List the main features (one per line, start with • or -)" value={formData.features} onChange={e => handleInputChange('features', e.target.value)} rows={5} />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ctaText">Call-to-Action Text</Label>
-              <Input id="ctaText" placeholder="e.g., Get Started Free, Buy Now, Learn More" value={formData.ctaText} onChange={e => handleInputChange('ctaText', e.target.value)} />
-            </div>
-          </CardContent>
-        </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="ctaText">Primary Call-to-Action Text</Label>
+                  <Input id="ctaText" placeholder="e.g., Get Started Free, Buy Now, Learn More" value={formData.ctaText} onChange={e => handleInputChange('ctaText', e.target.value)} />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {/* SEO & Technical */}
-        <Card>
-          <CardHeader>
-            
-            <CardDescription>
-              Optimize your page for search engines and user experience
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="pageTitle">Page Title</Label>
-              <Input id="pageTitle" placeholder="SEO-optimized page title (50-60 characters)" value={formData.pageTitle} onChange={e => handleInputChange('pageTitle', e.target.value)} />
-            </div>
+          {/* Design & Brand Tab */}
+          <TabsContent value="design" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Design & Brand Guidelines</CardTitle>
+                <CardDescription>Brand colors, fonts, and visual preferences</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Brand Color Palette (Hex Codes)</Label>
+                  <Input placeholder="#3b82f6, #1e40af, #60a5fa" />
+                  <p className="text-sm text-muted-foreground">Enter hex codes separated by commas</p>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="seoKeywords">Target Keywords</Label>
-              <Input id="seoKeywords" placeholder="keyword1, keyword2, keyword3" value={formData.seoKeywords} onChange={e => handleInputChange('seoKeywords', e.target.value)} />
-            </div>
-          </CardContent>
-        </Card>
+                <div className="space-y-2">
+                  <Label>Font Style Guide</Label>
+                  <Input placeholder="Modern sans-serif (e.g., Inter, Roboto)" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Page Layout Preference</Label>
+                  <Select defaultValue="modular">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="scroll">Long-Scroll Narrative</SelectItem>
+                      <SelectItem value="modular">Modular Sections</SelectItem>
+                      <SelectItem value="storytelling">Story-Driven</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* SEO & Technical Tab */}
+          <TabsContent value="seo" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>SEO & Technical Configuration</CardTitle>
+                <CardDescription>Optimize your page for search engines</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="pageTitle">Page Title (50-60 characters)</Label>
+                  <Input id="pageTitle" placeholder="SEO-optimized page title" value={formData.pageTitle} onChange={e => handleInputChange('pageTitle', e.target.value)} maxLength={60} />
+                  <p className="text-sm text-muted-foreground">{formData.pageTitle.length}/60 characters</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="seoKeywords">Target SEO Keywords</Label>
+                  <Input id="seoKeywords" placeholder="keyword1, keyword2, keyword3" value={formData.seoKeywords} onChange={e => handleInputChange('seoKeywords', e.target.value)} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Meta Description (Max 160 characters)</Label>
+                  <Textarea placeholder="Compelling description for search results" maxLength={160} rows={3} />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Historic Data Tab */}
+          <TabsContent value="data" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Historic Campaign Data</CardTitle>
+                <CardDescription>Upload past performance data for AI optimization</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <EnhancedDataImport ref={dataImportRef} onDataImported={handleDataImported} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Generate Button */}
-        <div className="flex justify-center">
+        <div className="flex justify-center pt-6">
           <Button type="submit" size="lg" disabled={isGenerating} className="px-8 py-4 text-lg">
             {isGenerating ? <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
