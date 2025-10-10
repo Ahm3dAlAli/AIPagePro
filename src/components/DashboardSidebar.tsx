@@ -49,6 +49,12 @@ const navigationItems = [
     group: "Generate"
   },
   {
+    title: "Templates",
+    url: "/dashboard/templates",
+    icon: FileText,
+    group: "Library"
+  },
+  {
     title: "Form Builder",
     url: "/dashboard/form-builder",
     icon: FormInput,
@@ -59,12 +65,6 @@ const navigationItems = [
     url: "/dashboard/deployment",
     icon: CloudUpload,
     group: "Build & Deploy"
-  },
-  {
-    title: "Templates",
-    url: "/dashboard/templates",
-    icon: FileText,
-    group: "Library"
   },
   {
     title: "Analytics",
