@@ -93,7 +93,12 @@ const FormBuilder = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-form-endpoint", {
-        body: { formConfig: config },
+        body: { 
+          formConfig: {
+            ...config,
+            formFields: config.fields // Map 'fields' to 'formFields' for edge function
+          }
+        },
       });
 
       if (error) throw error;
