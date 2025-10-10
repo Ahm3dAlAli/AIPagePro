@@ -76,7 +76,7 @@ const navigationItems = [
     title: "A/B Tests",
     url: "/dashboard/experiments",
     icon: TestTube,
-    group: "Insights"
+    group: "Marketing"
   },
   {
     title: "AI Rationale",
