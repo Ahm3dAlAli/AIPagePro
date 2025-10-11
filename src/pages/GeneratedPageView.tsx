@@ -409,9 +409,9 @@ export default function GeneratedPageView() {
           <TabsTrigger value="components">Components</TabsTrigger>
           <TabsTrigger value="editor">Editor</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
+          <TabsTrigger value="rationale">AI Rationale</TabsTrigger>
           <TabsTrigger value="deployment">Deployment</TabsTrigger>
           <TabsTrigger value="sitecore">Sitecore</TabsTrigger>
-          <TabsTrigger value="rationale">AI Rationale</TabsTrigger>
         </TabsList>
 
         {/* Preview Tab */}
