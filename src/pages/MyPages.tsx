@@ -41,18 +41,12 @@ const MyPages = () => {
       // Fetch pages for both authenticated user and temporary demo user
       const tempUserId = '00000000-0000-0000-0000-000000000000';
       const userIds = user?.id ? [user.id, tempUserId] : [tempUserId];
-      
       const {
         data,
         error
-      } = await supabase
-        .from('generated_pages')
-        .select('*')
-        .in('user_id', userIds)
-        .order('created_at', {
-          ascending: false
-        });
-      
+      } = await supabase.from('generated_pages').select('*').in('user_id', userIds).order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
       setPages(data || []);
     } catch (error: any) {
@@ -274,26 +268,17 @@ const MyPages = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {page.published_url ? (
-                        <DropdownMenuItem asChild>
-                          <a 
-                            href={page.published_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="flex items-center"
-                          >
+                      {page.published_url ? <DropdownMenuItem asChild>
+                          <a href={page.published_url} target="_blank" rel="noopener noreferrer" className="flex items-center">
                             <ExternalLink className="mr-2 h-4 w-4" />
                             View Live
                           </a>
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem asChild>
+                        </DropdownMenuItem> : <DropdownMenuItem asChild>
                           <Link to={`/dashboard/page/${page.id}`}>
                             <Eye className="mr-2 h-4 w-4" />
                             Preview
                           </Link>
-                        </DropdownMenuItem>
-                      )}
+                        </DropdownMenuItem>}
                       <DropdownMenuItem onClick={() => handleDuplicate(page)}>
                         <Copy className="mr-2 h-4 w-4" />
                         Duplicate
@@ -316,7 +301,7 @@ const MyPages = () => {
                   </div>
                   
                   <div className="text-sm text-muted-foreground">
-                    <p className="mb-2">/{page.slug}</p>
+                    
                     {page.content?.sections?.hero?.headline && <p className="line-clamp-2">
                         {page.content.sections.hero.headline}
                       </p>}
