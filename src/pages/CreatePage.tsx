@@ -503,10 +503,10 @@ const CreatePage = () => {
           <Button type="submit" size="lg" disabled={isGenerating} className="px-8 py-4 text-lg">
             {isGenerating ? <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Generating Landing Page...
+                Generating...
               </> : <>
                 <Brain className="mr-2 h-5 w-5" />
-                Generate Landing Page with v0
+                Generate
               </>}
           </Button>
         </div>
