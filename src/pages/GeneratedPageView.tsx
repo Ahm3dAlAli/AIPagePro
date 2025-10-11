@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Download, ExternalLink, Rocket, Edit, Save, FileCode, FileJson, Loader2, Package, Cloud } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, Rocket, Edit, Save, FileCode, FileJson, Loader2, Package, Cloud, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import JSZip from "jszip";
 interface GeneratedPage {
@@ -481,7 +481,7 @@ export default function GeneratedPageView() {
                     Download All
                   </Button>
                   <Button onClick={handleFetchFilesFromV0} disabled={fetchingFiles || !page.content?.chatId} variant="outline" size="sm">
-                    {fetchingFiles ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {fetchingFiles ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                     {fetchingFiles ? 'Fetching...' : 'Refresh Files'}
                   </Button>
                 </div>
