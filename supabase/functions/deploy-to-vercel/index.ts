@@ -440,7 +440,8 @@ serve(async (req) => {
     );
 
     // Verify user authentication
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    const jwt = authHeader.replace('Bearer ', '').trim();
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(jwt);
     
     console.log('Auth check:', { hasUser: !!user, authError: authError?.message });
     
