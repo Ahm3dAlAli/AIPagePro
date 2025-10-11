@@ -15,6 +15,9 @@ interface DeploymentRecord {
   deployment_status: string;
   deployed_at: string | null;
   error_logs: string | null;
+  generated_pages?: {
+    title: string;
+  };
 }
 const Deployment = () => {
   const {
@@ -39,7 +42,12 @@ const Deployment = () => {
       if (!user) return;
       const [pagesResult, deploymentsResult] = await Promise.all([supabase.from("generated_pages").select("*").eq("user_id", user.id).order("created_at", {
         ascending: false
-      }), supabase.from("deployment_records").select("*").eq("user_id", user.id).order("deployed_at", {
+      }), supabase.from("deployment_records").select(`
+          *,
+          generated_pages (
+            title
+          )
+        `).eq("user_id", user.id).order("deployed_at", {
         ascending: false
       })]);
       if (pagesResult.data) setPages(pagesResult.data);
@@ -155,9 +163,11 @@ const Deployment = () => {
                       <div className="flex items-center gap-3">
                         {getStatusIcon(deployment.deployment_status)}
                         <div>
-                          <p className="font-medium">{deployment.deployment_platform}</p>
+                          <p className="font-medium">
+                            {deployment.generated_pages?.title || 'Untitled Page'}
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            {deployment.deployed_at ? new Date(deployment.deployed_at).toLocaleString() : "Pending"}
+                            {deployment.deployment_platform} • {deployment.deployed_at ? new Date(deployment.deployed_at).toLocaleString() : "Pending"}
                           </p>
                         </div>
                       </div>
