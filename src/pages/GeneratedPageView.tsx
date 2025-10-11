@@ -587,7 +587,7 @@ export default function GeneratedPageView() {
                 Deploy Your Page
               </CardTitle>
               <CardDescription>
-                Deploy to Vercel or Azure Static Web Apps using your deployment token
+                Deploy to Vercel (uses configured token) or Azure Static Web Apps
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -605,19 +605,27 @@ export default function GeneratedPageView() {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="token">Deployment Token</Label>
-                  <Input id="token" type="password" placeholder={deploymentPlatform === "vercel" ? "Enter your Vercel token" : "Enter your Azure deployment token"} value={deploymentToken} onChange={e => setDeploymentToken(e.target.value)} />
+                {deploymentPlatform === "azure" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="token">Azure Deployment Token</Label>
+                    <Input id="token" type="password" placeholder="Enter your Azure deployment token" value={deploymentToken} onChange={e => setDeploymentToken(e.target.value)} />
+                    <p className="text-sm text-muted-foreground">
+                      Get your token from Azure Portal → Your Static Web App → Manage deployment token
+                    </p>
+                  </div>
+                )}
+                
+                {deploymentPlatform === "vercel" && (
                   <p className="text-sm text-muted-foreground">
-                    {deploymentPlatform === "vercel" ? "Get your token from Vercel Dashboard → Settings → Tokens" : "Get your token from Azure Portal → Your Static Web App → Manage deployment token"}
+                    Using your configured Vercel API token for deployment.
                   </p>
-                </div>
+                )}
 
                 <Button onClick={async () => {
-                if (!deploymentToken) {
+                if (deploymentPlatform === "azure" && !deploymentToken) {
                   toast({
                     title: "Token Required",
-                    description: "Please enter your deployment token",
+                    description: "Please enter your Azure deployment token",
                     variant: "destructive"
                   });
                   return;
