@@ -274,12 +274,26 @@ const MyPages = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link to={`/dashboard/page/${page.id}`}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          Preview
-                        </Link>
-                      </DropdownMenuItem>
+                      {page.published_url ? (
+                        <DropdownMenuItem asChild>
+                          <a 
+                            href={page.published_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center"
+                          >
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            View Live
+                          </a>
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem asChild>
+                          <Link to={`/dashboard/page/${page.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Preview
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => handleDuplicate(page)}>
                         <Copy className="mr-2 h-4 w-4" />
                         Duplicate
