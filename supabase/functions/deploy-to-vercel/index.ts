@@ -422,13 +422,16 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
     if (!authHeader) {
       throw new Error('No authorization header');
     }
 
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      supabaseUrl,
+      supabaseAnonKey,
       {
         global: {
           headers: { Authorization: authHeader },
@@ -438,8 +441,12 @@ serve(async (req) => {
 
     // Verify user authentication
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    
+    console.log('Auth check:', { hasUser: !!user, authError: authError?.message });
+    
     if (authError || !user) {
-      throw new Error('Authentication failed');
+      console.error('Authentication failed:', authError);
+      throw new Error(`Authentication failed: ${authError?.message || 'No user found'}`);
     }
 
     const { pageId, customDomain } = await req.json();
