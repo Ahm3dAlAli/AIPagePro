@@ -100,10 +100,7 @@ const Deployment = () => {
     }
   };
   return <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Rocket className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-bold">Deploy Your Pages</h1>
-      </div>
+      
 
       {/* Deploy New Page */}
       <Card>
@@ -119,11 +116,9 @@ const Deployment = () => {
                 <SelectValue placeholder="Choose a page to deploy" />
               </SelectTrigger>
               <SelectContent>
-                {pages.map((page) => (
-                  <SelectItem key={page.id} value={page.id}>
+                {pages.map(page => <SelectItem key={page.id} value={page.id}>
                     {page.title}
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -140,11 +135,7 @@ const Deployment = () => {
             </Select>
           </div>
 
-          <Button 
-            onClick={deployToVercel} 
-            disabled={deploying || !selectedPage}
-            className="w-full"
-          >
+          <Button onClick={deployToVercel} disabled={deploying || !selectedPage} className="w-full">
             {deploying ? "Deploying..." : "Deploy Now"}
           </Button>
         </CardContent>
