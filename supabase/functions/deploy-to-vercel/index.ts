@@ -484,12 +484,14 @@ serve(async (req) => {
     // Get rendered HTML from render-page function
     const renderResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/render-page/${pageId}`, {
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+        'apikey': Deno.env.get('SUPABASE_ANON_KEY') || ''
       }
     });
 
     if (!renderResponse.ok) {
-      throw new Error('Failed to render page HTML');
+      const errorText = await renderResponse.text();
+      console.error('Render page error:', errorText);
+      throw new Error(`Failed to render page HTML: ${errorText}`);
     }
 
     const pageHtml = await renderResponse.text();
