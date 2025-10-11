@@ -30,7 +30,9 @@ export default function GeneratedPageView() {
     id
   } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [page, setPage] = useState<GeneratedPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [deploying, setDeploying] = useState(false);
@@ -190,14 +192,15 @@ export default function GeneratedPageView() {
   const handleIntegrateSitecore = async () => {
     setIntegratingSitecore(true);
     try {
-      const { data, error } = await supabase.functions.invoke("integrate-sitecore-xm-cloud", {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("integrate-sitecore-xm-cloud", {
         body: {
           pageId: id
         }
       });
-
       if (error) throw error;
-
       toast({
         title: "Success",
         description: `Integrated ${data?.componentsIntegrated || 0} components to Sitecore XM Cloud`
@@ -205,10 +208,9 @@ export default function GeneratedPageView() {
 
       // Download the integration package
       if (data?.integrationPackage) {
-        const blob = new Blob(
-          [JSON.stringify(data.integrationPackage, null, 2)],
-          { type: "application/json" }
-        );
+        const blob = new Blob([JSON.stringify(data.integrationPackage, null, 2)], {
+          type: "application/json"
+        });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -227,7 +229,6 @@ export default function GeneratedPageView() {
       setIntegratingSitecore(false);
     }
   };
-
   const handleFetchFilesFromV0 = async () => {
     if (!page?.content?.chatId) {
       toast({
@@ -266,7 +267,6 @@ export default function GeneratedPageView() {
       setFetchingFiles(false);
     }
   };
-  
   const downloadComponent = (fileName: string, content: string) => {
     const blob = new Blob([content], {
       type: "text/plain"
@@ -278,15 +278,12 @@ export default function GeneratedPageView() {
     a.click();
     URL.revokeObjectURL(url);
   };
-
   const downloadAllAsZip = async () => {
     const zip = new JSZip();
-    
     componentExports.forEach(comp => {
       if (comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) {
         // Create a folder for each component
         const folder = zip.folder(comp.component_name);
-        
         if (folder) {
           folder.file(`${comp.component_name}.tsx`, comp.react_code);
           folder.file(`${comp.component_name}-schema.json`, JSON.stringify(comp.json_schema, null, 2));
@@ -294,15 +291,15 @@ export default function GeneratedPageView() {
         }
       }
     });
-    
-    const blob = await zip.generateAsync({ type: "blob" });
+    const blob = await zip.generateAsync({
+      type: "blob"
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `sitecore-components-${page?.title || 'export'}.zip`;
     a.click();
     URL.revokeObjectURL(url);
-    
     toast({
       title: "Export Complete",
       description: `Exported ${componentExports.filter(c => c.sitecore_manifest).length} components as ZIP`
@@ -378,14 +375,12 @@ export default function GeneratedPageView() {
             <Rocket className="mr-2 h-4 w-4" />
             {deploying ? "Deploying..." : "Deploy to Vercel"}
           </Button>
-          {page.published_url && (
-            <Button asChild>
+          {page.published_url && <Button asChild>
               <a href={page.published_url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-2 h-4 w-4" />
                 Preview in New Tab
               </a>
-            </Button>
-          )}
+            </Button>}
         </div>
       </div>
 
@@ -577,19 +572,14 @@ export default function GeneratedPageView() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {componentExports.length > 0 && componentExports.some(comp => comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) ? (
-                <>
+              {componentExports.length > 0 && componentExports.some(comp => comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) ? <>
                   <div className="flex justify-end gap-3">
                     <Button variant="outline" onClick={downloadAllAsZip}>
                       <Download className="h-4 w-4 mr-2" />
                       Download All as ZIP
                     </Button>
                     
-                    <Button 
-                      variant="outline" 
-                      onClick={handleIntegrateSitecore}
-                      disabled={integratingSitecore}
-                    >
+                    <Button variant="outline" onClick={handleIntegrateSitecore} disabled={integratingSitecore}>
                       <Package className="h-4 w-4 mr-2" />
                       {integratingSitecore ? "Integrating..." : "Integrate to Sitecore XM Cloud"}
                     </Button>
@@ -614,51 +604,45 @@ export default function GeneratedPageView() {
                         </CardContent>
                       </Card>)}
                   </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Loader2 className="h-12 w-12 text-muted-foreground mb-4 animate-spin" />
-                  <h3 className="text-lg font-semibold mb-2">Generating Sitecore Components</h3>
-                  <p className="text-muted-foreground mb-4 max-w-md">
-                    Sitecore BYOC components are automatically generated when your landing page is created.
-                  </p>
-                  <Button 
-                    onClick={async () => {
-                      setIntegratingSitecore(true);
-                      try {
-                        const { error } = await supabase.functions.invoke('generate-sitecore-components', {
-                          body: { pageId: id }
-                        });
-                        
-                        if (error) throw error;
-                        
-                        toast({
-                          title: "Generation Started",
-                          description: "Sitecore components are being generated. This may take a moment."
-                        });
-                        
-                        // Refresh component exports after a delay
-                        setTimeout(() => {
-                          fetchComponentExports();
-                          setIntegratingSitecore(false);
-                        }, 3000);
-                      } catch (error) {
-                        console.error('Error generating Sitecore components:', error);
-                        toast({
-                          title: "Generation Failed",
-                          description: "Failed to generate Sitecore components. Please try again.",
-                          variant: "destructive"
-                        });
-                        setIntegratingSitecore(false);
-                      }
-                    }}
-                    disabled={integratingSitecore}
-                  >
+                </> : <div className="flex flex-col items-center justify-center py-12 text-center">
+                  
+                  
+                  
+                  <Button onClick={async () => {
+                setIntegratingSitecore(true);
+                try {
+                  const {
+                    error
+                  } = await supabase.functions.invoke('generate-sitecore-components', {
+                    body: {
+                      pageId: id
+                    }
+                  });
+                  if (error) throw error;
+                  toast({
+                    title: "Generation Started",
+                    description: "Sitecore components are being generated. This may take a moment."
+                  });
+
+                  // Refresh component exports after a delay
+                  setTimeout(() => {
+                    fetchComponentExports();
+                    setIntegratingSitecore(false);
+                  }, 3000);
+                } catch (error) {
+                  console.error('Error generating Sitecore components:', error);
+                  toast({
+                    title: "Generation Failed",
+                    description: "Failed to generate Sitecore components. Please try again.",
+                    variant: "destructive"
+                  });
+                  setIntegratingSitecore(false);
+                }
+              }} disabled={integratingSitecore}>
                     <Package className="h-4 w-4 mr-2" />
                     {integratingSitecore ? "Generating..." : "Generate Now"}
                   </Button>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
         </TabsContent>
