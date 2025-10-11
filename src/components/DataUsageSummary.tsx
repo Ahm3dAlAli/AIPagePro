@@ -53,7 +53,13 @@ const DataUsageSummary: React.FC<DataUsageSummaryProps> = ({ pageId }) => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log("No user found");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Fetching data usage for page:", pageId);
 
       // Check if data usage report exists in ai_rationale_reports with type 'data_usage'
       const { data, error } = await supabase
@@ -65,13 +71,27 @@ const DataUsageSummary: React.FC<DataUsageSummaryProps> = ({ pageId }) => {
         .limit(1)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      console.log("Data usage query result:", { data, error });
+
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching data usage:", error);
+        throw error;
+      }
       
       if (data) {
+        console.log("Data usage found:", data);
         setDataUsage(data.rationale_data as unknown as DataUsageReport);
+      } else {
+        console.log("No data usage report found");
+        setDataUsage(null);
       }
     } catch (error: any) {
       console.error("Error fetching data usage:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load data usage summary",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -79,10 +99,14 @@ const DataUsageSummary: React.FC<DataUsageSummaryProps> = ({ pageId }) => {
 
   const generateDataUsage = async () => {
     setGenerating(true);
+    console.log("Generating data usage for page:", pageId);
+    
     try {
       const { data, error } = await supabase.functions.invoke("generate-data-usage", {
         body: { pageId },
       });
+
+      console.log("Generate data usage response:", { data, error });
 
       if (error) throw error;
 
@@ -92,11 +116,14 @@ const DataUsageSummary: React.FC<DataUsageSummaryProps> = ({ pageId }) => {
           description: "Campaign data mapping has been analyzed successfully",
         });
         await fetchDataUsage();
+      } else {
+        throw new Error(data.error || "Failed to generate data usage");
       }
     } catch (error: any) {
+      console.error("Generation error:", error);
       toast({
         title: "Generation Failed",
-        description: error.message,
+        description: error.message || "Failed to generate data usage summary",
         variant: "destructive",
       });
     } finally {
