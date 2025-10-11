@@ -1,0 +1,541 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PagePilot AI Campaign Input Template",
+  "description": "Reusable template for rapid landing page generation with PagePilot AI",
+  "type": "object",
+  "required": ["campaign", "sections"],
+  "properties": {
+    "campaign": {
+      "type": "object",
+      "description": "Core campaign configuration and metadata",
+      "required": ["name", "objective", "target_audience"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Campaign name for internal tracking",
+          "example": "Q4 Product Launch 2024"
+        },
+        "objective": {
+          "type": "string",
+          "description": "Primary campaign goal",
+          "enum": [
+            "lead_generation",
+            "sales",
+            "brand_awareness",
+            "event_registration",
+            "demo_requests",
+            "free_trial_signups",
+            "content_downloads"
+          ],
+          "example": "lead_generation"
+        },
+        "target_audience": {
+          "type": "string",
+          "description": "Detailed audience description for personalization",
+          "example": "B2B SaaS decision makers, 35-55 years old, enterprise companies with 500+ employees"
+        },
+        "primary_kpi": {
+          "type": "string",
+          "description": "Main success metric to optimize for",
+          "example": "demo_requests"
+        },
+        "utm_source": {
+          "type": "string",
+          "description": "Traffic source for attribution",
+          "example": "linkedin_ads"
+        },
+        "utm_medium": {
+          "type": "string",
+          "description": "Marketing medium",
+          "example": "paid_social"
+        },
+        "utm_campaign": {
+          "type": "string",
+          "description": "Campaign identifier for analytics",
+          "example": "q4_product_launch"
+        },
+        "budget": {
+          "type": "number",
+          "description": "Campaign budget in USD",
+          "example": 50000
+        },
+        "duration_days": {
+          "type": "integer",
+          "description": "Expected campaign duration",
+          "example": 30
+        }
+      }
+    },
+    "sections": {
+      "type": "object",
+      "description": "Configuration for each page section",
+      "properties": {
+        "hero": {
+          "type": "object",
+          "description": "Above-the-fold hero section",
+          "properties": {
+            "headline": {
+              "type": "string",
+              "description": "Primary headline (leave empty for AI generation)",
+              "example": "Transform Your Marketing with AI-Powered Landing Pages"
+            },
+            "subheadline": {
+              "type": "string",
+              "description": "Supporting headline",
+              "example": "Generate data-driven landing pages in minutes, not weeks"
+            },
+            "cta_text": {
+              "type": "string",
+              "description": "Call-to-action button text",
+              "example": "Start Free Trial"
+            },
+            "cta_style": {
+              "type": "string",
+              "enum": ["button", "button_with_secondary", "form_inline", "video_modal"],
+              "example": "button_with_secondary"
+            },
+            "background_type": {
+              "type": "string",
+              "enum": ["gradient", "image", "video", "pattern"],
+              "example": "gradient"
+            },
+            "include_social_proof": {
+              "type": "boolean",
+              "description": "Show trust badges or customer logos",
+              "example": true
+            },
+            "ai_prompt": {
+              "type": "string",
+              "description": "Custom instructions for AI generation",
+              "example": "Create urgency around limited-time offer. Emphasize ROI and time savings. Use data from Q3 campaign."
+            }
+          }
+        },
+        "features": {
+          "type": "object",
+          "description": "Product/service features showcase",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "description": "Number of features to highlight",
+              "minimum": 3,
+              "maximum": 12,
+              "example": 6
+            },
+            "layout": {
+              "type": "string",
+              "enum": ["grid_2col", "grid_3col", "grid_4col", "list", "alternating", "cards"],
+              "example": "grid_3col"
+            },
+            "include_icons": {
+              "type": "boolean",
+              "example": true
+            },
+            "include_cta_per_feature": {
+              "type": "boolean",
+              "description": "Add learn more links to each feature",
+              "example": false
+            },
+            "ai_prompt": {
+              "type": "string",
+              "example": "Focus on integration capabilities and enterprise security. Highlight ROI metrics."
+            }
+          }
+        },
+        "social_proof": {
+          "type": "object",
+          "description": "Testimonials, reviews, and trust signals",
+          "properties": {
+            "testimonials": {
+              "type": "boolean",
+              "description": "Include customer testimonials",
+              "example": true
+            },
+            "testimonial_count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12,
+              "example": 3
+            },
+            "customer_logos": {
+              "type": "boolean",
+              "description": "Display customer/partner logos",
+              "example": true
+            },
+            "stats": {
+              "type": "boolean",
+              "description": "Show impressive statistics",
+              "example": true
+            },
+            "stat_items": {
+              "type": "array",
+              "description": "Specific statistics to highlight",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "example": "500+"
+                  },
+                  "label": {
+                    "type": "string",
+                    "example": "Enterprise Customers"
+                  }
+                }
+              }
+            },
+            "case_studies": {
+              "type": "boolean",
+              "description": "Link to detailed case studies",
+              "example": false
+            }
+          }
+        },
+        "form": {
+          "type": "object",
+          "description": "Lead capture form configuration",
+          "properties": {
+            "fields": {
+              "type": "array",
+              "description": "Form fields to include",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "first_name",
+                  "last_name",
+                  "email",
+                  "phone",
+                  "company",
+                  "job_title",
+                  "company_size",
+                  "industry",
+                  "message",
+                  "consent"
+                ]
+              },
+              "example": ["first_name", "last_name", "email", "company"]
+            },
+            "submit_text": {
+              "type": "string",
+              "example": "Request Demo"
+            },
+            "layout": {
+              "type": "string",
+              "enum": ["single_column", "two_column", "inline", "multi_step"],
+              "example": "single_column"
+            },
+            "include_privacy_notice": {
+              "type": "boolean",
+              "example": true
+            },
+            "redirect_url": {
+              "type": "string",
+              "description": "URL to redirect after submission",
+              "example": "/thank-you"
+            },
+            "webhook_url": {
+              "type": "string",
+              "description": "Webhook for form submissions",
+              "example": "https://api.yourcrm.com/leads"
+            }
+          }
+        },
+        "cta": {
+          "type": "object",
+          "description": "Final call-to-action section",
+          "properties": {
+            "headline": {
+              "type": "string",
+              "example": "Ready to Transform Your Marketing?"
+            },
+            "description": {
+              "type": "string",
+              "example": "Join 500+ companies using PagePilot AI to generate high-converting landing pages"
+            },
+            "button_text": {
+              "type": "string",
+              "example": "Get Started Free"
+            },
+            "secondary_cta": {
+              "type": "boolean",
+              "description": "Include secondary action (e.g., Contact Sales)",
+              "example": true
+            },
+            "urgency": {
+              "type": "boolean",
+              "description": "Add urgency elements (countdown, limited spots)",
+              "example": false
+            },
+            "background_style": {
+              "type": "string",
+              "enum": ["gradient", "solid", "pattern", "none"],
+              "example": "gradient"
+            }
+          }
+        },
+        "faq": {
+          "type": "object",
+          "description": "Frequently asked questions",
+          "properties": {
+            "include": {
+              "type": "boolean",
+              "example": true
+            },
+            "count": {
+              "type": "integer",
+              "description": "Number of FAQs to generate",
+              "minimum": 3,
+              "maximum": 15,
+              "example": 6
+            },
+            "layout": {
+              "type": "string",
+              "enum": ["accordion", "two_column", "list"],
+              "example": "accordion"
+            }
+          }
+        },
+        "pricing": {
+          "type": "object",
+          "description": "Pricing table section",
+          "properties": {
+            "include": {
+              "type": "boolean",
+              "example": false
+            },
+            "tiers": {
+              "type": "integer",
+              "description": "Number of pricing tiers",
+              "minimum": 1,
+              "maximum": 5,
+              "example": 3
+            },
+            "billing_period": {
+              "type": "string",
+              "enum": ["monthly", "annual", "both"],
+              "example": "both"
+            },
+            "highlight_recommended": {
+              "type": "boolean",
+              "example": true
+            }
+          }
+        }
+      }
+    },
+    "design_preferences": {
+      "type": "object",
+      "description": "Visual design and branding guidelines",
+      "properties": {
+        "color_scheme": {
+          "type": "string",
+          "description": "Primary color palette",
+          "enum": ["blue", "green", "purple", "orange", "red", "custom"],
+          "example": "blue"
+        },
+        "custom_colors": {
+          "type": "object",
+          "properties": {
+            "primary": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "example": "#3B82F6"
+            },
+            "secondary": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "example": "#10B981"
+            },
+            "accent": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "example": "#F59E0B"
+            }
+          }
+        },
+        "style": {
+          "type": "string",
+          "description": "Overall design aesthetic",
+          "enum": ["modern", "classic", "minimal", "bold", "playful", "professional"],
+          "example": "modern"
+        },
+        "font_pairing": {
+          "type": "string",
+          "enum": ["sans_serif", "serif", "mixed", "custom"],
+          "example": "sans_serif"
+        },
+        "brand_compliance": {
+          "type": "boolean",
+          "description": "Enforce existing brand guidelines",
+          "example": true
+        },
+        "brand_guideline_id": {
+          "type": "string",
+          "description": "Reference to brand_guidelines table",
+          "format": "uuid",
+          "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        },
+        "animation_level": {
+          "type": "string",
+          "enum": ["none", "subtle", "moderate", "high"],
+          "example": "moderate"
+        }
+      }
+    },
+    "data_sources": {
+      "type": "object",
+      "description": "Historic data to inform AI generation",
+      "properties": {
+        "historic_campaigns": {
+          "type": "array",
+          "description": "Campaign IDs to analyze for insights",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "example": [
+            "550e8400-e29b-41d4-a716-446655440000",
+            "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+          ]
+        },
+        "experiments": {
+          "type": "array",
+          "description": "A/B test experiment IDs to reference",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "example": [
+            "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+          ]
+        },
+        "top_performers_only": {
+          "type": "boolean",
+          "description": "Only analyze campaigns above median performance",
+          "example": true
+        },
+        "time_range": {
+          "type": "object",
+          "properties": {
+            "start_date": {
+              "type": "string",
+              "format": "date",
+              "example": "2024-01-01"
+            },
+            "end_date": {
+              "type": "string",
+              "format": "date",
+              "example": "2024-12-31"
+            }
+          }
+        },
+        "similar_audiences": {
+          "type": "boolean",
+          "description": "Filter data to similar target audiences",
+          "example": true
+        }
+      }
+    },
+    "seo_config": {
+      "type": "object",
+      "description": "Search engine optimization settings",
+      "properties": {
+        "meta_title": {
+          "type": "string",
+          "maxLength": 60,
+          "example": "AI Landing Page Generator | PagePilot AI"
+        },
+        "meta_description": {
+          "type": "string",
+          "maxLength": 160,
+          "example": "Generate data-driven landing pages in minutes with AI. Transform campaign data into high-converting pages. Try PagePilot AI free."
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": ["landing page generator", "AI marketing", "conversion optimization"]
+        },
+        "canonical_url": {
+          "type": "string",
+          "format": "uri",
+          "example": "https://www.example.com/product-launch"
+        },
+        "og_image": {
+          "type": "string",
+          "format": "uri",
+          "description": "Open Graph image for social sharing",
+          "example": "https://www.example.com/og-image.jpg"
+        }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "description": "Third-party integrations",
+      "properties": {
+        "analytics": {
+          "type": "object",
+          "properties": {
+            "google_analytics_id": {
+              "type": "string",
+              "example": "G-XXXXXXXXXX"
+            },
+            "facebook_pixel_id": {
+              "type": "string",
+              "example": "1234567890"
+            }
+          }
+        },
+        "crm": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["salesforce", "hubspot", "pipedrive", "none"],
+              "example": "hubspot"
+            },
+            "webhook_url": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        },
+        "chat": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["intercom", "drift", "crisp", "none"],
+              "example": "intercom"
+            },
+            "widget_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "description": "Deployment configuration",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": ["vercel", "azure_static_web_apps", "azure_container_apps", "v0"],
+          "example": "vercel"
+        },
+        "custom_domain": {
+          "type": "string",
+          "format": "hostname",
+          "example": "launch.example.com"
+        },
+        "auto_deploy": {
+          "type": "boolean",
+          "description": "Deploy automatically after generation",
+          "example": false
+        }
+      }
+    }
+  }
+}

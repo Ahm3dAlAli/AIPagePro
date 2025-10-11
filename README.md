@@ -1,73 +1,62 @@
-# Welcome to your Lovable project
+# PagePilot AI - AI-Powered Landing Page Generator
 
-## Project info
+![PagePilot AI](https://img.shields.io/badge/AI-Powered-blue) ![React](https://img.shields.io/badge/React-18.3.1-61dafb) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6)
 
-**URL**: https://lovable.dev/projects/28964a7b-4c99-44fe-8e1b-1754e3d1fd01
+## 🚀 Overview
 
-## How can I edit this code?
+**PagePilot AI** transforms historic campaign data into high-converting, optimized landing pages in minutes using AI. By analyzing past performance metrics and A/B test results, PagePilot generates data-driven pages with full explainability.
 
-There are several ways of editing your application.
+**Lovable Project URL**: https://lovable.dev/projects/28964a7b-4c99-44fe-8e1b-1754e3d1fd01
 
-**Use Lovable**
+## ✨ Key Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/28964a7b-4c99-44fe-8e1b-1754e3d1fd01) and start prompting.
+- 🤖 **AI-Powered Generation** - Autonomous page creation using Google Gemini 2.5
+- 📊 **Data-Driven Optimization** - Historic campaign analysis for better results
+- 🎯 **Full Explainability** - AI rationale reports for every design decision
+- 🚀 **Multi-Platform Deployment** - v0/Vercel and Azure support
+- 🎨 **Component Export** - React/TypeScript with Sitecore integration
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🏗️ Tech Stack
 
-**Use your preferred IDE**
+- **Frontend**: React 18.3.1, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend**: Supabase (PostgreSQL, Auth, Edge Functions)
+- **AI**: Lovable AI Gateway (Google Gemini 2.5 models)
+- **Deployment**: Vercel, Azure Static Web Apps
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## 🚀 Quick Start
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
+# Install dependencies
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 📖 Usage
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. **Import Data** - Upload historic campaign CSV files
+2. **Generate Page** - AI analyzes data and creates optimized landing page
+3. **Review Rationale** - Understand AI decisions with detailed reports
+4. **Deploy** - One-click deployment to Vercel or Azure
 
-**Use GitHub Codespaces**
+## 📦 Deployment
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Deploy via [Lovable](https://lovable.dev/projects/28964a7b-4c99-44fe-8e1b-1754e3d1fd01) → Share → Publish
 
-## What technologies are used for this project?
+Or use the deployment dashboard for Vercel/Azure integration.
 
-This project is built with:
+## 📄 Documentation
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- [Demo Video Script](./DEMO.md) - 5-minute product walkthrough
+- [Input Template](./templates/campaign-input-template.json) - Reusable JSON template
 
-## How can I deploy this project?
+## 🔗 Custom Domain
 
-Simply open [Lovable](https://lovable.dev/projects/28964a7b-4c99-44fe-8e1b-1754e3d1fd01) and click on Share -> Publish.
+Connect a custom domain: Project > Settings > Domains
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+[Learn more](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
