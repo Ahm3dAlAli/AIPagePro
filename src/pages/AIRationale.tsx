@@ -147,7 +147,23 @@ const AIRationale = () => {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Data Sources</p>
                   <p className="text-sm text-muted-foreground">
-                    {report.rationale_data?.data_sources?.length || 0} sources analyzed
+                    {(() => {
+                      const dataSources = report.rationale_data?.data_sources;
+                      if (!dataSources) return "0 sources analyzed";
+                      
+                      // Count historic campaigns and experiments
+                      const campaignCount = dataSources.historic_campaigns?.length || 0;
+                      const experimentCount = dataSources.experiments?.length || 0;
+                      const totalCount = campaignCount + experimentCount;
+                      
+                      if (totalCount === 0) return "0 sources analyzed";
+                      
+                      const parts = [];
+                      if (campaignCount > 0) parts.push(`${campaignCount} campaign${campaignCount > 1 ? 's' : ''}`);
+                      if (experimentCount > 0) parts.push(`${experimentCount} experiment${experimentCount > 1 ? 's' : ''}`);
+                      
+                      return parts.join(', ') + ' analyzed';
+                    })()}
                   </p>
                 </div>
 
