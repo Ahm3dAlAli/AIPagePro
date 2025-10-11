@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Globe, Search, Plus, MoreHorizontal, Eye, Edit, Copy, Trash2, ExternalLink, BarChart3, Calendar, TrendingUp, Users } from 'lucide-react';
+import { Globe, Search, Plus, MoreHorizontal, Eye, Edit, Copy, Trash2, ExternalLink, BarChart3, Calendar, TrendingUp, Users, Rocket } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,6 +32,7 @@ const MyPages = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pageToDelete, setPageToDelete] = useState<string | null>(null);
+  const [deployingPages, setDeployingPages] = useState<Set<string>>(new Set());
   useEffect(() => {
     // Fetch pages even if user is not authenticated (for demo mode)
     fetchPages();
@@ -111,6 +112,35 @@ const MyPages = () => {
         title: "Failed to duplicate page",
         description: error.message,
         variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeploy = async (pageId: string) => {
+    setDeployingPages(prev => new Set(prev).add(pageId));
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('deploy-to-vercel', {
+        body: { pageId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Deployment Started",
+        description: "Your page is being deployed to Vercel. Check the Deployment page for status."
+      });
+    } catch (error: any) {
+      toast({
+        title: "Deployment Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setDeployingPages(prev => {
+        const next = new Set(prev);
+        next.delete(pageId);
+        return next;
       });
     }
   };
@@ -279,6 +309,10 @@ const MyPages = () => {
                             Preview
                           </Link>
                         </DropdownMenuItem>}
+                      <DropdownMenuItem onClick={() => handleDeploy(page.id)} disabled={deployingPages.has(page.id)}>
+                        <Rocket className="mr-2 h-4 w-4" />
+                        {deployingPages.has(page.id) ? 'Deploying...' : 'Deploy to Vercel'}
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDuplicate(page)}>
                         <Copy className="mr-2 h-4 w-4" />
                         Duplicate
