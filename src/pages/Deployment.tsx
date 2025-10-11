@@ -12,21 +12,26 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 interface DeploymentRecord {
   id: string;
-  page_id: string;
+  page_id?: string;
   deployment_platform: string;
   deployment_url: string | null;
   deployment_status: string;
   deployed_at: string | null;
   error_logs: string | null;
-  generated_pages?: {
-    title: string;
-  };
+}
+
+interface PageWithDeployment {
+  id: string;
+  title: string;
+  slug: string;
+  published_url: string | null;
+  status: string;
+  created_at: string;
+  deployment_records: DeploymentRecord[];
 }
 const Deployment = () => {
-  const {
-    toast
-  } = useToast();
-  const [deployments, setDeployments] = useState<DeploymentRecord[]>([]);
+  const { toast } = useToast();
+  const [pages, setPages] = useState<PageWithDeployment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDeployment, setSelectedDeployment] = useState<DeploymentRecord | null>(null);
   const [platformDialogOpen, setPlatformDialogOpen] = useState(false);
@@ -38,25 +43,32 @@ const Deployment = () => {
   }, []);
   const fetchData = async () => {
     try {
-      const {
-        data: {
-          user
-        }
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const {
-        data,
-        error
-      } = await supabase.from("deployment_records").select(`
-          *,
-          generated_pages (
-            title
+
+      const { data, error } = await supabase
+        .from("generated_pages")
+        .select(`
+          id,
+          title,
+          slug,
+          published_url,
+          status,
+          created_at,
+          deployment_records (
+            id,
+            deployment_platform,
+            deployment_url,
+            deployment_status,
+            deployed_at,
+            error_logs
           )
-        `).eq("user_id", user.id).order("deployed_at", {
-        ascending: false
-      });
+        `)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
-      if (data) setDeployments(data);
+      if (data) setPages(data);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -174,77 +186,106 @@ const Deployment = () => {
       <Card>
         
         <CardContent>
-          {loading ? <p className="text-center text-muted-foreground py-8">Loading deployments...</p> : deployments.length === 0 ? <div className="text-center py-12">
+          {loading ? <p className="text-center text-muted-foreground py-8">Loading pages...</p> : pages.length === 0 ? <div className="text-center py-12">
                 <Rocket className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No deployments yet</p>
+                <p className="text-muted-foreground">No pages yet</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Deploy pages from the My Pages section
+                  Create pages from the My Pages section
                 </p>
               </div> : <div className="space-y-4">
-              {deployments.map(deployment => <Card key={deployment.id} className="border-l-4" style={{
-            borderLeftColor: deployment.deployment_status === 'success' ? '#10b981' : deployment.deployment_status === 'failed' ? '#ef4444' : deployment.deployment_status === 'paused' ? '#f59e0b' : '#6b7280'
-          }}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
-                        {getStatusIcon(deployment.deployment_status)}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-semibold text-lg">
-                              {deployment.generated_pages?.title || 'Untitled Page'}
-                            </p>
-                            <Badge variant={deployment.deployment_status === 'success' ? 'default' : deployment.deployment_status === 'paused' ? 'secondary' : 'destructive'}>
-                              {deployment.deployment_status}
-                            </Badge>
+              {pages.map(page => {
+                const latestDeployment = page.deployment_records?.[0];
+                const isPublished = !!page.published_url;
+                
+                return (
+                  <Card key={page.id} className="border-l-4" style={{
+                    borderLeftColor: isPublished ? '#10b981' : '#6b7280'
+                  }}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1">
+                          {isPublished ? (
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                          ) : (
+                            <Clock className="h-5 w-5 text-gray-500" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold text-lg">
+                                {page.title}
+                              </p>
+                              <Badge variant={isPublished ? 'default' : 'secondary'}>
+                                {isPublished ? 'Published' : 'Not Published'}
+                              </Badge>
+                            </div>
+                            
+                            {latestDeployment && (
+                              <div className="space-y-1 text-sm text-muted-foreground">
+                                <p className="flex items-center gap-2">
+                                  <span className="font-medium">Platform:</span>
+                                  <span className="capitalize">{latestDeployment.deployment_platform}</span>
+                                  <Badge variant={latestDeployment.deployment_status === 'success' ? 'default' : latestDeployment.deployment_status === 'paused' ? 'secondary' : 'destructive'} className="text-xs">
+                                    {latestDeployment.deployment_status}
+                                  </Badge>
+                                </p>
+                                <p className="flex items-center gap-2">
+                                  <Clock className="h-3 w-3" />
+                                  {latestDeployment.deployed_at ? new Date(latestDeployment.deployed_at).toLocaleString() : "Pending"}
+                                </p>
+                              </div>
+                            )}
+                            
+                            {page.published_url && (
+                              <a href={page.published_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1 mt-2">
+                                {page.published_url}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
                           </div>
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            <p className="flex items-center gap-2">
-                              <span className="font-medium">Platform:</span>
-                              <span className="capitalize">{deployment.deployment_platform}</span>
-                            </p>
-                            <p className="flex items-center gap-2">
-                              <Clock className="h-3 w-3" />
-                              {deployment.deployed_at ? new Date(deployment.deployed_at).toLocaleString() : "Pending"}
-                            </p>
-                          </div>
-                          {deployment.deployment_url && <a href={deployment.deployment_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1 mt-2">
-                              {deployment.deployment_url}
-                              <ExternalLink className="h-3 w-3" />
-                            </a>}
                         </div>
+
+                        {latestDeployment && (
+                          <div className="flex gap-2">
+                            {latestDeployment.deployment_status === 'success' && (
+                              <Button variant="outline" size="sm" onClick={() => handlePauseResume(latestDeployment.id, latestDeployment.deployment_status)} title="Pause deployment">
+                                <Pause className="h-4 w-4" />
+                              </Button>
+                            )}
+                            
+                            {latestDeployment.deployment_status === 'paused' && (
+                              <Button variant="outline" size="sm" onClick={() => handlePauseResume(latestDeployment.id, latestDeployment.deployment_status)} title="Resume deployment">
+                                <Play className="h-4 w-4" />
+                              </Button>
+                            )}
+
+                            <Button variant="outline" size="sm" onClick={() => {
+                              setSelectedDeployment(latestDeployment);
+                              setNewPlatform(latestDeployment.deployment_platform);
+                              setPlatformDialogOpen(true);
+                            }} title="Change platform">
+                              <Settings className="h-4 w-4" />
+                            </Button>
+
+                            <Button variant="outline" size="sm" onClick={() => {
+                              setSelectedDeployment(latestDeployment);
+                              setDeleteDialogOpen(true);
+                            }} title="Delete deployment" className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
-
-                      <div className="flex gap-2">
-                        {deployment.deployment_status === 'success' && <Button variant="outline" size="sm" onClick={() => handlePauseResume(deployment.id, deployment.deployment_status)} title="Pause deployment">
-                            <Pause className="h-4 w-4" />
-                          </Button>}
-                        
-                        {deployment.deployment_status === 'paused' && <Button variant="outline" size="sm" onClick={() => handlePauseResume(deployment.id, deployment.deployment_status)} title="Resume deployment">
-                            <Play className="h-4 w-4" />
-                          </Button>}
-
-                        <Button variant="outline" size="sm" onClick={() => {
-                    setSelectedDeployment(deployment);
-                    setNewPlatform(deployment.deployment_platform);
-                    setPlatformDialogOpen(true);
-                  }} title="Change platform">
-                          <Settings className="h-4 w-4" />
-                        </Button>
-
-                        <Button variant="outline" size="sm" onClick={() => {
-                    setSelectedDeployment(deployment);
-                    setDeleteDialogOpen(true);
-                  }} title="Delete deployment" className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    {deployment.error_logs && <div className="mt-3 p-3 bg-destructive/10 rounded-md">
-                        <p className="text-sm text-destructive font-medium mb-1">Error Log:</p>
-                        <p className="text-sm text-destructive/90">{deployment.error_logs}</p>
-                      </div>}
-                  </CardContent>
-                </Card>)}
+                      
+                      {latestDeployment?.error_logs && (
+                        <div className="mt-3 p-3 bg-destructive/10 rounded-md">
+                          <p className="text-sm text-destructive font-medium mb-1">Error Log:</p>
+                          <p className="text-sm text-destructive/90">{latestDeployment.error_logs}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>}
         </CardContent>
       </Card>
