@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Download, ExternalLink, Rocket, Edit, Save, FileCode, FileJson, Loader2, Package } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, Rocket, Edit, Save, FileCode, FileJson, Loader2, Package, Cloud } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import JSZip from "jszip";
 interface GeneratedPage {
@@ -36,6 +39,8 @@ export default function GeneratedPageView() {
   const [page, setPage] = useState<GeneratedPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [deploying, setDeploying] = useState(false);
+  const [deploymentPlatform, setDeploymentPlatform] = useState("vercel");
+  const [deploymentToken, setDeploymentToken] = useState("");
   const [componentExports, setComponentExports] = useState<ComponentExport[]>([]);
   const [editingFile, setEditingFile] = useState<ComponentExport | null>(null);
   const [editedContent, setEditedContent] = useState("");
@@ -403,10 +408,11 @@ export default function GeneratedPageView() {
         </Card>}
 
       <Tabs defaultValue="preview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="components">Components</TabsTrigger>
           <TabsTrigger value="editor">Editor</TabsTrigger>
+          <TabsTrigger value="deployment">Deployment</TabsTrigger>
           <TabsTrigger value="rationale">AI Rationale</TabsTrigger>
           <TabsTrigger value="sitecore">Sitecore</TabsTrigger>
         </TabsList>
@@ -538,6 +544,131 @@ export default function GeneratedPageView() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Deployment Tab */}
+        <TabsContent value="deployment" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Cloud className="h-5 w-5" />
+                Deploy Your Page
+              </CardTitle>
+              <CardDescription>
+                Deploy to Vercel or Azure Static Web Apps using your deployment token
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="platform">Deployment Platform</Label>
+                  <Select value={deploymentPlatform} onValueChange={setDeploymentPlatform}>
+                    <SelectTrigger id="platform">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vercel">Vercel</SelectItem>
+                      <SelectItem value="azure">Azure Static Web Apps</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="token">Deployment Token</Label>
+                  <Input
+                    id="token"
+                    type="password"
+                    placeholder={deploymentPlatform === "vercel" ? "Enter your Vercel token" : "Enter your Azure deployment token"}
+                    value={deploymentToken}
+                    onChange={(e) => setDeploymentToken(e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    {deploymentPlatform === "vercel" 
+                      ? "Get your token from Vercel Dashboard → Settings → Tokens"
+                      : "Get your token from Azure Portal → Your Static Web App → Manage deployment token"
+                    }
+                  </p>
+                </div>
+
+                <Button 
+                  onClick={async () => {
+                    if (!deploymentToken) {
+                      toast({
+                        title: "Token Required",
+                        description: "Please enter your deployment token",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    
+                    setDeploying(true);
+                    try {
+                      const functionName = deploymentPlatform === "vercel" 
+                        ? "deploy-to-vercel" 
+                        : "deploy-to-azure-static";
+                      
+                      const { data, error } = await supabase.functions.invoke(functionName, {
+                        body: { 
+                          pageId: id,
+                          deploymentToken: deploymentToken
+                        }
+                      });
+
+                      if (error) throw error;
+
+                      toast({
+                        title: "Deployment Started",
+                        description: `Your page is being deployed to ${deploymentPlatform === "vercel" ? "Vercel" : "Azure"}`
+                      });
+
+                      // Clear token after successful deployment
+                      setDeploymentToken("");
+                      
+                      // Refresh page data to get updated published_url
+                      fetchPage();
+                    } catch (error: any) {
+                      toast({
+                        title: "Deployment Failed",
+                        description: error.message,
+                        variant: "destructive"
+                      });
+                    } finally {
+                      setDeploying(false);
+                    }
+                  }}
+                  disabled={deploying || !deploymentToken}
+                  className="w-full"
+                >
+                  {deploying ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deploying...
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="h-4 w-4 mr-2" />
+                      Deploy to {deploymentPlatform === "vercel" ? "Vercel" : "Azure"}
+                    </>
+                  )}
+                </Button>
+
+                {page?.published_url && (
+                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                    <p className="text-sm font-medium mb-2">Live URL:</p>
+                    <a 
+                      href={page.published_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline flex items-center gap-2"
+                    >
+                      {page.published_url}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* AI Rationale Tab */}
