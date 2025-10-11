@@ -134,19 +134,28 @@ export default function GeneratedPageView() {
       if (!componentExports || componentExports.length === 0) {
         const chatId = page.content?.chatId;
         if (chatId) {
-          const { error: fetchError } = await supabase.functions.invoke("fetch-v0-files", {
-            body: { pageId: page.id, chatId }
+          const {
+            error: fetchError
+          } = await supabase.functions.invoke("fetch-v0-files", {
+            body: {
+              pageId: page.id,
+              chatId
+            }
           });
           if (fetchError) throw fetchError;
         }
       }
 
       // Deploy to Vercel using the same method as regular pages
-      const { data, error } = await supabase.functions.invoke("deploy-to-vercel", {
-        body: { pageId: page.id }
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("deploy-to-vercel", {
+        body: {
+          pageId: page.id
+        }
       });
       if (error) throw error;
-      
       toast({
         title: "Deployment Successful!",
         description: "Your page has been deployed to Vercel."
@@ -384,10 +393,7 @@ export default function GeneratedPageView() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleDeploy} disabled={deploying}>
-            <Rocket className="mr-2 h-4 w-4" />
-            {deploying ? "Deploying..." : "Deploy to Vercel"}
-          </Button>
+          
           {page.published_url && <Button asChild>
               <a href={page.published_url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-2 h-4 w-4" />
@@ -575,97 +581,70 @@ export default function GeneratedPageView() {
 
                 <div className="space-y-2">
                   <Label htmlFor="token">Deployment Token</Label>
-                  <Input
-                    id="token"
-                    type="password"
-                    placeholder={deploymentPlatform === "vercel" ? "Enter your Vercel token" : "Enter your Azure deployment token"}
-                    value={deploymentToken}
-                    onChange={(e) => setDeploymentToken(e.target.value)}
-                  />
+                  <Input id="token" type="password" placeholder={deploymentPlatform === "vercel" ? "Enter your Vercel token" : "Enter your Azure deployment token"} value={deploymentToken} onChange={e => setDeploymentToken(e.target.value)} />
                   <p className="text-sm text-muted-foreground">
-                    {deploymentPlatform === "vercel" 
-                      ? "Get your token from Vercel Dashboard → Settings → Tokens"
-                      : "Get your token from Azure Portal → Your Static Web App → Manage deployment token"
-                    }
+                    {deploymentPlatform === "vercel" ? "Get your token from Vercel Dashboard → Settings → Tokens" : "Get your token from Azure Portal → Your Static Web App → Manage deployment token"}
                   </p>
                 </div>
 
-                <Button 
-                  onClick={async () => {
-                    if (!deploymentToken) {
-                      toast({
-                        title: "Token Required",
-                        description: "Please enter your deployment token",
-                        variant: "destructive"
-                      });
-                      return;
+                <Button onClick={async () => {
+                if (!deploymentToken) {
+                  toast({
+                    title: "Token Required",
+                    description: "Please enter your deployment token",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                setDeploying(true);
+                try {
+                  const functionName = deploymentPlatform === "vercel" ? "deploy-to-vercel" : "deploy-to-azure-static";
+                  const {
+                    data,
+                    error
+                  } = await supabase.functions.invoke(functionName, {
+                    body: {
+                      pageId: id,
+                      deploymentToken: deploymentToken
                     }
-                    
-                    setDeploying(true);
-                    try {
-                      const functionName = deploymentPlatform === "vercel" 
-                        ? "deploy-to-vercel" 
-                        : "deploy-to-azure-static";
-                      
-                      const { data, error } = await supabase.functions.invoke(functionName, {
-                        body: { 
-                          pageId: id,
-                          deploymentToken: deploymentToken
-                        }
-                      });
+                  });
+                  if (error) throw error;
+                  toast({
+                    title: "Deployment Started",
+                    description: `Your page is being deployed to ${deploymentPlatform === "vercel" ? "Vercel" : "Azure"}`
+                  });
 
-                      if (error) throw error;
+                  // Clear token after successful deployment
+                  setDeploymentToken("");
 
-                      toast({
-                        title: "Deployment Started",
-                        description: `Your page is being deployed to ${deploymentPlatform === "vercel" ? "Vercel" : "Azure"}`
-                      });
-
-                      // Clear token after successful deployment
-                      setDeploymentToken("");
-                      
-                      // Refresh page data to get updated published_url
-                      fetchPage();
-                    } catch (error: any) {
-                      toast({
-                        title: "Deployment Failed",
-                        description: error.message,
-                        variant: "destructive"
-                      });
-                    } finally {
-                      setDeploying(false);
-                    }
-                  }}
-                  disabled={deploying || !deploymentToken}
-                  className="w-full"
-                >
-                  {deploying ? (
-                    <>
+                  // Refresh page data to get updated published_url
+                  fetchPage();
+                } catch (error: any) {
+                  toast({
+                    title: "Deployment Failed",
+                    description: error.message,
+                    variant: "destructive"
+                  });
+                } finally {
+                  setDeploying(false);
+                }
+              }} disabled={deploying || !deploymentToken} className="w-full">
+                  {deploying ? <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Deploying...
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <Rocket className="h-4 w-4 mr-2" />
                       Deploy to {deploymentPlatform === "vercel" ? "Vercel" : "Azure"}
-                    </>
-                  )}
+                    </>}
                 </Button>
 
-                {page?.published_url && (
-                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                {page?.published_url && <div className="mt-6 p-4 bg-muted rounded-lg">
                     <p className="text-sm font-medium mb-2">Live URL:</p>
-                    <a 
-                      href={page.published_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline flex items-center gap-2"
-                    >
+                    <a href={page.published_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-2">
                       {page.published_url}
                       <ExternalLink className="h-3 w-3" />
                     </a>
-                  </div>
-                )}
+                  </div>}
               </div>
             </CardContent>
           </Card>
