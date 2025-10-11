@@ -44,7 +44,10 @@ const Deployment = () => {
         }
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { data, error } = await supabase.from("deployment_records").select(`
+      const {
+        data,
+        error
+      } = await supabase.from("deployment_records").select(`
           *,
           generated_pages (
             title
@@ -67,13 +70,12 @@ const Deployment = () => {
   const handlePauseResume = async (deploymentId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'success' ? 'paused' : 'success';
     try {
-      const { error } = await supabase
-        .from('deployment_records')
-        .update({ deployment_status: newStatus })
-        .eq('id', deploymentId);
-
+      const {
+        error
+      } = await supabase.from('deployment_records').update({
+        deployment_status: newStatus
+      }).eq('id', deploymentId);
       if (error) throw error;
-
       toast({
         title: newStatus === 'paused' ? "Deployment Paused" : "Deployment Resumed",
         description: `The deployment has been ${newStatus === 'paused' ? 'paused' : 'resumed'}.`
@@ -87,18 +89,13 @@ const Deployment = () => {
       });
     }
   };
-
   const handleDelete = async () => {
     if (!selectedDeployment) return;
-    
     try {
-      const { error } = await supabase
-        .from('deployment_records')
-        .delete()
-        .eq('id', selectedDeployment.id);
-
+      const {
+        error
+      } = await supabase.from('deployment_records').delete().eq('id', selectedDeployment.id);
       if (error) throw error;
-
       toast({
         title: "Deployment Deleted",
         description: "The deployment record has been removed."
@@ -115,7 +112,6 @@ const Deployment = () => {
       setSelectedDeployment(null);
     }
   };
-
   const handleChangePlatform = async () => {
     if (!selectedDeployment || !platformToken) {
       toast({
@@ -125,23 +121,18 @@ const Deployment = () => {
       });
       return;
     }
-
     try {
-      const { error } = await supabase
-        .from('deployment_records')
-        .update({ 
-          deployment_platform: newPlatform,
-          deployment_status: 'pending'
-        })
-        .eq('id', selectedDeployment.id);
-
+      const {
+        error
+      } = await supabase.from('deployment_records').update({
+        deployment_platform: newPlatform,
+        deployment_status: 'pending'
+      }).eq('id', selectedDeployment.id);
       if (error) throw error;
-
       toast({
         title: "Platform Updated",
         description: `Deployment platform changed to ${newPlatform}. You'll need to redeploy.`
       });
-      
       setPlatformDialogOpen(false);
       setSelectedDeployment(null);
       setPlatformToken("");
@@ -178,10 +169,7 @@ const Deployment = () => {
 
       {/* Deployment History */}
       <Card>
-        <CardHeader>
-          <CardTitle>Active Deployments</CardTitle>
-          <CardDescription>View and manage all your page deployments</CardDescription>
-        </CardHeader>
+        
         <CardContent>
           {loading ? <p className="text-center text-muted-foreground py-8">Loading deployments...</p> : deployments.length === 0 ? <div className="text-center py-12">
                 <Rocket className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -191,8 +179,8 @@ const Deployment = () => {
                 </p>
               </div> : <div className="space-y-4">
               {deployments.map(deployment => <Card key={deployment.id} className="border-l-4" style={{
-              borderLeftColor: deployment.deployment_status === 'success' ? '#10b981' : deployment.deployment_status === 'failed' ? '#ef4444' : deployment.deployment_status === 'paused' ? '#f59e0b' : '#6b7280'
-            }}>
+            borderLeftColor: deployment.deployment_status === 'success' ? '#10b981' : deployment.deployment_status === 'failed' ? '#ef4444' : deployment.deployment_status === 'paused' ? '#f59e0b' : '#6b7280'
+          }}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3 flex-1">
@@ -233,17 +221,17 @@ const Deployment = () => {
                           </Button>}
 
                         <Button variant="outline" size="sm" onClick={() => {
-                        setSelectedDeployment(deployment);
-                        setNewPlatform(deployment.deployment_platform);
-                        setPlatformDialogOpen(true);
-                      }} title="Change platform">
+                    setSelectedDeployment(deployment);
+                    setNewPlatform(deployment.deployment_platform);
+                    setPlatformDialogOpen(true);
+                  }} title="Change platform">
                           <Settings className="h-4 w-4" />
                         </Button>
 
                         <Button variant="outline" size="sm" onClick={() => {
-                        setSelectedDeployment(deployment);
-                        setDeleteDialogOpen(true);
-                      }} title="Delete deployment" className="text-destructive hover:text-destructive">
+                    setSelectedDeployment(deployment);
+                    setDeleteDialogOpen(true);
+                  }} title="Delete deployment" className="text-destructive hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
