@@ -587,7 +587,7 @@ export default function GeneratedPageView() {
                 Deploy Your Page
               </CardTitle>
               <CardDescription>
-                Deploy to Vercel (uses configured token) or Azure Static Web Apps
+                Deploy to v0 (Vercel) using configured token or Azure Static Web Apps
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -599,7 +599,7 @@ export default function GeneratedPageView() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="vercel">Vercel</SelectItem>
+                      <SelectItem value="vercel">v0 (Vercel)</SelectItem>
                       <SelectItem value="azure">Azure Static Web Apps</SelectItem>
                     </SelectContent>
                   </Select>
@@ -617,7 +617,7 @@ export default function GeneratedPageView() {
                 
                 {deploymentPlatform === "vercel" && (
                   <p className="text-sm text-muted-foreground">
-                    Using your configured Vercel API token for deployment.
+                    Using your configured v0 API token for deployment.
                   </p>
                 )}
 
@@ -645,7 +645,7 @@ export default function GeneratedPageView() {
                   if (error) throw error;
                   toast({
                     title: "Deployment Started",
-                    description: `Your page is being deployed to ${deploymentPlatform === "vercel" ? "Vercel" : "Azure"}`
+                    description: `Your page is being deployed to ${deploymentPlatform === "vercel" ? "v0 (Vercel)" : "Azure"}`
                   });
 
                   // Clear token after successful deployment
