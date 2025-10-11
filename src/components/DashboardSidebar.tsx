@@ -90,12 +90,6 @@ const navigationItems = [
     icon: Rocket,
     group: "Marketing"
   },
-  {
-    title: "Settings",
-    url: "/dashboard/settings",
-    icon: Settings,
-    group: "Account"
-  },
 ];
 
 const groupedItems = navigationItems.reduce((groups, item) => {
