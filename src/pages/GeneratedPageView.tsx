@@ -448,7 +448,7 @@ export default function GeneratedPageView() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <FileCode className="h-5 w-5" />
+                    
                     React Components ({componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).length})
                   </CardTitle>
                   <CardDescription>
@@ -457,26 +457,25 @@ export default function GeneratedPageView() {
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={async () => {
-                    const zip = new JSZip();
-                    const components = componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type));
-                    
-                    components.forEach(comp => {
-                      zip.file(`${comp.component_name}.tsx`, comp.react_code);
-                    });
-                    
-                    const blob = await zip.generateAsync({ type: "blob" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `${page?.title || 'components'}-all.zip`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    
-                    toast({
-                      title: "Download Complete",
-                      description: `Downloaded ${components.length} components`
-                    });
-                  }} disabled={componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).length === 0} variant="outline" size="sm">
+                  const zip = new JSZip();
+                  const components = componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type));
+                  components.forEach(comp => {
+                    zip.file(`${comp.component_name}.tsx`, comp.react_code);
+                  });
+                  const blob = await zip.generateAsync({
+                    type: "blob"
+                  });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `${page?.title || 'components'}-all.zip`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast({
+                    title: "Download Complete",
+                    description: `Downloaded ${components.length} components`
+                  });
+                }} disabled={componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).length === 0} variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-2" />
                     Download All
                   </Button>
@@ -584,7 +583,7 @@ export default function GeneratedPageView() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Cloud className="h-5 w-5" />
+                
                 Deploy Your Page
               </CardTitle>
               <CardDescription>
@@ -709,7 +708,7 @@ export default function GeneratedPageView() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileJson className="h-5 w-5" />
+                
                 Sitecore Component Exports
               </CardTitle>
               <CardDescription>
