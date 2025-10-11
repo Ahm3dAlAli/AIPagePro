@@ -103,7 +103,7 @@ const FormBuilder = () => {
 
       if (error) throw error;
 
-      setGeneratedCode(data.componentCode);
+      setGeneratedCode(data.formComponent);
       setEndpointUrl(data.endpointUrl);
 
       toast({

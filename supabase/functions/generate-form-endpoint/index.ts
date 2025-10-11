@@ -45,41 +45,53 @@ serve(async (req) => {
 
     const { formConfig, pageId } = await req.json() as { 
       formConfig: FormConfig; 
-      pageId: string 
+      pageId?: string 
     };
 
+    // Normalize fields to support both `formFields` and legacy `fields`
+    const fields = Array.isArray((formConfig as any)?.formFields)
+      ? (formConfig as any).formFields
+      : Array.isArray((formConfig as any)?.fields)
+      ? (formConfig as any).fields
+      : [];
+
+    if (!fields || fields.length === 0) {
+      throw new Error('No form fields provided');
+    }
+
+    const normalizedConfig: FormConfig = { ...(formConfig as any), formFields: fields };
+
     // Generate Zod validation schema
-    const zodSchema = generateZodSchema(formConfig.formFields);
+    const zodSchema = generateZodSchema(fields);
     
     // Generate React Hook Form component
-    const formComponent = generateFormComponent(formConfig, zodSchema);
+    const formComponent = generateFormComponent(normalizedConfig, zodSchema);
     
     // Generate submission handler edge function
-    const submissionHandler = generateSubmissionHandler(formConfig);
+    const submissionHandler = generateSubmissionHandler(normalizedConfig);
     
     // Create table schema if using Supabase integration
     let tableSql = '';
-    if (formConfig.integrationType === 'supabase' && formConfig.tableName) {
-      tableSql = generateTableSchema(formConfig.tableName, formConfig.formFields);
+    if (normalizedConfig.integrationType === 'supabase' && normalizedConfig.tableName) {
+      tableSql = generateTableSchema(normalizedConfig.tableName, fields);
     }
-
     // Save to database
     const { data, error } = await supabaseClient
       .from('component_exports')
       .insert({
         user_id: '00000000-0000-0000-0000-000000000000',
-        page_id: pageId,
+        page_id: pageId || null,
         component_name: 'FormComponent',
         component_type: 'form',
         react_code: formComponent,
         export_format: 'react_tsx',
         json_schema: {
-          formFields: formConfig.formFields,
+          formFields: fields,
           validationSchema: zodSchema,
           submissionHandler: 'handle-form-submission',
           tableSql: tableSql
         },
-        sitecore_manifest: generateSitecoreFormManifest(formConfig)
+        sitecore_manifest: generateSitecoreFormManifest(normalizedConfig)
       })
       .select()
       .single();
