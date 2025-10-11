@@ -115,17 +115,18 @@ const MyPages = () => {
       });
     }
   };
-
   const handleDeploy = async (pageId: string) => {
     setDeployingPages(prev => new Set(prev).add(pageId));
-    
     try {
-      const { data, error } = await supabase.functions.invoke('deploy-to-vercel', {
-        body: { pageId }
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('deploy-to-vercel', {
+        body: {
+          pageId
+        }
       });
-
       if (error) throw error;
-
       toast({
         title: "Deployment Started",
         description: "Your page is being deployed to Vercel. Check the Deployment page for status."
@@ -309,10 +310,7 @@ const MyPages = () => {
                             Preview
                           </Link>
                         </DropdownMenuItem>}
-                      <DropdownMenuItem onClick={() => handleDeploy(page.id)} disabled={deployingPages.has(page.id)}>
-                        <Rocket className="mr-2 h-4 w-4" />
-                        {deployingPages.has(page.id) ? 'Deploying...' : 'Deploy to Vercel'}
-                      </DropdownMenuItem>
+                      
                       <DropdownMenuItem onClick={() => handleDuplicate(page)}>
                         <Copy className="mr-2 h-4 w-4" />
                         Duplicate
