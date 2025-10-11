@@ -392,15 +392,6 @@ export default function GeneratedPageView() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          
-          {page.published_url && <Button asChild>
-              <a href={page.published_url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Preview in New Tab
-              </a>
-            </Button>}
-        </div>
       </div>
 
       {/* Status Badge */}
@@ -427,10 +418,20 @@ export default function GeneratedPageView() {
         <TabsContent value="preview" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Live Preview</CardTitle>
-              <CardDescription>
-                Interactive preview
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Live Preview</CardTitle>
+                  <CardDescription>
+                    Interactive preview
+                  </CardDescription>
+                </div>
+                {page.published_url && <Button asChild>
+                    <a href={page.published_url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Preview in New Tab
+                    </a>
+                  </Button>}
+              </div>
             </CardHeader>
             <CardContent>
               {page.content.demoUrl ? <iframe src={page.content.demoUrl} className="w-full h-[800px] border rounded-lg" title="Page Preview" /> : <p className="text-center text-muted-foreground py-12">
