@@ -12,6 +12,7 @@ import { Edit3, Wand2, Eye, Save, Settings, RefreshCw, Sparkles, Brain, Download
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import ComponentExportSystem from './ComponentExportSystem';
+import DataUsageSummary from './DataUsageSummary';
 interface PageSection {
   id: string;
   section_type: string;
@@ -488,8 +489,8 @@ export const PageEditor: React.FC<PageEditorProps> = ({
       <Tabs defaultValue="sections" className="space-y-6">
         <TabsList>
           <TabsTrigger value="sections">Section Editor</TabsTrigger>
-          
           <TabsTrigger value="ai-rationale">AI Rationale</TabsTrigger>
+          <TabsTrigger value="data-usage">Data Usage</TabsTrigger>
           <TabsTrigger value="export">Sitecore Export</TabsTrigger>
         </TabsList>
 
@@ -644,6 +645,10 @@ export const PageEditor: React.FC<PageEditorProps> = ({
                 </div>}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="data-usage" className="space-y-6">
+          <DataUsageSummary pageId={pageId} />
         </TabsContent>
 
         <TabsContent value="export" className="space-y-6">

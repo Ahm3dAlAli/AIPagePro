@@ -99,3 +99,6 @@ verify_jwt = true
 
 [functions.handle-form-submission]
 verify_jwt = false
+
+[functions.generate-data-usage]
+verify_jwt = true
