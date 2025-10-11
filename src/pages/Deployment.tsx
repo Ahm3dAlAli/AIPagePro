@@ -113,7 +113,10 @@ const Deployment = () => {
     }
   };
   const handleChangePlatform = async () => {
-    if (!selectedDeployment || !platformToken) {
+    if (!selectedDeployment) return;
+    
+    // Only require token for non-Vercel platforms
+    if (newPlatform !== 'vercel' && !platformToken) {
       toast({
         title: "Validation Error",
         description: "Please provide the platform access token",
@@ -252,7 +255,7 @@ const Deployment = () => {
           <DialogHeader>
             <DialogTitle>Change Deployment Platform</DialogTitle>
             <DialogDescription>
-              Update the platform for this deployment. You'll need to provide an access token for the new platform.
+              Update the platform for this deployment. {newPlatform !== 'vercel' && "You'll need to provide an access token for the new platform."}
             </DialogDescription>
           </DialogHeader>
           
@@ -278,13 +281,21 @@ const Deployment = () => {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="token">Platform Access Token</Label>
-              <Input id="token" type="password" placeholder="Enter your platform access token" value={platformToken} onChange={e => setPlatformToken(e.target.value)} />
-              <p className="text-xs text-muted-foreground">
-                This token will be securely stored and used for deployment operations
+            {newPlatform !== 'vercel' && (
+              <div className="space-y-2">
+                <Label htmlFor="token">Platform Access Token</Label>
+                <Input id="token" type="password" placeholder="Enter your platform access token" value={platformToken} onChange={e => setPlatformToken(e.target.value)} />
+                <p className="text-xs text-muted-foreground">
+                  This token will be securely stored and used for deployment operations
+                </p>
+              </div>
+            )}
+            
+            {newPlatform === 'vercel' && (
+              <p className="text-sm text-muted-foreground">
+                Vercel deployments will use your configured Vercel API token.
               </p>
-            </div>
+            )}
           </div>
 
           <DialogFooter>
