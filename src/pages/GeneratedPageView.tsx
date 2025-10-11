@@ -455,10 +455,36 @@ export default function GeneratedPageView() {
                     React components and layouts
                   </CardDescription>
                 </div>
-                <Button onClick={handleFetchFilesFromV0} disabled={fetchingFiles || !page.content?.chatId} variant="outline" size="sm">
-                  {fetchingFiles ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                  {fetchingFiles ? 'Fetching...' : 'Refresh Files'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={async () => {
+                    const zip = new JSZip();
+                    const components = componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type));
+                    
+                    components.forEach(comp => {
+                      zip.file(`${comp.component_name}.tsx`, comp.react_code);
+                    });
+                    
+                    const blob = await zip.generateAsync({ type: "blob" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${page?.title || 'components'}-all.zip`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    toast({
+                      title: "Download Complete",
+                      description: `Downloaded ${components.length} components`
+                    });
+                  }} disabled={componentExports.filter(c => ['component', 'page', 'layout'].includes(c.component_type)).length === 0} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download All
+                  </Button>
+                  <Button onClick={handleFetchFilesFromV0} disabled={fetchingFiles || !page.content?.chatId} variant="outline" size="sm">
+                    {fetchingFiles ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                    {fetchingFiles ? 'Fetching...' : 'Refresh Files'}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
