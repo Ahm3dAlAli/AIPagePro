@@ -6,7 +6,7 @@
 
 **PagePilot AI** transforms historic campaign data into high-converting, optimized landing pages in minutes using AI. By analyzing past performance metrics and A/B test results, PagePilot generates data-driven pages with full explainability.
 
-**Lovable Project URL**: https://lovable.dev/projects/28964a7b-4c99-44fe-8e1b-1754e3d1fd01
+** URL**: [https://lovable.dev/projects/28964a7b-4c99-44fe-8e1b-1754e3d1fd01](https://aipagepro.lovable.app)
 
 ## ✨ Key Features
 
@@ -46,9 +46,7 @@ npm run dev
 
 ## 📦 Deployment
 
-Deploy via [Lovable](https://lovable.dev/projects/28964a7b-4c99-44fe-8e1b-1754e3d1fd01) → Share → Publish
-
-Or use the deployment dashboard for Vercel/Azure integration.
+Use use the deployment dashboard for Vercel/Azure integration.
 
 ## 📄 Documentation
 
