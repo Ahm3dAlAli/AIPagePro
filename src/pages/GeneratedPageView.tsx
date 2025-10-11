@@ -406,12 +406,12 @@ export default function GeneratedPageView() {
 
       <Tabs defaultValue="preview" className="w-full">
         <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="components">Components</TabsTrigger>
           <TabsTrigger value="editor">Editor</TabsTrigger>
+          <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="deployment">Deployment</TabsTrigger>
-          <TabsTrigger value="rationale">AI Rationale</TabsTrigger>
           <TabsTrigger value="sitecore">Sitecore</TabsTrigger>
+          <TabsTrigger value="rationale">AI Rationale</TabsTrigger>
         </TabsList>
 
         {/* Preview Tab */}
