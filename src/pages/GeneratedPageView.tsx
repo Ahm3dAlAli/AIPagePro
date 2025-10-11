@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Download, ExternalLink, Rocket, Edit, Save, FileCode, FileJson, Loader2, Package } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import JSZip from "jszip";
 interface GeneratedPage {
   id: string;
   title: string;
@@ -276,6 +277,36 @@ export default function GeneratedPageView() {
     a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadAllAsZip = async () => {
+    const zip = new JSZip();
+    
+    componentExports.forEach(comp => {
+      if (comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) {
+        // Create a folder for each component
+        const folder = zip.folder(comp.component_name);
+        
+        if (folder) {
+          folder.file(`${comp.component_name}.tsx`, comp.react_code);
+          folder.file(`${comp.component_name}-schema.json`, JSON.stringify(comp.json_schema, null, 2));
+          folder.file(`${comp.component_name}-manifest.json`, JSON.stringify(comp.sitecore_manifest, null, 2));
+        }
+      }
+    });
+    
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sitecore-components-${page?.title || 'export'}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export Complete",
+      description: `Exported ${componentExports.filter(c => c.sitecore_manifest).length} components as ZIP`
+    });
   };
   if (loading) {
     return <div className="container mx-auto p-6 space-y-6">
@@ -549,21 +580,9 @@ export default function GeneratedPageView() {
               {componentExports.length > 0 && componentExports.some(comp => comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) ? (
                 <>
                   <div className="flex justify-end gap-3">
-                    <Button variant="outline" onClick={() => {
-                      componentExports.forEach(comp => {
-                        if (comp.sitecore_manifest && Object.keys(comp.sitecore_manifest).length > 0) {
-                          downloadComponent(`${comp.component_name}-react.tsx`, comp.react_code);
-                          downloadComponent(`${comp.component_name}-schema.json`, JSON.stringify(comp.json_schema, null, 2));
-                          downloadComponent(`${comp.component_name}-manifest.json`, JSON.stringify(comp.sitecore_manifest, null, 2));
-                        }
-                      });
-                      toast({
-                        title: "Export Complete",
-                        description: `Exported ${componentExports.length * 3} files`
-                      });
-                    }}>
+                    <Button variant="outline" onClick={downloadAllAsZip}>
                       <Download className="h-4 w-4 mr-2" />
-                      Export All
+                      Download All as ZIP
                     </Button>
                     
                     <Button 
