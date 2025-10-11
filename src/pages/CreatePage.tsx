@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import EnhancedDataImport from '@/components/EnhancedDataImport';
 import { ImportedData } from '@/hooks/useDataImport';
+import { GenerationProgress } from '@/components/GenerationProgress';
 interface DataImportRef {
   processFiles: () => Promise<{
     success: boolean;
@@ -83,9 +84,33 @@ const CreatePage = () => {
       description: "Ceramic store example has been filled into the form."
     });
   };
-  const [generationStep, setGenerationStep] = useState<'idle' | 'prd' | 'components' | 'complete'>('idle');
+  const [generationStep, setGenerationStep] = useState<'idle' | 'analyzing' | 'hero' | 'features' | 'cta' | 'complete'>('idle');
   const [prdDocument, setPrdDocument] = useState<any>(null);
   const dataImportRef = React.useRef<DataImportRef>(null);
+
+  const getGenerationSteps = () => {
+    const steps = [
+      { id: 'analyzing', label: 'Analyzing historic data...', status: 'pending' as const },
+      { id: 'hero', label: 'Generating hero section...', status: 'pending' as const },
+      { id: 'features', label: 'Creating feature grid...', status: 'pending' as const },
+      { id: 'cta', label: 'Optimizing CTA placement...', status: 'pending' as const },
+    ];
+
+    return steps.map(step => {
+      if (generationStep === 'idle') return step;
+      
+      const stepOrder = ['analyzing', 'hero', 'features', 'cta', 'complete'];
+      const currentIndex = stepOrder.indexOf(generationStep);
+      const stepIndex = stepOrder.indexOf(step.id);
+
+      if (stepIndex < currentIndex || generationStep === 'complete') {
+        return { ...step, status: 'complete' as const };
+      } else if (stepIndex === currentIndex) {
+        return { ...step, status: 'loading' as const };
+      }
+      return step;
+    });
+  };
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.campaignObjective || !formData.targetAudience || !formData.uniqueValueProp) {
@@ -97,32 +122,19 @@ const CreatePage = () => {
       return;
     }
     setIsGenerating(true);
-    setGenerationStep('idle');
+    setGenerationStep('analyzing');
     try {
       // Auto-process uploaded files if they exist
       if (dataImportRef.current?.hasFiles()) {
-        toast({
-          title: "Processing Data Files",
-          description: "Automatically processing your uploaded data for AI optimization..."
-        });
         const processResult = await dataImportRef.current.processFiles();
         if (processResult.success) {
-          toast({
-            title: "Data Processed Successfully",
-            description: `${processResult.processedRecords} records processed and ready for AI optimization.`
-          });
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 500));
         } else {
           console.warn('File processing warning:', processResult.error);
         }
       }
 
-      // STEP 1: Generate PRD and Engineering Prompt
-      setGenerationStep('prd');
-      toast({
-        title: "Step 1/2: Generating PRD",
-        description: "Creating product requirements document based on your data..."
-      });
+      // STEP 1: Generate PRD and Engineering Prompt (Analyzing phase)
       const campaignConfig = {
         campaignObjective: formData.campaignObjective,
         primaryConversionKPI: formData.campaignObjective,
@@ -154,13 +166,13 @@ const CreatePage = () => {
         throw new Error('Failed to generate PRD');
       }
       setPrdDocument(prdData);
-      toast({
-        title: "PRD Generated Successfully!",
-        description: `Based on ${prdData.historicDataSummary.campaignCount} campaigns and ${prdData.historicDataSummary.experimentCount} experiments.`
-      });
+      
+      // Move to hero generation phase
+      setGenerationStep('hero');
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       // STEP 2: Save to database first to get page ID
-      setGenerationStep('components');
+      setGenerationStep('features');
       const pageTitle = formData.pageTitle || `Landing Page - ${new Date().toISOString()}`;
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -184,11 +196,10 @@ const CreatePage = () => {
 
       if (saveError) throw saveError;
 
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
       // STEP 3: Generate v0 Components with page ID
-      toast({
-        title: "Step 2/2: Generating Components",
-        description: "Using v0 API to create production-ready React components with Shadcn UI..."
-      });
+      setGenerationStep('cta');
       
       const {
         data: v0Data,
@@ -203,10 +214,12 @@ const CreatePage = () => {
       });
       if (v0Error) throw v0Error;
 
+      await new Promise(resolve => setTimeout(resolve, 500));
       setGenerationStep('complete');
+      
       toast({
-        title: "Generation Started!",
-        description: "Your landing page is being generated in the background. You'll be able to view it shortly."
+        title: "✓ Generation Complete!",
+        description: "Your landing page has been created successfully."
       });
 
       // Navigate to the generated page view immediately
@@ -480,13 +493,17 @@ const CreatePage = () => {
         </Tabs>
 
         {/* Generate Button */}
-        <div className="flex justify-center pt-6">
+        <div className="flex flex-col items-center gap-6 pt-6">
+          {isGenerating && (
+            <div className="w-full max-w-md">
+              <GenerationProgress steps={getGenerationSteps()} />
+            </div>
+          )}
+          
           <Button type="submit" size="lg" disabled={isGenerating} className="px-8 py-4 text-lg">
             {isGenerating ? <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                {generationStep === 'prd' && 'Step 1/2: Generating PRD...'}
-                {generationStep === 'components' && 'Step 2/2: Creating Components with v0...'}
-                {generationStep === 'idle' && 'Generating AI-Optimized Page...'}
+                Generating Landing Page...
               </> : <>
                 <Brain className="mr-2 h-5 w-5" />
                 Generate Landing Page with v0
