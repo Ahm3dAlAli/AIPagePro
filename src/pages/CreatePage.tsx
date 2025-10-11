@@ -84,7 +84,7 @@ const CreatePage = () => {
       description: "Ceramic store example has been filled into the form."
     });
   };
-  const [generationStep, setGenerationStep] = useState<'idle' | 'analyzing' | 'hero' | 'features' | 'cta' | 'complete'>('idle');
+  const [generationStep, setGenerationStep] = useState<'idle' | 'analyzing' | 'hero' | 'features' | 'cta' | 'social-proof' | 'form' | 'generating' | 'complete'>('idle');
   const [prdDocument, setPrdDocument] = useState<any>(null);
   const dataImportRef = React.useRef<DataImportRef>(null);
 
@@ -94,12 +94,15 @@ const CreatePage = () => {
       { id: 'hero', label: 'Generating hero section...', status: 'pending' as const },
       { id: 'features', label: 'Creating feature grid...', status: 'pending' as const },
       { id: 'cta', label: 'Optimizing CTA placement...', status: 'pending' as const },
+      { id: 'social-proof', label: 'Building social proof elements...', status: 'pending' as const },
+      { id: 'form', label: 'Configuring conversion forms...', status: 'pending' as const },
+      { id: 'generating', label: 'Generating page...', status: 'pending' as const },
     ];
 
     return steps.map(step => {
       if (generationStep === 'idle') return step;
       
-      const stepOrder = ['analyzing', 'hero', 'features', 'cta', 'complete'];
+      const stepOrder = ['analyzing', 'hero', 'features', 'cta', 'social-proof', 'form', 'generating', 'complete'];
       const currentIndex = stepOrder.indexOf(generationStep);
       const stepIndex = stepOrder.indexOf(step.id);
 
@@ -169,10 +172,26 @@ const CreatePage = () => {
       
       // Move to hero generation phase
       setGenerationStep('hero');
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      // Move to features phase
+      setGenerationStep('features');
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      // Move to CTA phase
+      setGenerationStep('cta');
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      // Move to social proof phase
+      setGenerationStep('social-proof');
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      // Move to form phase
+      setGenerationStep('form');
+      await new Promise(resolve => setTimeout(resolve, 600));
 
       // STEP 2: Save to database first to get page ID
-      setGenerationStep('features');
+      setGenerationStep('generating');
       const pageTitle = formData.pageTitle || `Landing Page - ${new Date().toISOString()}`;
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -196,10 +215,9 @@ const CreatePage = () => {
 
       if (saveError) throw saveError;
 
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 600));
       
       // STEP 3: Generate v0 Components with page ID
-      setGenerationStep('cta');
       
       const {
         data: v0Data,
