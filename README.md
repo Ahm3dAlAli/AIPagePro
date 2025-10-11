@@ -50,7 +50,6 @@ Use use the deployment dashboard for Vercel/Azure integration.
 
 ## 📄 Documentation
 
-- [Demo Video Script](./DEMO.md) - 5-minute product walkthrough
 - [Input Template](./templates/campaign-input-template.json) - Reusable JSON template
 
 ## 🔗 Custom Domain
