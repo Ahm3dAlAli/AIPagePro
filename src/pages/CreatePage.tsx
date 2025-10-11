@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import EnhancedDataImport from '@/components/EnhancedDataImport';
 import { ImportedData } from '@/hooks/useDataImport';
 import { GenerationProgress } from '@/components/GenerationProgress';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 interface DataImportRef {
   processFiles: () => Promise<{
     success: boolean;
@@ -512,12 +513,6 @@ const CreatePage = () => {
 
         {/* Generate Button */}
         <div className="flex flex-col items-center gap-6 pt-6">
-          {isGenerating && (
-            <div className="w-full max-w-md">
-              <GenerationProgress steps={getGenerationSteps()} />
-            </div>
-          )}
-          
           <Button type="submit" size="lg" disabled={isGenerating} className="px-8 py-4 text-lg">
             {isGenerating ? <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -529,6 +524,13 @@ const CreatePage = () => {
           </Button>
         </div>
       </form>
+
+      {/* Generation Progress Overlay */}
+      <Dialog open={isGenerating} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md [&>button]:hidden">
+          <GenerationProgress steps={getGenerationSteps()} />
+        </DialogContent>
+      </Dialog>
     </div>;
 };
 export default CreatePage;
