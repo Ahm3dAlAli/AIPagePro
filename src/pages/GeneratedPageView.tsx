@@ -255,7 +255,7 @@ export default function GeneratedPageView() {
     if (!page?.content?.chatId) {
       toast({
         title: "Error",
-        description: "No v0 chat ID found",
+        description: "No chat ID found",
         variant: "destructive"
       });
       return;
@@ -274,15 +274,15 @@ export default function GeneratedPageView() {
       if (error) throw error;
       toast({
         title: "Success",
-        description: `Successfully fetched ${data.savedCount} files from v0`
+        description: `Successfully fetched ${data.savedCount} files`
       });
       fetchComponentExports();
       fetchPage();
     } catch (error) {
-      console.error("Error fetching files from v0:", error);
+      console.error("Error fetching files:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch files from v0",
+        description: "Failed to fetch files",
         variant: "destructive"
       });
     } finally {
@@ -368,7 +368,7 @@ export default function GeneratedPageView() {
               <div className="text-center space-y-2">
                 <h3 className="text-xl font-semibold">Generating Your Page</h3>
                 <p className="text-muted-foreground max-w-md">
-                  v0 is creating your landing page with AI. This usually takes 1-2 minutes.
+                  Your landing page is being created with AI. This usually takes 1-2 minutes.
                   The page will automatically update when complete.
                 </p>
               </div>
@@ -514,7 +514,7 @@ export default function GeneratedPageView() {
                     No React components found
                   </p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {page.content?.chatId ? 'Click refresh to fetch files from v0' : 'No v0 chat ID available'}
+                    {page.content?.chatId ? 'Click refresh to fetch files' : 'No files available yet'}
                   </p>
                 </div>}
             </CardContent>
@@ -535,7 +535,7 @@ export default function GeneratedPageView() {
                 </div>
                 <Button onClick={handleFetchFilesFromV0} disabled={fetchingFiles || !page.content?.chatId} variant="outline" size="sm" className="w-full mt-2">
                   {fetchingFiles ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                  {fetchingFiles ? 'Fetching Files...' : 'Refresh Files from v0'}
+                  {fetchingFiles ? 'Fetching Files...' : 'Refresh Files'}
                 </Button>
               </CardHeader>
               <CardContent>
