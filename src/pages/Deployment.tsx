@@ -100,9 +100,55 @@ const Deployment = () => {
     }
   };
   return <div className="container mx-auto p-6 space-y-6">
-      
+      <div className="flex items-center gap-2 mb-6">
+        <Rocket className="h-8 w-8 text-primary" />
+        <h1 className="text-3xl font-bold">Deploy Your Pages</h1>
+      </div>
 
-      
+      {/* Deploy New Page */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Deploy to Platform</CardTitle>
+          <CardDescription>Select a page and platform to deploy</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="page">Select Page</Label>
+            <Select value={selectedPage} onValueChange={setSelectedPage}>
+              <SelectTrigger id="page">
+                <SelectValue placeholder="Choose a page to deploy" />
+              </SelectTrigger>
+              <SelectContent>
+                {pages.map((page) => (
+                  <SelectItem key={page.id} value={page.id}>
+                    {page.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="platform">Platform</Label>
+            <Select value={platform} onValueChange={setPlatform}>
+              <SelectTrigger id="platform">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vercel">Vercel</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button 
+            onClick={deployToVercel} 
+            disabled={deploying || !selectedPage}
+            className="w-full"
+          >
+            {deploying ? "Deploying..." : "Deploy Now"}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Deployment History */}
       <Card>
