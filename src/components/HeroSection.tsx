@@ -2,10 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Sparkles, Zap, Target, TrendingUp } from "lucide-react";
 import heroImage from "@/assets/hero-ai-generator.jpg";
-
 export const HeroSection = () => {
-  return (
-    <section className="relative min-h-screen flex items-center justify-center bg-gradient-hero overflow-hidden">
+  return <section className="relative min-h-screen flex items-center justify-center bg-gradient-hero overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-10 w-32 h-32 bg-primary/10 rounded-full blur-xl animate-glow-pulse" />
@@ -41,9 +39,7 @@ export const HeroSection = () => {
                 Start Free Trial
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button variant="ai" size="xl">
-                Watch Demo
-              </Button>
+              
             </div>
 
             {/* Stats */}
@@ -66,11 +62,7 @@ export const HeroSection = () => {
           {/* Right Column - Hero Visual */}
           <div className="relative">
             <Card className="overflow-hidden shadow-glow border-primary/20">
-              <img 
-                src={heroImage} 
-                alt="AI Landing Page Generator Interface" 
-                className="w-full h-auto"
-              />
+              <img src={heroImage} alt="AI Landing Page Generator Interface" className="w-full h-auto" />
             </Card>
 
             {/* Floating Elements */}
@@ -103,6 +95,5 @@ export const HeroSection = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
