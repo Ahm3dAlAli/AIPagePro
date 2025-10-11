@@ -125,18 +125,26 @@ export default function GeneratedPageView() {
     if (!page) return;
     setDeploying(true);
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke("deploy-v0-app", {
-        body: {
-          pageId: page.id
+      // First fetch v0 files if not already fetched
+      if (!componentExports || componentExports.length === 0) {
+        const chatId = page.content?.chatId;
+        if (chatId) {
+          const { error: fetchError } = await supabase.functions.invoke("fetch-v0-files", {
+            body: { pageId: page.id, chatId }
+          });
+          if (fetchError) throw fetchError;
         }
+      }
+
+      // Deploy to Vercel using the same method as regular pages
+      const { data, error } = await supabase.functions.invoke("deploy-to-vercel", {
+        body: { pageId: page.id }
       });
       if (error) throw error;
+      
       toast({
         title: "Deployment Successful!",
-        description: "Your page has been deployed."
+        description: "Your page has been deployed to Vercel."
       });
 
       // Open deployment URL in new tab
