@@ -1,62 +1,41 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Users, 
-  Target, 
-  Sparkles,
-  Activity,
-  Eye,
-  MousePointer
-} from "lucide-react";
+import { BarChart3, TrendingUp, Users, Target, Sparkles, Activity, Eye, MousePointer } from "lucide-react";
 import analyticsImage from "@/assets/analytics-dashboard.jpg";
-
-const metrics = [
-  {
-    label: "Conversion Rate",
-    value: "12.4%",
-    change: "+47%",
-    trend: "up",
-    icon: Target
-  },
-  {
-    label: "Traffic Quality",
-    value: "8.9/10",
-    change: "+23%",
-    trend: "up", 
-    icon: Users
-  },
-  {
-    label: "Engagement Score",
-    value: "94%",
-    change: "+18%",
-    trend: "up",
-    icon: Activity
-  },
-  {
-    label: "Page Load Time",
-    value: "0.8s",
-    change: "-62%",
-    trend: "up",
-    icon: Eye
-  }
-];
-
+const metrics = [{
+  label: "Conversion Rate",
+  value: "12.4%",
+  change: "+47%",
+  trend: "up",
+  icon: Target
+}, {
+  label: "Traffic Quality",
+  value: "8.9/10",
+  change: "+23%",
+  trend: "up",
+  icon: Users
+}, {
+  label: "Engagement Score",
+  value: "94%",
+  change: "+18%",
+  trend: "up",
+  icon: Activity
+}, {
+  label: "Page Load Time",
+  value: "0.8s",
+  change: "-62%",
+  trend: "up",
+  icon: Eye
+}];
 export const AnalyticsSection = () => {
-  return (
-    <section id="analytics" className="py-24 bg-background-secondary">
+  return <section id="analytics" className="py-24 bg-background-secondary">
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left Column - Analytics Dashboard */}
           <div className="relative">
             <Card className="overflow-hidden shadow-glow border-primary/20">
-              <img 
-                src={analyticsImage} 
-                alt="Analytics Dashboard Interface" 
-                className="w-full h-auto"
-              />
+              <img src={analyticsImage} alt="Analytics Dashboard Interface" className="w-full h-auto" />
             </Card>
 
             {/* Floating Metric Cards */}
@@ -109,8 +88,7 @@ export const AnalyticsSection = () => {
 
             {/* Metrics Grid */}
             <div className="grid grid-cols-2 gap-4">
-              {metrics.map((metric, index) => (
-                <Card key={index} className="p-4 border-border/50 hover:border-primary/30 transition-all duration-300 group">
+              {metrics.map((metric, index) => <Card key={index} className="p-4 border-border/50 hover:border-primary/30 transition-all duration-300 group">
                   <div className="flex items-center justify-between mb-2">
                     <metric.icon className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
                     <Badge variant="secondary" className="text-xs bg-success/10 text-success border-success/20">
@@ -119,26 +97,12 @@ export const AnalyticsSection = () => {
                   </div>
                   <div className="text-2xl font-bold mb-1">{metric.value}</div>
                   <div className="text-xs text-muted-foreground">{metric.label}</div>
-                </Card>
-              ))}
+                </Card>)}
             </div>
 
-            <Card className="p-6 bg-gradient-secondary border-primary/20">
-              <div className="flex items-center gap-3 mb-4">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <h4 className="text-lg font-semibold">AI-Powered Insights</h4>
-              </div>
-              <p className="text-muted-foreground mb-4">
-                Our AI continuously analyzes your landing page performance, identifying optimization 
-                opportunities and suggesting data-driven improvements.
-              </p>
-              <Button variant="ai">
-                View Full Dashboard
-              </Button>
-            </Card>
+            
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
