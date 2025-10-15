@@ -99,6 +99,20 @@ Generate a detailed PRD that includes:
    - Expected performance lift
    - Recommended test duration and traffic allocation
 
+6. VISUAL & INTERACTIVE REQUIREMENTS
+   - Images: Specify that all images should be generated using AI or sourced appropriately
+   - Interactivity: Define interactive elements (forms, buttons, animations, hover effects)
+   - User engagement: Specify how users should interact with the page
+   - Call-to-action elements: Make buttons and CTAs clickable and functional
+   - Forms: Ensure all forms are fully functional with validation
+
+CRITICAL REQUIREMENTS:
+- The landing page MUST include AI-generated images for hero sections, features, and any visual content
+- The page MUST be fully interactive with working buttons, forms, and navigation
+- All CTAs must be clickable and functional
+- Forms must have proper validation and submit functionality
+- Include hover effects, animations, and smooth transitions for better user experience
+
 Format the response as structured data that can be easily parsed and converted to PDF.
 Focus on data-driven insights and clear explanations for every recommendation.
 `;
