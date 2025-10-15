@@ -209,7 +209,7 @@ serve(async (req) => {
       }
     };
 
-    // Start background task
+    // Start background task (fire and forget - but will complete before function shuts down)
     backgroundGeneration();
 
     // Return immediately with chat info
