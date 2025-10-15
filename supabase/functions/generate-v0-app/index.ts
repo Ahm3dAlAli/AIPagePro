@@ -117,7 +117,19 @@ serve(async (req) => {
         .eq('id', pageId);
     }
 
-    // Start v0 generation in background - return immediately to avoid timeout
+    // Track generation start
+    if (pageId) {
+      await supabaseClient.functions.invoke('track-v0-generation', {
+        body: {
+          pageId,
+          chatId: chat.id,
+          action: 'start',
+          data: { engineeringPrompt: engineeringPrompt.substring(0, 200) }
+        }
+      });
+    }
+
+    // Start v0 generation in background
     console.log('Starting v0 generation in background...');
     
     const backgroundGeneration = async () => {
@@ -163,51 +175,42 @@ serve(async (req) => {
           });
           console.log('Components saved successfully');
 
-          // Now fetch all files from v0 and store them properly
-          console.log('Fetching all files from v0 chat...');
-          try {
-            const fetchResult = await supabaseClient.functions.invoke('fetch-v0-files', {
-              body: { 
-                pageId: pageId,
-                chatId: chat.id 
+          // Track completion - this will automatically trigger fetch-v0-files
+          console.log('Tracking generation completion...');
+          await supabaseClient.functions.invoke('track-v0-generation', {
+            body: {
+              pageId,
+              chatId: chat.id,
+              action: 'complete',
+              data: {
+                filesGenerated: msgResponse.files?.length || 0,
+                chatId: chat.id,
+                demoUrl: chat.demo
               }
-            });
-
-            if (fetchResult.error) {
-              console.error('Error fetching v0 files:', fetchResult.error);
-            } else {
-              console.log('Successfully fetched and stored files:', fetchResult.data);
             }
-          } catch (fetchError) {
-            console.error('Failed to invoke fetch-v0-files:', fetchError);
-          }
+          });
         }
       } catch (error) {
         console.error('Background v0 generation error:', error);
         
-        // Save error state
+        // Track error
         if (pageId) {
-          await supabaseClient
-            .from('generated_pages')
-            .update({
-              content: {
-                chatId: chat.id,
-                demoUrl: chat.demo,
-                prdDocument,
-                campaignConfig,
-                error: error instanceof Error ? error.message : 'Generation failed',
-                status: 'error',
-                timestamp: new Date().toISOString()
+          await supabaseClient.functions.invoke('track-v0-generation', {
+            body: {
+              pageId,
+              chatId: chat.id,
+              action: 'error',
+              data: {
+                error: error instanceof Error ? error.message : 'Generation failed'
               }
-            })
-            .eq('id', pageId);
+            }
+          });
         }
       }
     };
 
-    // Start background task (commented out - use response tracking instead)
-    // EdgeRuntime.waitUntil(backgroundGeneration());
-    backgroundGeneration(); // Fire and forget
+    // Start background task
+    backgroundGeneration();
 
     // Return immediately with chat info
     return new Response(
@@ -216,7 +219,7 @@ serve(async (req) => {
         chatId: chat.id,
         demoUrl: chat.demo,
         status: 'generating',
-        message: 'Generation started - will complete in background'
+        message: 'Generation started - will complete in background. Files will be fetched automatically when ready.'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
