@@ -605,21 +605,15 @@ export default function GeneratedPageView() {
                   </Select>
                 </div>
 
-                {deploymentPlatform === "azure" && (
-                  <div className="space-y-2">
+                {deploymentPlatform === "azure" && <div className="space-y-2">
                     <Label htmlFor="token">Azure Deployment Token</Label>
                     <Input id="token" type="password" placeholder="Enter your Azure deployment token" value={deploymentToken} onChange={e => setDeploymentToken(e.target.value)} />
                     <p className="text-sm text-muted-foreground">
                       Get your token from Azure Portal → Your Static Web App → Manage deployment token
                     </p>
-                  </div>
-                )}
+                  </div>}
                 
-                {deploymentPlatform === "vercel" && (
-                  <p className="text-sm text-muted-foreground">
-                    Using your configured v0 API token for deployment.
-                  </p>
-                )}
+                {deploymentPlatform === "vercel"}
 
                 <Button onClick={async () => {
                 if (deploymentPlatform === "azure" && !deploymentToken) {
