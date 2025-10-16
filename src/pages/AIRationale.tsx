@@ -136,46 +136,68 @@ const AIRationale = () => {
                   Generated: {new Date(report.generated_at).toLocaleDateString()}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Design Choices</p>
-                  <p className="text-sm text-muted-foreground">
-                    {Object.keys(report.rationale_data?.design_choices || {}).length} decisions documented
-                  </p>
+              <CardContent className="space-y-4">
+                {/* Executive Summary */}
+                {report.rationale_data?.executive_summary && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-foreground">Executive Summary</p>
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {report.rationale_data.executive_summary}
+                    </p>
+                  </div>
+                )}
+
+                {/* Key Metrics */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Design Decisions</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {Object.keys(report.rationale_data?.design_choices || {}).length}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Data Sources</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {(() => {
+                        const dataSources = report.rationale_data?.data_sources;
+                        if (!dataSources) return 0;
+                        const campaignCount = dataSources.historic_campaigns?.length || 0;
+                        const experimentCount = dataSources.experiments?.length || 0;
+                        return campaignCount + experimentCount;
+                      })()}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Data Sources</p>
-                  <p className="text-sm text-muted-foreground">
-                    {(() => {
-                      const dataSources = report.rationale_data?.data_sources;
-                      if (!dataSources) return "0 sources analyzed";
-                      
-                      // Count historic campaigns and experiments
-                      const campaignCount = dataSources.historic_campaigns?.length || 0;
-                      const experimentCount = dataSources.experiments?.length || 0;
-                      const totalCount = campaignCount + experimentCount;
-                      
-                      if (totalCount === 0) return "0 sources analyzed";
-                      
-                      const parts = [];
-                      if (campaignCount > 0) parts.push(`${campaignCount} campaign${campaignCount > 1 ? 's' : ''}`);
-                      if (experimentCount > 0) parts.push(`${experimentCount} experiment${experimentCount > 1 ? 's' : ''}`);
-                      
-                      return parts.join(', ') + ' analyzed';
-                    })()}
-                  </p>
-                </div>
+                {/* Confidence Scores */}
+                {report.rationale_data?.design_choices && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-foreground">Top Decisions</p>
+                    <div className="space-y-1">
+                      {Object.entries(report.rationale_data.design_choices)
+                        .slice(0, 3)
+                        .map(([key, value]: [string, any]) => (
+                          <div key={key} className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground truncate flex-1">{key}</span>
+                            <span className="font-medium text-foreground ml-2">
+                              {value.confidence_score || 'N/A'}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
 
-                <div className="flex gap-2">
+                {/* Actions */}
+                <div className="flex gap-2 pt-2 border-t">
                   <Button
-                    variant="outline"
+                    variant="default"
                     size="sm"
                     onClick={() => downloadPDF(report.id)}
                     className="flex-1"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    PDF
+                    Download PDF
                   </Button>
                   {report.pdf_url && (
                     <Button

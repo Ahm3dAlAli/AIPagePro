@@ -236,10 +236,15 @@ const Deployment = () => {
                             )}
                             
                             {page.published_url && (
-                              <a href={page.published_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1 mt-2">
-                                {page.published_url}
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="h-auto p-0 text-sm font-normal mt-2"
+                                onClick={() => window.open(page.published_url!, "_blank")}
+                              >
+                                <span className="truncate max-w-md">{page.published_url}</span>
+                                <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+                              </Button>
                             )}
                           </div>
                         </div>
