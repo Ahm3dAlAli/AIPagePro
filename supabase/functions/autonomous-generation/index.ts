@@ -742,8 +742,15 @@ async function generateLandingPageFromPRD(
       return generateFallbackLandingPage(campaignInput, historicInsights, prdDocument);
     }
 
+    // Generate images first using Lovable AI
+    console.log('Generating images for landing page...');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const generatedImages = LOVABLE_API_KEY 
+      ? await generateLandingPageImages(campaignInput, LOVABLE_API_KEY)
+      : [];
+
     // Build comprehensive prompt for v0 API based on PRD and campaign data
-    const v0Prompt = buildV0Prompt(campaignInput, historicInsights, prdDocument);
+    const v0Prompt = buildV0Prompt(campaignInput, historicInsights, prdDocument, generatedImages);
     
     console.log('Calling v0 API to generate React components...');
     
@@ -824,7 +831,8 @@ async function generateLandingPageFromPRD(
 function buildV0Prompt(
   campaignInput: CampaignInput,
   historicInsights: HistoricInsights,
-  prdDocument: any
+  prdDocument: any,
+  generatedImages: any[] = []
 ): string {
   const dataInsights = analyzeHistoricData(
     historicInsights.campaignPerformance,
@@ -832,7 +840,24 @@ function buildV0Prompt(
     campaignInput.campaignObjective
   );
 
+  const imageSection = generatedImages.length > 0 ? `
+
+## Generated Images (MUST USE THESE IN YOUR COMPONENTS)
+${generatedImages.map((img: any, i: number) => `
+### ${img.section} - ${img.description}
+\`\`\`jsx
+<img 
+  src="${img.imageUrl.substring(0, 150)}..." 
+  alt="${img.altText}"
+  className="w-full h-auto"
+/>
+\`\`\`
+Use this image in the ${img.section} section. The src contains base64 data.
+`).join('\n')}
+` : '';
+
   return `Create a modern, conversion-optimized landing page with these specifications:
+${imageSection}
 
 ## Campaign Details
 - Product/Service: ${campaignInput.productServiceName}
@@ -1599,4 +1624,85 @@ function generateSitecoreManifest(sectionType: string, sectionContent: any): any
       template: `${sectionType}SectionData`
     }
   };
+}
+
+// Generate images for landing page sections using Lovable AI
+async function generateLandingPageImages(
+  campaignInput: CampaignInput,
+  lovableApiKey: string
+): Promise<any[]> {
+  const images: any[] = [];
+  const brandColors = campaignInput.brandColorPalette?.join(', ') || 'professional colors';
+  const tone = campaignInput.toneOfVoice || 'professional';
+
+  // Define image requirements for each section
+  const imagePrompts = [
+    {
+      section: 'hero',
+      description: `Hero banner for ${campaignInput.productServiceName}`,
+      prompt: `A compelling, photorealistic hero image showing ${campaignInput.productServiceName} being used by ${campaignInput.targetAudience}. Style: ${tone} tone. Colors: ${brandColors}. Aspect ratio: 16:9. Ultra high resolution. Professional marketing photo.`,
+      altText: `${campaignInput.productServiceName} hero image`
+    },
+    {
+      section: 'benefits',
+      description: `Benefits visualization for ${campaignInput.topBenefits?.[0] || 'main benefit'}`,
+      prompt: `An illustration showing ${campaignInput.topBenefits?.[0] || 'key benefit'} in action. Style: ${tone}, modern. Colors: ${brandColors}. Simple, clean design. Icon-style.`,
+      altText: `${campaignInput.topBenefits?.[0] || 'Benefit'} visualization`
+    },
+    {
+      section: 'features',
+      description: `Feature showcase for ${campaignInput.productServiceName}`,
+      prompt: `A product screenshot or mockup demonstrating ${campaignInput.featureList?.[0] || 'key feature'} of ${campaignInput.productServiceName}. Style: ${tone}. Colors: ${brandColors}. Professional UI design.`,
+      altText: `${campaignInput.productServiceName} features showcase`
+    }
+  ];
+
+  // Generate each image
+  for (const imageSpec of imagePrompts) {
+    try {
+      console.log(`Generating ${imageSpec.section} image...`);
+      
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-image-preview',
+          messages: [
+            {
+              role: 'user',
+              content: imageSpec.prompt
+            }
+          ],
+          modalities: ['image', 'text']
+        })
+      });
+
+      if (!response.ok) {
+        console.error(`Failed to generate ${imageSpec.section} image:`, response.status);
+        continue;
+      }
+
+      const data = await response.json();
+      const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+      if (imageUrl) {
+        images.push({
+          section: imageSpec.section,
+          description: imageSpec.description,
+          imageUrl: imageUrl,
+          altText: imageSpec.altText,
+          prompt: imageSpec.prompt
+        });
+        console.log(`Successfully generated ${imageSpec.section} image`);
+      }
+    } catch (error) {
+      console.error(`Error generating ${imageSpec.section} image:`, error);
+    }
+  }
+
+  console.log(`Generated ${images.length} images for landing page`);
+  return images;
 }
