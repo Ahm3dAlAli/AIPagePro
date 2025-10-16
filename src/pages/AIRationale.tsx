@@ -137,54 +137,58 @@ const AIRationale = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Executive Summary */}
-                {report.rationale_data?.executive_summary && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-foreground">Executive Summary</p>
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {report.rationale_data.executive_summary}
-                    </p>
-                  </div>
-                )}
-
-                {/* Key Metrics */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* Metadata */}
+                <div className="grid grid-cols-2 gap-4 pb-4 border-b">
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Design Decisions</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {Object.keys(report.rationale_data?.design_choices || {}).length}
+                    <p className="text-xs text-muted-foreground">Generated</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {new Date(report.rationale_data?.generatedAt || report.generated_at).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Data Sources</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {(() => {
-                        const dataSources = report.rationale_data?.data_sources;
-                        if (!dataSources) return 0;
-                        const campaignCount = dataSources.historic_campaigns?.length || 0;
-                        const experimentCount = dataSources.experiments?.length || 0;
-                        return campaignCount + experimentCount;
-                      })()}
+                    <p className="text-xs text-muted-foreground">AI Model</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {report.rationale_data?.model || 'N/A'}
                     </p>
                   </div>
                 </div>
 
-                {/* Confidence Scores */}
-                {report.rationale_data?.design_choices && (
+                {/* Data Sources */}
+                {report.rationale_data?.dataSourcesUsed && (
                   <div className="space-y-2">
-                    <p className="text-sm font-semibold text-foreground">Top Decisions</p>
-                    <div className="space-y-1">
-                      {Object.entries(report.rationale_data.design_choices)
-                        .slice(0, 3)
-                        .map(([key, value]: [string, any]) => (
-                          <div key={key} className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground truncate flex-1">{key}</span>
-                            <span className="font-medium text-foreground ml-2">
-                              {value.confidence_score || 'N/A'}
-                            </span>
-                          </div>
-                        ))}
+                    <p className="text-sm font-semibold text-foreground">Data Sources</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Campaigns:</span>
+                        <span className="font-medium text-foreground">
+                          {report.rationale_data.dataSourcesUsed.campaignCount || 0}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Experiments:</span>
+                        <span className="font-medium text-foreground">
+                          {report.rationale_data.dataSourcesUsed.experimentCount || 0}
+                        </span>
+                      </div>
+                      <div className="col-span-2 flex items-center justify-between">
+                        <span className="text-muted-foreground">Avg Conv. Rate:</span>
+                        <span className="font-medium text-foreground">
+                          {(report.rationale_data.dataSourcesUsed.avgConversionRate * 100).toFixed(2)}%
+                        </span>
+                      </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Content Preview */}
+                {report.rationale_data?.content && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-foreground">PRD Preview</p>
+                    <p className="text-xs text-muted-foreground line-clamp-3">
+                      {typeof report.rationale_data.content === 'string' 
+                        ? report.rationale_data.content.substring(0, 200) + '...'
+                        : 'Full PRD available in detailed view'}
+                    </p>
                   </div>
                 )}
 
@@ -193,23 +197,21 @@ const AIRationale = () => {
                   <Button
                     variant="default"
                     size="sm"
+                    onClick={() => window.location.href = `/ai-rationale/${report.id}`}
+                    className="flex-1"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Full Report
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => downloadPDF(report.id)}
                     className="flex-1"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Download PDF
+                    PDF
                   </Button>
-                  {report.pdf_url && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open(report.pdf_url!, "_blank")}
-                      className="flex-1"
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </Button>
-                  )}
                 </div>
               </CardContent>
             </Card>
