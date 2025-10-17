@@ -38,6 +38,7 @@ const Deployment = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [newPlatform, setNewPlatform] = useState("vercel");
   const [platformToken, setPlatformToken] = useState("");
+  const [deployingPages, setDeployingPages] = useState<Set<string>>(new Set());
   useEffect(() => {
     fetchData();
   }, []);
@@ -124,6 +125,36 @@ const Deployment = () => {
       setSelectedDeployment(null);
     }
   };
+  const handleDeployToVercel = async (pageId: string) => {
+    setDeployingPages(prev => new Set(prev).add(pageId));
+    try {
+      const { data, error } = await supabase.functions.invoke('deploy-v0-app', {
+        body: { pageId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Deployment Started",
+        description: "Your page is being deployed to Vercel. Refresh to see the status.",
+      });
+      
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Deployment Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setDeployingPages(prev => {
+        const next = new Set(prev);
+        next.delete(pageId);
+        return next;
+      });
+    }
+  };
+
   const handleChangePlatform = async () => {
     if (!selectedDeployment) return;
     
@@ -249,36 +280,49 @@ const Deployment = () => {
                           </div>
                         </div>
 
-                        {latestDeployment && (
-                          <div className="flex gap-2">
-                            {latestDeployment.deployment_status === 'success' && (
-                              <Button variant="outline" size="sm" onClick={() => handlePauseResume(latestDeployment.id, latestDeployment.deployment_status)} title="Pause deployment">
-                                <Pause className="h-4 w-4" />
-                              </Button>
-                            )}
-                            
-                            {latestDeployment.deployment_status === 'paused' && (
-                              <Button variant="outline" size="sm" onClick={() => handlePauseResume(latestDeployment.id, latestDeployment.deployment_status)} title="Resume deployment">
-                                <Play className="h-4 w-4" />
-                              </Button>
-                            )}
-
-                            <Button variant="outline" size="sm" onClick={() => {
-                              setSelectedDeployment(latestDeployment);
-                              setNewPlatform(latestDeployment.deployment_platform);
-                              setPlatformDialogOpen(true);
-                            }} title="Change platform">
-                              <Settings className="h-4 w-4" />
+                        <div className="flex gap-2">
+                          {!latestDeployment && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleDeployToVercel(page.id)}
+                              disabled={deployingPages.has(page.id)}
+                            >
+                              <Rocket className="h-4 w-4 mr-2" />
+                              {deployingPages.has(page.id) ? 'Deploying...' : 'Deploy to Vercel'}
                             </Button>
+                          )}
+                          
+                          {latestDeployment && (
+                            <>
+                              {latestDeployment.deployment_status === 'success' && (
+                                <Button variant="outline" size="sm" onClick={() => handlePauseResume(latestDeployment.id, latestDeployment.deployment_status)} title="Pause deployment">
+                                  <Pause className="h-4 w-4" />
+                                </Button>
+                              )}
+                              
+                              {latestDeployment.deployment_status === 'paused' && (
+                                <Button variant="outline" size="sm" onClick={() => handlePauseResume(latestDeployment.id, latestDeployment.deployment_status)} title="Resume deployment">
+                                  <Play className="h-4 w-4" />
+                                </Button>
+                              )}
 
-                            <Button variant="outline" size="sm" onClick={() => {
-                              setSelectedDeployment(latestDeployment);
-                              setDeleteDialogOpen(true);
-                            }} title="Delete deployment" className="text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
+                              <Button variant="outline" size="sm" onClick={() => {
+                                setSelectedDeployment(latestDeployment);
+                                setNewPlatform(latestDeployment.deployment_platform);
+                                setPlatformDialogOpen(true);
+                              }} title="Change platform">
+                                <Settings className="h-4 w-4" />
+                              </Button>
+
+                              <Button variant="outline" size="sm" onClick={() => {
+                                setSelectedDeployment(latestDeployment);
+                                setDeleteDialogOpen(true);
+                              }} title="Delete deployment" className="text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                       
                       {latestDeployment?.error_logs && (
