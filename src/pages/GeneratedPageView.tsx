@@ -405,12 +405,11 @@ export default function GeneratedPageView() {
         </Card>}
 
       <Tabs defaultValue="preview" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="components">Components</TabsTrigger>
           <TabsTrigger value="editor">Editor</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="rationale">AI Rationale</TabsTrigger>
-          <TabsTrigger value="deployment">Deployment</TabsTrigger>
           <TabsTrigger value="sitecore">Sitecore</TabsTrigger>
         </TabsList>
 
@@ -576,106 +575,6 @@ export default function GeneratedPageView() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        {/* Deployment Tab */}
-        <TabsContent value="deployment" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                
-                Deploy Your Page
-              </CardTitle>
-              <CardDescription>
-                Deploy to v0 (Vercel) using configured token or Azure Static Web Apps
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="platform">Deployment Platform</Label>
-                  <Select value={deploymentPlatform} onValueChange={setDeploymentPlatform}>
-                    <SelectTrigger id="platform">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vercel">v0 (Vercel)</SelectItem>
-                      <SelectItem value="azure">Azure Static Web Apps</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {deploymentPlatform === "azure" && <div className="space-y-2">
-                    <Label htmlFor="token">Azure Deployment Token</Label>
-                    <Input id="token" type="password" placeholder="Enter your Azure deployment token" value={deploymentToken} onChange={e => setDeploymentToken(e.target.value)} />
-                    <p className="text-sm text-muted-foreground">
-                      Get your token from Azure Portal → Your Static Web App → Manage deployment token
-                    </p>
-                  </div>}
-                
-                {deploymentPlatform === "vercel"}
-
-                <Button onClick={async () => {
-                if (deploymentPlatform === "azure" && !deploymentToken) {
-                  toast({
-                    title: "Token Required",
-                    description: "Please enter your Azure deployment token",
-                    variant: "destructive"
-                  });
-                  return;
-                }
-                setDeploying(true);
-                try {
-                  const functionName = deploymentPlatform === "vercel" ? "deploy-to-vercel" : "deploy-to-azure-static";
-                  const {
-                    data,
-                    error
-                  } = await supabase.functions.invoke(functionName, {
-                    body: {
-                      pageId: id,
-                      deploymentToken: deploymentToken
-                    }
-                  });
-                  if (error) throw error;
-                  toast({
-                    title: "Deployment Started",
-                    description: `Your page is being deployed to ${deploymentPlatform === "vercel" ? "v0 (Vercel)" : "Azure"}`
-                  });
-
-                  // Clear token after successful deployment
-                  setDeploymentToken("");
-
-                  // Refresh page data to get updated published_url
-                  fetchPage();
-                } catch (error: any) {
-                  toast({
-                    title: "Deployment Failed",
-                    description: error.message,
-                    variant: "destructive"
-                  });
-                } finally {
-                  setDeploying(false);
-                }
-              }} disabled={deploying || !deploymentToken} className="w-full">
-                  {deploying ? <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Deploying...
-                    </> : <>
-                      <Rocket className="h-4 w-4 mr-2" />
-                      Deploy to {deploymentPlatform === "vercel" ? "Vercel" : "Azure"}
-                    </>}
-                </Button>
-
-                {page?.published_url && <div className="mt-6 p-4 bg-muted rounded-lg">
-                    <p className="text-sm font-medium mb-2">Live URL:</p>
-                    <a href={page.published_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-2">
-                      {page.published_url}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>}
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* AI Rationale Tab */}
