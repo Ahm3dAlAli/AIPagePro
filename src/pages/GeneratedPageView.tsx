@@ -528,14 +528,11 @@ export default function GeneratedPageView() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>All Files</CardTitle>
+                    <CardTitle>All Files ({componentExports.length})</CardTitle>
                     <CardDescription>All project files including utilities, configs, and styles</CardDescription>
                   </div>
                 </div>
-                <Button onClick={handleFetchFilesFromV0} disabled={fetchingFiles || !page.content?.chatId} variant="outline" size="sm" className="w-full mt-2">
-                  {fetchingFiles ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                  {fetchingFiles ? 'Fetching Files...' : 'Refresh Files'}
-                </Button>
+                
               </CardHeader>
               <CardContent>
                 {componentExports.length > 0 ? <div className="space-y-2">
