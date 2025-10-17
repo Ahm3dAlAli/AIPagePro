@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Rocket, ExternalLink, CheckCircle, XCircle, Clock, Pause, Play, Trash2, Settings, RefreshCw } from "lucide-react";
+import { Rocket, ExternalLink, CheckCircle, XCircle, Clock, Pause, Play, Trash2, Settings, RefreshCw, Power, PowerOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -295,14 +295,25 @@ const Deployment = () => {
                           {latestDeployment && (
                             <>
                               {latestDeployment.deployment_status === 'success' && (
-                                <Button variant="outline" size="sm" onClick={() => handlePauseResume(latestDeployment.id, latestDeployment.deployment_status)} title="Pause deployment">
-                                  <Pause className="h-4 w-4" />
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm" 
+                                  onClick={() => handlePauseResume(latestDeployment.id, latestDeployment.deployment_status)}
+                                  className="gap-2"
+                                >
+                                  <PowerOff className="h-4 w-4" />
+                                  Unpublish
                                 </Button>
                               )}
                               
                               {latestDeployment.deployment_status === 'paused' && (
-                                <Button variant="outline" size="sm" onClick={() => handlePauseResume(latestDeployment.id, latestDeployment.deployment_status)} title="Resume deployment">
-                                  <Play className="h-4 w-4" />
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handlePauseResume(latestDeployment.id, latestDeployment.deployment_status)}
+                                  className="gap-2"
+                                >
+                                  <Power className="h-4 w-4" />
+                                  Republish
                                 </Button>
                               )}
 
