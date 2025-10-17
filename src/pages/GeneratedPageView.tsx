@@ -528,7 +528,7 @@ export default function GeneratedPageView() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>All Files ({componentExports.length})</CardTitle>
+                    <CardTitle>All Files</CardTitle>
                     <CardDescription>All project files including utilities, configs, and styles</CardDescription>
                   </div>
                 </div>
