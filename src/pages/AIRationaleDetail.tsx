@@ -120,83 +120,84 @@ const AIRationaleDetail = () => {
       {/* Report Content */}
       <Card className="print:shadow-none print:border-0">
         <CardHeader className="print:pb-4">
-          <CardTitle className="text-3xl">AI Design Rationale Report</CardTitle>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Report Type</p>
-              <p className="font-medium text-foreground">
-                {report.report_type.replace(/_/g, " ").toUpperCase()}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Generated</p>
-              <p className="font-medium text-foreground">
-                {new Date(report.rationale_data?.generatedAt || report.generated_at).toLocaleString()}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">AI Model</p>
-              <p className="font-medium text-foreground">
-                {report.rationale_data?.model || 'N/A'}
-              </p>
-            </div>
-          </div>
+          <CardTitle className="text-3xl">AI Design Rationale</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Generated {new Date(report.rationale_data?.generatedAt || report.generated_at).toLocaleString()}
+          </p>
         </CardHeader>
 
-        <CardContent className="space-y-6">
-          {/* Data Sources Summary */}
-          {report.rationale_data?.dataSourcesUsed && (
-            <div className="p-4 bg-muted rounded-lg">
-              <h3 className="text-lg font-semibold mb-3 text-foreground">Data Sources</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Historic Campaigns</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {report.rationale_data.dataSourcesUsed.campaignCount || 0}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">A/B Experiments</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {report.rationale_data.dataSourcesUsed.experimentCount || 0}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Avg. Conversion Rate</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {(report.rationale_data.dataSourcesUsed.avgConversionRate * 100).toFixed(2)}%
-                  </p>
-                </div>
-              </div>
+        <CardContent className="space-y-8">
+          {/* PRD Content - Structured Display */}
+          {report.rationale_data?.content && typeof report.rationale_data.content === 'string' ? (
+            <div className="space-y-6">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => (
+                    <h1 className="text-3xl font-bold mt-8 mb-4 pb-3 border-b border-border text-foreground">
+                      {children}
+                    </h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="text-2xl font-semibold mt-8 mb-4 text-foreground">
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-xl font-semibold mt-6 mb-3 text-foreground">
+                      {children}
+                    </h3>
+                  ),
+                  p: ({ children }) => (
+                    <p className="mb-4 text-foreground leading-relaxed">
+                      {children}
+                    </p>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="list-disc pl-6 mb-4 space-y-2 text-foreground">
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="list-decimal pl-6 mb-4 space-y-2 text-foreground">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => (
+                    <li className="text-foreground leading-relaxed">
+                      {children}
+                    </li>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold text-foreground">
+                      {children}
+                    </strong>
+                  ),
+                  em: ({ children }) => (
+                    <em className="italic text-foreground">
+                      {children}
+                    </em>
+                  ),
+                  code: ({ children }) => (
+                    <code className="bg-muted px-2 py-1 rounded text-sm font-mono text-foreground">
+                      {children}
+                    </code>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-4 border-primary pl-4 py-2 my-4 bg-muted/30 rounded-r text-foreground">
+                      {children}
+                    </blockquote>
+                  ),
+                  hr: () => (
+                    <hr className="my-8 border-border" />
+                  ),
+                }}
+              >
+                {report.rationale_data.content}
+              </ReactMarkdown>
             </div>
-          )}
-
-          {/* PRD Content */}
-          {report.rationale_data?.content && (
-            <div className="prose prose-sm max-w-none print:prose-print">
-              <div className="markdown-content">
-                {typeof report.rationale_data.content === 'string' ? (
-                  <ReactMarkdown
-                    components={{
-                      h1: ({ children }) => <h1 className="text-3xl font-bold mt-8 mb-4 text-foreground">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-2xl font-semibold mt-6 mb-3 text-foreground">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-xl font-semibold mt-4 mb-2 text-foreground">{children}</h3>,
-                      p: ({ children }) => <p className="mb-4 text-foreground leading-relaxed">{children}</p>,
-                      ul: ({ children }) => <ul className="list-disc pl-6 mb-4 space-y-2 text-foreground">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal pl-6 mb-4 space-y-2 text-foreground">{children}</ol>,
-                      li: ({ children }) => <li className="text-foreground">{children}</li>,
-                      strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
-                      em: ({ children }) => <em className="italic text-foreground">{children}</em>,
-                      code: ({ children }) => <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground">{children}</code>,
-                      blockquote: ({ children }) => <blockquote className="border-l-4 border-primary pl-4 italic my-4 text-muted-foreground">{children}</blockquote>,
-                    }}
-                  >
-                    {report.rationale_data.content}
-                  </ReactMarkdown>
-                ) : (
-                  <div className="text-muted-foreground">Invalid content format</div>
-                )}
-              </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              No content available
             </div>
           )}
         </CardContent>
