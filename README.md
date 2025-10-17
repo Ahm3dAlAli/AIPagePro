@@ -18,7 +18,7 @@
 
 ## 🏗️ Tech Stack
 
-- **Frontend**: React 18.3.1, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Frontend**: React 18.3.1, TypeScript, Vite, Tailwind CSS, shadcn/u
 - **Backend**: Supabase (PostgreSQL, Auth, Edge Functions)
 - **AI**: Lovable AI Gateway (Google Gemini 2.5 models)
 - **Deployment**: Vercel, Azure Static Web Apps
