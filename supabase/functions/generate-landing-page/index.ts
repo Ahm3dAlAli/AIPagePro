@@ -120,8 +120,79 @@ function extractCTAFromDescription(description: string): string {
   return 'Get Started';
 }
 
+// Generate images using Lovable AI
+async function generateImages(uniqueValueProp: string, industryType: string, benefits: string[]): Promise<any> {
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!lovableApiKey) {
+    console.warn('LOVABLE_API_KEY not found, skipping image generation');
+    return { heroImage: null, benefitImages: [] };
+  }
+
+  try {
+    // Generate hero image
+    const heroPrompt = `A professional, modern hero image for a landing page about ${uniqueValueProp}. Industry: ${industryType}. Style: clean, high-quality, corporate, 16:9 aspect ratio. Ultra high resolution.`;
+    
+    const heroResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-image-preview',
+        messages: [{
+          role: 'user',
+          content: heroPrompt
+        }],
+        modalities: ['image', 'text']
+      })
+    });
+
+    let heroImage = null;
+    if (heroResponse.ok) {
+      const heroData = await heroResponse.json();
+      heroImage = heroData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    }
+
+    // Generate benefit/feature images (limit to 3 for performance)
+    const benefitImages = [];
+    for (let i = 0; i < Math.min(3, benefits.length); i++) {
+      const benefitPrompt = `An icon-style illustration representing: ${benefits[i]}. Style: modern, clean, minimalist, centered on white background. Square aspect ratio. Ultra high resolution.`;
+      
+      const benefitResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-image-preview',
+          messages: [{
+            role: 'user',
+            content: benefitPrompt
+          }],
+          modalities: ['image', 'text']
+        })
+      });
+
+      if (benefitResponse.ok) {
+        const benefitData = await benefitResponse.json();
+        const imageUrl = benefitData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        if (imageUrl) {
+          benefitImages.push(imageUrl);
+        }
+      }
+    }
+
+    return { heroImage, benefitImages };
+  } catch (error) {
+    console.error('Error generating images:', error);
+    return { heroImage: null, benefitImages: [] };
+  }
+}
+
 // Lovable's own landing page generation algorithm
-function generateLandingPageContent(inputs: any, historicData?: any[], experimentData?: any[]) {
+async function generateLandingPageContent(inputs: any, historicData?: any[], experimentData?: any[]) {
   const {
     campaignObjective,
     targetAudience,
@@ -143,6 +214,9 @@ function generateLandingPageContent(inputs: any, historicData?: any[], experimen
   // Analyze historic data for insights
   const dataInsights = analyzeHistoricData(historicData, experimentData, campaignObjective);
 
+  // Generate AI images
+  const images = await generateImages(uniqueValueProp, industryType, benefitsList);
+
   // Generate compelling headlines (enhanced with data insights)
   const headline = generateHeadline(uniqueValueProp, campaignObjective, toneOfVoice, dataInsights);
   const subheadline = generateSubheadline(targetAudience, benefitsList[0], dataInsights);
@@ -162,6 +236,7 @@ function generateLandingPageContent(inputs: any, historicData?: any[], experimen
   return {
     pageTitle: pageTitle || headline,
     metaDescription,
+    images: images,
     sections: {
         hero: {
           headline,
@@ -169,6 +244,7 @@ function generateLandingPageContent(inputs: any, historicData?: any[], experimen
           ctaText: dataInsights.optimalCTAText || ctaText || 'Get Started Today',
           backgroundStyle: getBackgroundStyle(industryType),
           formPosition: dataInsights.bestConvertingFormPosition,
+          heroImage: images.heroImage,
           dataInsights: {
             topChannel: dataInsights.topPerformingChannels[0]?.channel || 'direct',
             avgConversionRate: (dataInsights.averageConversionRate * 100).toFixed(1) + '%',
@@ -180,7 +256,8 @@ function generateLandingPageContent(inputs: any, historicData?: any[], experimen
         benefits: benefitsList.slice(0, 6).map((benefit: string, index: number) => ({
           title: benefit.split(' - ')[0] || benefit.substring(0, 50),
           description: benefit,
-          icon: getBenefitIcon(benefit, index)
+          icon: getBenefitIcon(benefit, index),
+          image: images.benefitImages[index] || null
         }))
       },
       features: {
@@ -400,7 +477,7 @@ serve(async (req) => {
       template
     } = await req.json();
 
-    console.log('Generating landing page with Lovable algorithm for user:', user.id);
+    console.log('Generating landing page with AI images for user:', user.id);
 
     // Fetch historic campaign data for AI insights
     const { data: historicData } = await supabaseClient
@@ -421,8 +498,8 @@ serve(async (req) => {
 
     console.log('Found historic data:', historicData?.length || 0, 'experiments:', experimentData?.length || 0);
 
-    // Generate content using Lovable's own algorithm with data insights
-    const generatedContent = generateLandingPageContent({
+    // Generate content using Lovable's own algorithm with data insights and AI images
+    const generatedContent = await generateLandingPageContent({
       campaignObjective,
       targetAudience,
       uniqueValueProp,
