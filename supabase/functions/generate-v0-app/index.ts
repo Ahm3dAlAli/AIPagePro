@@ -15,13 +15,84 @@ interface GenerateRequest {
   pageId?: string;
 }
 
+// Generate images using Lovable AI
+async function generateImages(uniqueValueProp: string, industryType: string, benefits: string[]): Promise<any> {
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!lovableApiKey) {
+    console.warn('LOVABLE_API_KEY not found, skipping image generation');
+    return { heroImage: null, benefitImages: [] };
+  }
+
+  try {
+    // Generate hero image
+    const heroPrompt = `A professional, modern hero image for a landing page about ${uniqueValueProp}. Industry: ${industryType}. Style: clean, high-quality, corporate, 16:9 aspect ratio. Ultra high resolution.`;
+    
+    const heroResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-image-preview',
+        messages: [{
+          role: 'user',
+          content: heroPrompt
+        }],
+        modalities: ['image', 'text']
+      })
+    });
+
+    let heroImage = null;
+    if (heroResponse.ok) {
+      const heroData = await heroResponse.json();
+      heroImage = heroData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    }
+
+    // Generate benefit/feature images (limit to 3 for performance)
+    const benefitImages = [];
+    for (let i = 0; i < Math.min(3, benefits.length); i++) {
+      const benefitPrompt = `An icon-style illustration representing: ${benefits[i]}. Style: modern, clean, minimalist, centered on white background. Square aspect ratio. Ultra high resolution.`;
+      
+      const benefitResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-image-preview',
+          messages: [{
+            role: 'user',
+            content: benefitPrompt
+          }],
+          modalities: ['image', 'text']
+        })
+      });
+
+      if (benefitResponse.ok) {
+        const benefitData = await benefitResponse.json();
+        const imageUrl = benefitData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        if (imageUrl) {
+          benefitImages.push(imageUrl);
+        }
+      }
+    }
+
+    return { heroImage, benefitImages };
+  } catch (error) {
+    console.error('Error generating images:', error);
+    return { heroImage: null, benefitImages: [] };
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Starting v0 app generation');
+    console.log('Starting v0 app generation with AI image generation');
     
     const V0_API_KEY = Deno.env.get('V0_API_KEY');
     if (!V0_API_KEY) {
@@ -67,6 +138,16 @@ serve(async (req) => {
     console.log('Received engineering prompt, length:', engineeringPrompt?.length || 0);
     console.log('Page ID:', pageId || 'none');
     
+    // Generate AI images before v0 chat
+    console.log('Step 1: Generating AI images...');
+    const benefitsList = campaignConfig?.primaryBenefits?.split('\n').filter((b: string) => b.trim()).map((b: string) => b.replace(/^[•\-\*]\s*/, '')) || [];
+    const images = await generateImages(
+      campaignConfig?.uniqueValueProp || 'landing page',
+      campaignConfig?.industryType || 'business',
+      benefitsList
+    );
+    console.log('Generated images:', images.heroImage ? 'hero image created' : 'no hero image', `${images.benefitImages.length} benefit images`);
+    
     console.log('Step 2: Initializing v0 chat with context files...');
     
     // Create v0 client
@@ -98,7 +179,7 @@ serve(async (req) => {
     console.log('Chat initialized:', chat.id);
     console.log('Chat demo URL:', chat.demo);
 
-    // Save initial chat info immediately
+    // Save initial chat info immediately with generated images
     if (pageId) {
       await supabaseClient
         .from('generated_pages')
@@ -108,6 +189,7 @@ serve(async (req) => {
             demoUrl: chat.demo,
             prdDocument,
             campaignConfig,
+            images,
             generatedWith: 'v0-api',
             status: 'generating',
             timestamp: new Date().toISOString()
@@ -171,7 +253,8 @@ serve(async (req) => {
             components,
             files: msgResponse.files,
             prdDocument,
-            campaignConfig
+            campaignConfig,
+            images
           });
           console.log('Components saved successfully');
 
