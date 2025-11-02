@@ -216,27 +216,14 @@ serve(async (req) => {
     
     const backgroundGeneration = async () => {
       try {
-        console.log('Sending engineering prompt to v0 with generated images...');
+        console.log('Sending engineering prompt to v0 (images stored separately)...');
         
-        // Prepare message with images
-        let enhancedPrompt = engineeringPrompt;
-        if (images.heroImage || images.benefitImages.length > 0) {
-          enhancedPrompt += '\n\n## AI-Generated Images for the Landing Page:\n';
-          if (images.heroImage) {
-            enhancedPrompt += `\n### Hero Image:\n![Hero Image](${images.heroImage})\nUse this as the main hero section background or featured image.\n`;
-          }
-          if (images.benefitImages.length > 0) {
-            enhancedPrompt += '\n### Benefit/Feature Images:\n';
-            images.benefitImages.forEach((img: string, idx: number) => {
-              enhancedPrompt += `${idx + 1}. ![Benefit ${idx + 1}](${img})\n`;
-            });
-            enhancedPrompt += '\nUse these images for the benefits or features sections.\n';
-          }
-        }
+        // Note: Images are generated and stored in DB, but not sent to v0 
+        // to avoid 413 content length errors. v0 generates its own images.
         
         const messageResponse = await v0.chats.sendMessage({
           chatId: chat.id,
-          message: enhancedPrompt,
+          message: engineeringPrompt,
           modelConfiguration: {
             modelId: 'v0-1.5-lg',
           },
